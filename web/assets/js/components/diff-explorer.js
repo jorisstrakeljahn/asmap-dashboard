@@ -1,4 +1,5 @@
 import { formatDate, formatNumber, formatPercent } from "../format.js";
+import * as topMoversTable from "./top-movers-table.js";
 
 export function mount(parent, payload) {
     if (!payload.maps.length || !payload.diffs.length) {
@@ -90,7 +91,11 @@ function renderResults(parent, diffs, fromName, toName) {
     const card = document.createElement("article");
     card.className = "card diff-results";
     card.append(matchBanner(diff), classificationRow(diff), stackedBar(diff));
-    parent.replaceChildren(card);
+
+    const topMoversSlot = document.createElement("div");
+    topMoversTable.mount(topMoversSlot, diff);
+
+    parent.replaceChildren(card, topMoversSlot);
 }
 
 // metrics.json stores every diff once with from < to (chronological).
@@ -119,6 +124,16 @@ function invertDiff(diff, fromName, toName) {
         entries_b: diff.entries_a,
         newly_mapped: diff.unmapped,
         unmapped: diff.newly_mapped,
+        top_movers: (diff.top_movers || []).map(invertTopMover),
+    };
+}
+
+function invertTopMover(row) {
+    if (row.gained === undefined && row.lost === undefined) return row;
+    return {
+        ...row,
+        gained: row.lost ?? 0,
+        lost: row.gained ?? 0,
     };
 }
 
