@@ -135,3 +135,47 @@
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
 }
+
+.chart-card {
+    min-height: auto;
+}
+
+.chart {
+    width: 100%;
+    height: auto;
+    margin-top: var(--space-2);
+}
+
+.chart__grid,
+.chart__zero {
+    stroke: var(--color-divider);
+    stroke-width: 1;
+    fill: none;
+}
+
+.chart__zero {
+    stroke: var(--color-border);
+}
+
+.chart__y-label,
+.chart__x-label {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    fill: var(--color-text-subtle);
+}
+
+.chart__line {
+    fill: none;
+    stroke: var(--color-accent);
+    stroke-width: 2;
+}
+
+.chart__dot {
+    fill: var(--color-accent);
+    stroke: var(--color-bg);
+    stroke-width: 2;
+}
+
+.chart__bar {
+    fill: var(--color-accent);
+}

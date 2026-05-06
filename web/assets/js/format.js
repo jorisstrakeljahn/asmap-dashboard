@@ -32,3 +32,10 @@ export function daysBetween(isoDate, reference = new Date()) {
     const ms = reference.getTime() - then.getTime();
     return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
 }
+
+export function shortDate(isoDate) {
+    const d = new Date(isoDate);
+    const month = d.toLocaleString("en-US", { month: "short" });
+    const year = String(d.getFullYear()).slice(-2);
+    return `${month} ${year}`;
+}

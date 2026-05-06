@@ -1,5 +1,7 @@
 import { formatDate } from "./format.js";
 import * as overviewCards from "./components/overview-cards.js";
+import * as mapSizeChart from "./components/map-size-chart.js";
+import * as mapDeltaChart from "./components/map-delta-chart.js";
 
 const METRICS_URL = "assets/data/metrics.json";
 
@@ -32,6 +34,14 @@ async function init() {
 
     renderLastBuild(payload.maps);
     overviewCards.mount(document.querySelector("[data-overview]"), payload.maps);
+    mapSizeChart.mount(
+        document.querySelector("[data-map-size-chart]"),
+        payload.maps,
+    );
+    mapDeltaChart.mount(
+        document.querySelector("[data-map-delta-chart]"),
+        payload.maps,
+    );
 }
 
 init();
