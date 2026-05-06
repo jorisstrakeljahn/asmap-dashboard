@@ -2,6 +2,7 @@ import { formatDate } from "./format.js";
 import * as overviewCards from "./components/overview-cards.js";
 import * as mapSizeChart from "./components/map-size-chart.js";
 import * as mapDeltaChart from "./components/map-delta-chart.js";
+import * as diffExplorer from "./components/diff-explorer.js";
 
 const METRICS_URL = "assets/data/metrics.json";
 
@@ -42,6 +43,7 @@ async function init() {
         document.querySelector("[data-map-delta-chart]"),
         payload.maps,
     );
+    diffExplorer.mount(document.querySelector("[data-diff]"), payload);
 }
 
 init();
