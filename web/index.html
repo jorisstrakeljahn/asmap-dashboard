@@ -3,9 +3,34 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>asmap-dashboard</title>
+        <title>ASmap Dashboard</title>
         <link rel="stylesheet" href="assets/css/tokens.css" />
         <link rel="stylesheet" href="assets/css/base.css" />
+        <link rel="stylesheet" href="assets/css/maps.css" />
     </head>
-    <body></body>
+    <body>
+        <header class="site-header">
+            <a class="site-header__logo" href="./">ASmap Dashboard</a>
+            <nav class="site-header__nav" aria-label="Primary">
+                <a class="site-header__nav-link is-active" href="#" aria-current="page">Maps</a>
+            </nav>
+            <span class="site-header__meta" data-last-build></span>
+        </header>
+
+        <main class="content">
+            <section class="section" aria-labelledby="overview-title">
+                <h2 id="overview-title" class="section__title">Overview</h2>
+                <p class="section__lede">
+                    Key metrics from the latest ASmap build
+                </p>
+                <div class="section__body" data-overview></div>
+            </section>
+
+            <section class="section" aria-labelledby="diff-title">
+                <h2 id="diff-title" class="section__title">Diff Explorer</h2>
+                <p class="section__lede">Compare any two ASmap builds</p>
+                <div class="section__body" data-diff></div>
+            </section>
+        </main>
+    </body>
 </html>
