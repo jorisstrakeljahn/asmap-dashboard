@@ -1,0 +1,4574 @@
+{
+  "diffs": [
+    {
+      "entries_a": 377653,
+      "entries_b": 385660,
+      "from": "2025/1742572800_asmap.dat",
+      "newly_mapped": 93,
+      "reassigned": 73784,
+      "to": "2025/1755187200_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 7018,
+          "changes": 3713,
+          "primary_counterpart": 2386
+        },
+        {
+          "asn": 834,
+          "changes": 3081,
+          "primary_counterpart": 6849
+        },
+        {
+          "asn": 174,
+          "changes": 2024,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 14618,
+          "changes": 1982,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 16509,
+          "changes": 1577,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 19905,
+          "changes": 1317,
+          "primary_counterpart": 8851
+        },
+        {
+          "asn": 3257,
+          "changes": 1260,
+          "primary_counterpart": 9009
+        },
+        {
+          "asn": 701,
+          "changes": 1082,
+          "primary_counterpart": 6256
+        },
+        {
+          "asn": 3356,
+          "changes": 932,
+          "primary_counterpart": 8895
+        },
+        {
+          "asn": 9304,
+          "changes": 760,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 60781,
+          "changes": 693,
+          "primary_counterpart": 30633
+        },
+        {
+          "asn": 9009,
+          "changes": 676,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 4134,
+          "changes": 653,
+          "primary_counterpart": 140292
+        },
+        {
+          "asn": 17561,
+          "changes": 641,
+          "primary_counterpart": 134548
+        },
+        {
+          "asn": 18779,
+          "changes": 628,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 396606,
+          "changes": 607,
+          "primary_counterpart": 397211
+        },
+        {
+          "asn": 7029,
+          "changes": 598,
+          "primary_counterpart": 60781
+        },
+        {
+          "asn": 6849,
+          "changes": 583,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 2914,
+          "changes": 552,
+          "primary_counterpart": 3949
+        },
+        {
+          "asn": 10515,
+          "changes": 551,
+          "primary_counterpart": 36623
+        },
+        {
+          "asn": 721,
+          "changes": 534,
+          "primary_counterpart": 367
+        },
+        {
+          "asn": 20473,
+          "changes": 527,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 6939,
+          "changes": 526,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 212238,
+          "changes": 520,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 11003,
+          "changes": 512,
+          "primary_counterpart": 834
+        }
+      ],
+      "total_changes": 73877,
+      "unmapped": 0
+    },
+    {
+      "entries_a": 377653,
+      "entries_b": 387376,
+      "from": "2025/1742572800_asmap.dat",
+      "newly_mapped": 93,
+      "reassigned": 83160,
+      "to": "2025/1757606400_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 7018,
+          "changes": 3996,
+          "primary_counterpart": 2386
+        },
+        {
+          "asn": 834,
+          "changes": 3019,
+          "primary_counterpart": 6849
+        },
+        {
+          "asn": 174,
+          "changes": 2271,
+          "primary_counterpart": 30058
+        },
+        {
+          "asn": 14618,
+          "changes": 1987,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 16509,
+          "changes": 1669,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 3257,
+          "changes": 1605,
+          "primary_counterpart": 9009
+        },
+        {
+          "asn": 19905,
+          "changes": 1435,
+          "primary_counterpart": 8851
+        },
+        {
+          "asn": 984,
+          "changes": 1431,
+          "primary_counterpart": 17561
+        },
+        {
+          "asn": 9304,
+          "changes": 1186,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 701,
+          "changes": 1084,
+          "primary_counterpart": 6256
+        },
+        {
+          "asn": 20473,
+          "changes": 1080,
+          "primary_counterpart": 57878
+        },
+        {
+          "asn": 17561,
+          "changes": 1049,
+          "primary_counterpart": 984
+        },
+        {
+          "asn": 10515,
+          "changes": 1034,
+          "primary_counterpart": 396604
+        },
+        {
+          "asn": 3356,
+          "changes": 796,
+          "primary_counterpart": 3549
+        },
+        {
+          "asn": 4134,
+          "changes": 779,
+          "primary_counterpart": 140292
+        },
+        {
+          "asn": 7029,
+          "changes": 756,
+          "primary_counterpart": 7018
+        },
+        {
+          "asn": 60781,
+          "changes": 730,
+          "primary_counterpart": 30633
+        },
+        {
+          "asn": 9009,
+          "changes": 718,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 44477,
+          "changes": 684,
+          "primary_counterpart": 209847
+        },
+        {
+          "asn": 18779,
+          "changes": 679,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 2914,
+          "changes": 675,
+          "primary_counterpart": 3949
+        },
+        {
+          "asn": 6849,
+          "changes": 645,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 212238,
+          "changes": 630,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 721,
+          "changes": 615,
+          "primary_counterpart": 367
+        },
+        {
+          "asn": 396606,
+          "changes": 607,
+          "primary_counterpart": 10515
+        }
+      ],
+      "total_changes": 83253,
+      "unmapped": 0
+    },
+    {
+      "entries_a": 377653,
+      "entries_b": 391254,
+      "from": "2025/1742572800_asmap.dat",
+      "newly_mapped": 93,
+      "reassigned": 101666,
+      "to": "2025/1762444800_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 7018,
+          "changes": 4021,
+          "primary_counterpart": 2386
+        },
+        {
+          "asn": 834,
+          "changes": 3462,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 174,
+          "changes": 2967,
+          "primary_counterpart": 30058
+        },
+        {
+          "asn": 14618,
+          "changes": 2851,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 3257,
+          "changes": 2732,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 16509,
+          "changes": 2378,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 19905,
+          "changes": 1820,
+          "primary_counterpart": 30036
+        },
+        {
+          "asn": 4155,
+          "changes": 1607,
+          "primary_counterpart": 4152
+        },
+        {
+          "asn": 4152,
+          "changes": 1593,
+          "primary_counterpart": 4155
+        },
+        {
+          "asn": 984,
+          "changes": 1563,
+          "primary_counterpart": 17561
+        },
+        {
+          "asn": 10515,
+          "changes": 1552,
+          "primary_counterpart": 396606
+        },
+        {
+          "asn": 9304,
+          "changes": 1335,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 4134,
+          "changes": 1261,
+          "primary_counterpart": 140292
+        },
+        {
+          "asn": 20473,
+          "changes": 1157,
+          "primary_counterpart": 57878
+        },
+        {
+          "asn": 17561,
+          "changes": 1112,
+          "primary_counterpart": 984
+        },
+        {
+          "asn": 701,
+          "changes": 1094,
+          "primary_counterpart": 6256
+        },
+        {
+          "asn": 9009,
+          "changes": 978,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 7029,
+          "changes": 977,
+          "primary_counterpart": 60781
+        },
+        {
+          "asn": 212238,
+          "changes": 932,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 60781,
+          "changes": 929,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 3356,
+          "changes": 924,
+          "primary_counterpart": 3549
+        },
+        {
+          "asn": 2914,
+          "changes": 816,
+          "primary_counterpart": 3949
+        },
+        {
+          "asn": 367,
+          "changes": 763,
+          "primary_counterpart": 56
+        },
+        {
+          "asn": 18779,
+          "changes": 749,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 6849,
+          "changes": 740,
+          "primary_counterpart": 834
+        }
+      ],
+      "total_changes": 101759,
+      "unmapped": 0
+    },
+    {
+      "entries_a": 377653,
+      "entries_b": 393335,
+      "from": "2025/1742572800_asmap.dat",
+      "newly_mapped": 0,
+      "reassigned": 110195,
+      "to": "2025/1764864000_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 7018,
+          "changes": 4181,
+          "primary_counterpart": 2386
+        },
+        {
+          "asn": 834,
+          "changes": 4069,
+          "primary_counterpart": 6849
+        },
+        {
+          "asn": 14618,
+          "changes": 3397,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 174,
+          "changes": 3391,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 3257,
+          "changes": 3030,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 16509,
+          "changes": 2881,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 19905,
+          "changes": 1906,
+          "primary_counterpart": 30036
+        },
+        {
+          "asn": 984,
+          "changes": 1610,
+          "primary_counterpart": 17561
+        },
+        {
+          "asn": 4155,
+          "changes": 1607,
+          "primary_counterpart": 4152
+        },
+        {
+          "asn": 4152,
+          "changes": 1593,
+          "primary_counterpart": 4155
+        },
+        {
+          "asn": 10515,
+          "changes": 1575,
+          "primary_counterpart": 396606
+        },
+        {
+          "asn": 4134,
+          "changes": 1456,
+          "primary_counterpart": 140292
+        },
+        {
+          "asn": 17561,
+          "changes": 1439,
+          "primary_counterpart": 984
+        },
+        {
+          "asn": 20473,
+          "changes": 1150,
+          "primary_counterpart": 57878
+        },
+        {
+          "asn": 701,
+          "changes": 1109,
+          "primary_counterpart": 6256
+        },
+        {
+          "asn": 9304,
+          "changes": 1101,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 9009,
+          "changes": 1076,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 212238,
+          "changes": 1073,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 7029,
+          "changes": 1070,
+          "primary_counterpart": 60781
+        },
+        {
+          "asn": 60781,
+          "changes": 952,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 2914,
+          "changes": 904,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 3356,
+          "changes": 901,
+          "primary_counterpart": 3549
+        },
+        {
+          "asn": 367,
+          "changes": 817,
+          "primary_counterpart": 56
+        },
+        {
+          "asn": 18779,
+          "changes": 781,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 721,
+          "changes": 754,
+          "primary_counterpart": 367
+        }
+      ],
+      "total_changes": 110195,
+      "unmapped": 0
+    },
+    {
+      "entries_a": 377653,
+      "entries_b": 395389,
+      "from": "2025/1742572800_asmap.dat",
+      "newly_mapped": 0,
+      "reassigned": 122852,
+      "to": "2026/1767888000_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 4388,
+          "primary_counterpart": 6849
+        },
+        {
+          "asn": 7018,
+          "changes": 4195,
+          "primary_counterpart": 2386
+        },
+        {
+          "asn": 174,
+          "changes": 3985,
+          "primary_counterpart": 1239
+        },
+        {
+          "asn": 14618,
+          "changes": 3886,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 3257,
+          "changes": 3289,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 16509,
+          "changes": 3155,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 19905,
+          "changes": 2380,
+          "primary_counterpart": 30036
+        },
+        {
+          "asn": 984,
+          "changes": 1666,
+          "primary_counterpart": 17561
+        },
+        {
+          "asn": 4155,
+          "changes": 1607,
+          "primary_counterpart": 4152
+        },
+        {
+          "asn": 4134,
+          "changes": 1599,
+          "primary_counterpart": 140292
+        },
+        {
+          "asn": 4152,
+          "changes": 1593,
+          "primary_counterpart": 4155
+        },
+        {
+          "asn": 10515,
+          "changes": 1575,
+          "primary_counterpart": 396606
+        },
+        {
+          "asn": 17561,
+          "changes": 1556,
+          "primary_counterpart": 984
+        },
+        {
+          "asn": 212238,
+          "changes": 1238,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 2914,
+          "changes": 1208,
+          "primary_counterpart": 201115
+        },
+        {
+          "asn": 20473,
+          "changes": 1192,
+          "primary_counterpart": 57878
+        },
+        {
+          "asn": 367,
+          "changes": 1190,
+          "primary_counterpart": 27064
+        },
+        {
+          "asn": 701,
+          "changes": 1180,
+          "primary_counterpart": 6256
+        },
+        {
+          "asn": 7029,
+          "changes": 1174,
+          "primary_counterpart": 7018
+        },
+        {
+          "asn": 9009,
+          "changes": 1134,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 3356,
+          "changes": 1020,
+          "primary_counterpart": 3549
+        },
+        {
+          "asn": 60781,
+          "changes": 986,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 9304,
+          "changes": 964,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 198949,
+          "changes": 947,
+          "primary_counterpart": 15557
+        },
+        {
+          "asn": 18779,
+          "changes": 812,
+          "primary_counterpart": 834
+        }
+      ],
+      "total_changes": 122852,
+      "unmapped": 0
+    },
+    {
+      "entries_a": 377653,
+      "entries_b": 397278,
+      "from": "2025/1742572800_asmap.dat",
+      "newly_mapped": 94,
+      "reassigned": 128945,
+      "to": "2026/1770307200_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 4351,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 7018,
+          "changes": 4226,
+          "primary_counterpart": 2386
+        },
+        {
+          "asn": 174,
+          "changes": 4134,
+          "primary_counterpart": 1239
+        },
+        {
+          "asn": 14618,
+          "changes": 3977,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 16509,
+          "changes": 3439,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 3257,
+          "changes": 3344,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 19905,
+          "changes": 2169,
+          "primary_counterpart": 30036
+        },
+        {
+          "asn": 4134,
+          "changes": 1677,
+          "primary_counterpart": 140292
+        },
+        {
+          "asn": 984,
+          "changes": 1632,
+          "primary_counterpart": 17561
+        },
+        {
+          "asn": 4155,
+          "changes": 1607,
+          "primary_counterpart": 4152
+        },
+        {
+          "asn": 4152,
+          "changes": 1593,
+          "primary_counterpart": 4155
+        },
+        {
+          "asn": 17561,
+          "changes": 1575,
+          "primary_counterpart": 984
+        },
+        {
+          "asn": 10515,
+          "changes": 1575,
+          "primary_counterpart": 396606
+        },
+        {
+          "asn": 3356,
+          "changes": 1291,
+          "primary_counterpart": 3549
+        },
+        {
+          "asn": 20473,
+          "changes": 1259,
+          "primary_counterpart": 57878
+        },
+        {
+          "asn": 212238,
+          "changes": 1229,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 7029,
+          "changes": 1226,
+          "primary_counterpart": 7018
+        },
+        {
+          "asn": 367,
+          "changes": 1204,
+          "primary_counterpart": 27064
+        },
+        {
+          "asn": 701,
+          "changes": 1186,
+          "primary_counterpart": 6256
+        },
+        {
+          "asn": 9009,
+          "changes": 1176,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 2914,
+          "changes": 1175,
+          "primary_counterpart": 201115
+        },
+        {
+          "asn": 9304,
+          "changes": 1130,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 60781,
+          "changes": 1067,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 198949,
+          "changes": 968,
+          "primary_counterpart": 15557
+        },
+        {
+          "asn": 18779,
+          "changes": 831,
+          "primary_counterpart": 834
+        }
+      ],
+      "total_changes": 129039,
+      "unmapped": 0
+    },
+    {
+      "entries_a": 377653,
+      "entries_b": 399450,
+      "from": "2025/1742572800_asmap.dat",
+      "newly_mapped": 0,
+      "reassigned": 137133,
+      "to": "2026/1772726400_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 5014,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 174,
+          "changes": 4458,
+          "primary_counterpart": 1239
+        },
+        {
+          "asn": 14618,
+          "changes": 4370,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 7018,
+          "changes": 4297,
+          "primary_counterpart": 2386
+        },
+        {
+          "asn": 16509,
+          "changes": 3679,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 3257,
+          "changes": 3556,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 19905,
+          "changes": 2335,
+          "primary_counterpart": 30036
+        },
+        {
+          "asn": 4134,
+          "changes": 1698,
+          "primary_counterpart": 140292
+        },
+        {
+          "asn": 17561,
+          "changes": 1639,
+          "primary_counterpart": 984
+        },
+        {
+          "asn": 4155,
+          "changes": 1603,
+          "primary_counterpart": 4152
+        },
+        {
+          "asn": 4152,
+          "changes": 1593,
+          "primary_counterpart": 4155
+        },
+        {
+          "asn": 10515,
+          "changes": 1583,
+          "primary_counterpart": 396606
+        },
+        {
+          "asn": 984,
+          "changes": 1581,
+          "primary_counterpart": 17561
+        },
+        {
+          "asn": 212238,
+          "changes": 1306,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 3356,
+          "changes": 1284,
+          "primary_counterpart": 3549
+        },
+        {
+          "asn": 20473,
+          "changes": 1271,
+          "primary_counterpart": 57878
+        },
+        {
+          "asn": 7029,
+          "changes": 1260,
+          "primary_counterpart": 7018
+        },
+        {
+          "asn": 2914,
+          "changes": 1249,
+          "primary_counterpart": 1299
+        },
+        {
+          "asn": 9009,
+          "changes": 1224,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 367,
+          "changes": 1189,
+          "primary_counterpart": 27064
+        },
+        {
+          "asn": 701,
+          "changes": 1186,
+          "primary_counterpart": 6256
+        },
+        {
+          "asn": 60781,
+          "changes": 1076,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 6079,
+          "changes": 966,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 721,
+          "changes": 965,
+          "primary_counterpart": 367
+        },
+        {
+          "asn": 198949,
+          "changes": 961,
+          "primary_counterpart": 15557
+        }
+      ],
+      "total_changes": 137133,
+      "unmapped": 0
+    },
+    {
+      "entries_a": 385660,
+      "entries_b": 387376,
+      "from": "2025/1755187200_asmap.dat",
+      "newly_mapped": 0,
+      "reassigned": 22335,
+      "to": "2025/1757606400_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 984,
+          "changes": 1678,
+          "primary_counterpart": 17561
+        },
+        {
+          "asn": 834,
+          "changes": 1245,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 14618,
+          "changes": 1178,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 16509,
+          "changes": 1001,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 17561,
+          "changes": 898,
+          "primary_counterpart": 984
+        },
+        {
+          "asn": 20473,
+          "changes": 669,
+          "primary_counterpart": 57878
+        },
+        {
+          "asn": 10515,
+          "changes": 669,
+          "primary_counterpart": 20362
+        },
+        {
+          "asn": 174,
+          "changes": 582,
+          "primary_counterpart": 30058
+        },
+        {
+          "asn": 9304,
+          "changes": 531,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 57878,
+          "changes": 509,
+          "primary_counterpart": 20473
+        },
+        {
+          "asn": 7018,
+          "changes": 414,
+          "primary_counterpart": 7029
+        },
+        {
+          "asn": 3356,
+          "changes": 356,
+          "primary_counterpart": 203
+        },
+        {
+          "asn": 3257,
+          "changes": 335,
+          "primary_counterpart": 984
+        },
+        {
+          "asn": 7029,
+          "changes": 310,
+          "primary_counterpart": 7018
+        },
+        {
+          "asn": 19905,
+          "changes": 266,
+          "primary_counterpart": 30036
+        },
+        {
+          "asn": 44477,
+          "changes": 265,
+          "primary_counterpart": 209847
+        },
+        {
+          "asn": 203020,
+          "changes": 253,
+          "primary_counterpart": 984
+        },
+        {
+          "asn": 2914,
+          "changes": 238,
+          "primary_counterpart": 6424
+        },
+        {
+          "asn": 203,
+          "changes": 237,
+          "primary_counterpart": 3356
+        },
+        {
+          "asn": 3491,
+          "changes": 230,
+          "primary_counterpart": 31713
+        },
+        {
+          "asn": 31713,
+          "changes": 227,
+          "primary_counterpart": 3491
+        },
+        {
+          "asn": 367,
+          "changes": 204,
+          "primary_counterpart": 1540
+        },
+        {
+          "asn": 212238,
+          "changes": 203,
+          "primary_counterpart": 136787
+        },
+        {
+          "asn": 721,
+          "changes": 201,
+          "primary_counterpart": 367
+        },
+        {
+          "asn": 209847,
+          "changes": 200,
+          "primary_counterpart": 44477
+        }
+      ],
+      "total_changes": 22335,
+      "unmapped": 0
+    },
+    {
+      "entries_a": 385660,
+      "entries_b": 391254,
+      "from": "2025/1755187200_asmap.dat",
+      "newly_mapped": 0,
+      "reassigned": 48137,
+      "to": "2025/1762444800_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 2384,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 4155,
+          "changes": 1822,
+          "primary_counterpart": 4152
+        },
+        {
+          "asn": 4152,
+          "changes": 1812,
+          "primary_counterpart": 4155
+        },
+        {
+          "asn": 984,
+          "changes": 1807,
+          "primary_counterpart": 17561
+        },
+        {
+          "asn": 14618,
+          "changes": 1802,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 16509,
+          "changes": 1798,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 174,
+          "changes": 1523,
+          "primary_counterpart": 30058
+        },
+        {
+          "asn": 3257,
+          "changes": 1462,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 10515,
+          "changes": 1184,
+          "primary_counterpart": 20362
+        },
+        {
+          "asn": 9304,
+          "changes": 1105,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 17561,
+          "changes": 959,
+          "primary_counterpart": 984
+        },
+        {
+          "asn": 4134,
+          "changes": 920,
+          "primary_counterpart": 140292
+        },
+        {
+          "asn": 20473,
+          "changes": 787,
+          "primary_counterpart": 57878
+        },
+        {
+          "asn": 19905,
+          "changes": 717,
+          "primary_counterpart": 28885
+        },
+        {
+          "asn": 7018,
+          "changes": 645,
+          "primary_counterpart": 4466
+        },
+        {
+          "asn": 140292,
+          "changes": 642,
+          "primary_counterpart": 4134
+        },
+        {
+          "asn": 7029,
+          "changes": 599,
+          "primary_counterpart": 50113
+        },
+        {
+          "asn": 212238,
+          "changes": 597,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 6079,
+          "changes": 551,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 9009,
+          "changes": 533,
+          "primary_counterpart": 212238
+        },
+        {
+          "asn": 57878,
+          "changes": 529,
+          "primary_counterpart": 20473
+        },
+        {
+          "asn": 3356,
+          "changes": 513,
+          "primary_counterpart": 203
+        },
+        {
+          "asn": 154049,
+          "changes": 507,
+          "primary_counterpart": 60781
+        },
+        {
+          "asn": 44477,
+          "changes": 467,
+          "primary_counterpart": 209847
+        },
+        {
+          "asn": 60781,
+          "changes": 446,
+          "primary_counterpart": 154049
+        }
+      ],
+      "total_changes": 48137,
+      "unmapped": 0
+    },
+    {
+      "entries_a": 385660,
+      "entries_b": 393335,
+      "from": "2025/1755187200_asmap.dat",
+      "newly_mapped": 0,
+      "reassigned": 60884,
+      "to": "2025/1764864000_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 2968,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 14618,
+          "changes": 2353,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 16509,
+          "changes": 2193,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 174,
+          "changes": 2062,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 984,
+          "changes": 1871,
+          "primary_counterpart": 17561
+        },
+        {
+          "asn": 4155,
+          "changes": 1822,
+          "primary_counterpart": 4152
+        },
+        {
+          "asn": 4152,
+          "changes": 1812,
+          "primary_counterpart": 4155
+        },
+        {
+          "asn": 3257,
+          "changes": 1799,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 17561,
+          "changes": 1333,
+          "primary_counterpart": 984
+        },
+        {
+          "asn": 9304,
+          "changes": 1303,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 10515,
+          "changes": 1300,
+          "primary_counterpart": 20362
+        },
+        {
+          "asn": 4134,
+          "changes": 1162,
+          "primary_counterpart": 140292
+        },
+        {
+          "asn": 19905,
+          "changes": 875,
+          "primary_counterpart": 30036
+        },
+        {
+          "asn": 7018,
+          "changes": 859,
+          "primary_counterpart": 4466
+        },
+        {
+          "asn": 212238,
+          "changes": 818,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 20473,
+          "changes": 806,
+          "primary_counterpart": 57878
+        },
+        {
+          "asn": 7029,
+          "changes": 703,
+          "primary_counterpart": 50113
+        },
+        {
+          "asn": 6079,
+          "changes": 685,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 3356,
+          "changes": 682,
+          "primary_counterpart": 203
+        },
+        {
+          "asn": 140292,
+          "changes": 663,
+          "primary_counterpart": 4134
+        },
+        {
+          "asn": 9009,
+          "changes": 657,
+          "primary_counterpart": 212238
+        },
+        {
+          "asn": 57878,
+          "changes": 540,
+          "primary_counterpart": 20473
+        },
+        {
+          "asn": 2914,
+          "changes": 535,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 154049,
+          "changes": 504,
+          "primary_counterpart": 60781
+        },
+        {
+          "asn": 367,
+          "changes": 494,
+          "primary_counterpart": 56
+        }
+      ],
+      "total_changes": 60977,
+      "unmapped": 93
+    },
+    {
+      "entries_a": 385660,
+      "entries_b": 395389,
+      "from": "2025/1755187200_asmap.dat",
+      "newly_mapped": 0,
+      "reassigned": 77410,
+      "to": "2026/1767888000_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 3456,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 14618,
+          "changes": 2802,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 174,
+          "changes": 2785,
+          "primary_counterpart": 1239
+        },
+        {
+          "asn": 16509,
+          "changes": 2589,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 3257,
+          "changes": 2099,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 984,
+          "changes": 1928,
+          "primary_counterpart": 17561
+        },
+        {
+          "asn": 4155,
+          "changes": 1822,
+          "primary_counterpart": 4152
+        },
+        {
+          "asn": 4152,
+          "changes": 1812,
+          "primary_counterpart": 4155
+        },
+        {
+          "asn": 19905,
+          "changes": 1733,
+          "primary_counterpart": 30036
+        },
+        {
+          "asn": 17561,
+          "changes": 1439,
+          "primary_counterpart": 984
+        },
+        {
+          "asn": 9304,
+          "changes": 1328,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 4134,
+          "changes": 1322,
+          "primary_counterpart": 140292
+        },
+        {
+          "asn": 10515,
+          "changes": 1300,
+          "primary_counterpart": 20362
+        },
+        {
+          "asn": 212238,
+          "changes": 984,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 198949,
+          "changes": 914,
+          "primary_counterpart": 15557
+        },
+        {
+          "asn": 367,
+          "changes": 879,
+          "primary_counterpart": 56
+        },
+        {
+          "asn": 7029,
+          "changes": 873,
+          "primary_counterpart": 7018
+        },
+        {
+          "asn": 2914,
+          "changes": 856,
+          "primary_counterpart": 201115
+        },
+        {
+          "asn": 7018,
+          "changes": 856,
+          "primary_counterpart": 4466
+        },
+        {
+          "asn": 20473,
+          "changes": 851,
+          "primary_counterpart": 57878
+        },
+        {
+          "asn": 3356,
+          "changes": 836,
+          "primary_counterpart": 8895
+        },
+        {
+          "asn": 6079,
+          "changes": 773,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 9009,
+          "changes": 742,
+          "primary_counterpart": 212238
+        },
+        {
+          "asn": 140292,
+          "changes": 665,
+          "primary_counterpart": 4134
+        },
+        {
+          "asn": 44559,
+          "changes": 642,
+          "primary_counterpart": 214238
+        }
+      ],
+      "total_changes": 77503,
+      "unmapped": 93
+    },
+    {
+      "entries_a": 385660,
+      "entries_b": 397278,
+      "from": "2025/1755187200_asmap.dat",
+      "newly_mapped": 1,
+      "reassigned": 85330,
+      "to": "2026/1770307200_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 3511,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 14618,
+          "changes": 3026,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 174,
+          "changes": 3009,
+          "primary_counterpart": 1239
+        },
+        {
+          "asn": 16509,
+          "changes": 2878,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 3257,
+          "changes": 2203,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 984,
+          "changes": 1905,
+          "primary_counterpart": 17561
+        },
+        {
+          "asn": 4155,
+          "changes": 1822,
+          "primary_counterpart": 4152
+        },
+        {
+          "asn": 19905,
+          "changes": 1815,
+          "primary_counterpart": 30036
+        },
+        {
+          "asn": 4152,
+          "changes": 1812,
+          "primary_counterpart": 4155
+        },
+        {
+          "asn": 9304,
+          "changes": 1490,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 17561,
+          "changes": 1483,
+          "primary_counterpart": 984
+        },
+        {
+          "asn": 4134,
+          "changes": 1415,
+          "primary_counterpart": 140292
+        },
+        {
+          "asn": 10515,
+          "changes": 1300,
+          "primary_counterpart": 20362
+        },
+        {
+          "asn": 212238,
+          "changes": 998,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 367,
+          "changes": 978,
+          "primary_counterpart": 56
+        },
+        {
+          "asn": 198949,
+          "changes": 977,
+          "primary_counterpart": 15557
+        },
+        {
+          "asn": 6079,
+          "changes": 947,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 20473,
+          "changes": 908,
+          "primary_counterpart": 57878
+        },
+        {
+          "asn": 7029,
+          "changes": 903,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 7018,
+          "changes": 878,
+          "primary_counterpart": 7029
+        },
+        {
+          "asn": 9009,
+          "changes": 840,
+          "primary_counterpart": 212238
+        },
+        {
+          "asn": 2914,
+          "changes": 825,
+          "primary_counterpart": 201115
+        },
+        {
+          "asn": 154049,
+          "changes": 706,
+          "primary_counterpart": 60781
+        },
+        {
+          "asn": 140292,
+          "changes": 667,
+          "primary_counterpart": 4134
+        },
+        {
+          "asn": 3356,
+          "changes": 655,
+          "primary_counterpart": 3549
+        }
+      ],
+      "total_changes": 85331,
+      "unmapped": 0
+    },
+    {
+      "entries_a": 385660,
+      "entries_b": 399450,
+      "from": "2025/1755187200_asmap.dat",
+      "newly_mapped": 0,
+      "reassigned": 93968,
+      "to": "2026/1772726400_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 4106,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 14618,
+          "changes": 3491,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 174,
+          "changes": 3397,
+          "primary_counterpart": 1239
+        },
+        {
+          "asn": 16509,
+          "changes": 3130,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 3257,
+          "changes": 2365,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 19905,
+          "changes": 2010,
+          "primary_counterpart": 30036
+        },
+        {
+          "asn": 984,
+          "changes": 1856,
+          "primary_counterpart": 17561
+        },
+        {
+          "asn": 4155,
+          "changes": 1826,
+          "primary_counterpart": 4152
+        },
+        {
+          "asn": 4152,
+          "changes": 1812,
+          "primary_counterpart": 4155
+        },
+        {
+          "asn": 17561,
+          "changes": 1546,
+          "primary_counterpart": 984
+        },
+        {
+          "asn": 4134,
+          "changes": 1445,
+          "primary_counterpart": 140292
+        },
+        {
+          "asn": 10515,
+          "changes": 1308,
+          "primary_counterpart": 20362
+        },
+        {
+          "asn": 6079,
+          "changes": 1115,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 9304,
+          "changes": 1054,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 212238,
+          "changes": 1047,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 198949,
+          "changes": 974,
+          "primary_counterpart": 15557
+        },
+        {
+          "asn": 367,
+          "changes": 969,
+          "primary_counterpart": 56
+        },
+        {
+          "asn": 7029,
+          "changes": 939,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 20473,
+          "changes": 936,
+          "primary_counterpart": 57878
+        },
+        {
+          "asn": 7018,
+          "changes": 933,
+          "primary_counterpart": 4466
+        },
+        {
+          "asn": 2914,
+          "changes": 899,
+          "primary_counterpart": 1299
+        },
+        {
+          "asn": 9009,
+          "changes": 880,
+          "primary_counterpart": 212238
+        },
+        {
+          "asn": 30036,
+          "changes": 701,
+          "primary_counterpart": 19905
+        },
+        {
+          "asn": 3356,
+          "changes": 683,
+          "primary_counterpart": 3549
+        },
+        {
+          "asn": 154049,
+          "changes": 682,
+          "primary_counterpart": 60781
+        }
+      ],
+      "total_changes": 94061,
+      "unmapped": 93
+    },
+    {
+      "entries_a": 387376,
+      "entries_b": 391254,
+      "from": "2025/1757606400_asmap.dat",
+      "newly_mapped": 0,
+      "reassigned": 36740,
+      "to": "2025/1762444800_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 1823,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 4155,
+          "changes": 1815,
+          "primary_counterpart": 4152
+        },
+        {
+          "asn": 4152,
+          "changes": 1804,
+          "primary_counterpart": 4155
+        },
+        {
+          "asn": 14618,
+          "changes": 1612,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 16509,
+          "changes": 1493,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 174,
+          "changes": 1176,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 3257,
+          "changes": 1068,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 9304,
+          "changes": 956,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 4134,
+          "changes": 796,
+          "primary_counterpart": 140292
+        },
+        {
+          "asn": 19905,
+          "changes": 621,
+          "primary_counterpart": 28885
+        },
+        {
+          "asn": 140292,
+          "changes": 592,
+          "primary_counterpart": 4134
+        },
+        {
+          "asn": 7018,
+          "changes": 584,
+          "primary_counterpart": 4466
+        },
+        {
+          "asn": 10515,
+          "changes": 515,
+          "primary_counterpart": 19836
+        },
+        {
+          "asn": 154049,
+          "changes": 507,
+          "primary_counterpart": 60781
+        },
+        {
+          "asn": 7029,
+          "changes": 481,
+          "primary_counterpart": 7018
+        },
+        {
+          "asn": 212238,
+          "changes": 478,
+          "primary_counterpart": 9009
+        },
+        {
+          "asn": 9009,
+          "changes": 454,
+          "primary_counterpart": 212238
+        },
+        {
+          "asn": 3491,
+          "changes": 425,
+          "primary_counterpart": 31713
+        },
+        {
+          "asn": 31713,
+          "changes": 421,
+          "primary_counterpart": 3491
+        },
+        {
+          "asn": 6079,
+          "changes": 391,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 44477,
+          "changes": 357,
+          "primary_counterpart": 44559
+        },
+        {
+          "asn": 5384,
+          "changes": 347,
+          "primary_counterpart": 8966
+        },
+        {
+          "asn": 8966,
+          "changes": 347,
+          "primary_counterpart": 5384
+        },
+        {
+          "asn": 367,
+          "changes": 337,
+          "primary_counterpart": 56
+        },
+        {
+          "asn": 44559,
+          "changes": 327,
+          "primary_counterpart": 44477
+        }
+      ],
+      "total_changes": 36740,
+      "unmapped": 0
+    },
+    {
+      "entries_a": 387376,
+      "entries_b": 393335,
+      "from": "2025/1757606400_asmap.dat",
+      "newly_mapped": 0,
+      "reassigned": 47193,
+      "to": "2025/1764864000_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 2630,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 14618,
+          "changes": 2186,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 16509,
+          "changes": 2101,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 4155,
+          "changes": 1815,
+          "primary_counterpart": 4152
+        },
+        {
+          "asn": 4152,
+          "changes": 1804,
+          "primary_counterpart": 4155
+        },
+        {
+          "asn": 174,
+          "changes": 1686,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 9304,
+          "changes": 1378,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 3257,
+          "changes": 1378,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 4134,
+          "changes": 1039,
+          "primary_counterpart": 140292
+        },
+        {
+          "asn": 17561,
+          "changes": 717,
+          "primary_counterpart": 203020
+        },
+        {
+          "asn": 212238,
+          "changes": 676,
+          "primary_counterpart": 9009
+        },
+        {
+          "asn": 19905,
+          "changes": 637,
+          "primary_counterpart": 28885
+        },
+        {
+          "asn": 10515,
+          "changes": 631,
+          "primary_counterpart": 19836
+        },
+        {
+          "asn": 7018,
+          "changes": 617,
+          "primary_counterpart": 4466
+        },
+        {
+          "asn": 140292,
+          "changes": 613,
+          "primary_counterpart": 4134
+        },
+        {
+          "asn": 7029,
+          "changes": 567,
+          "primary_counterpart": 7018
+        },
+        {
+          "asn": 9009,
+          "changes": 558,
+          "primary_counterpart": 212238
+        },
+        {
+          "asn": 154049,
+          "changes": 504,
+          "primary_counterpart": 60781
+        },
+        {
+          "asn": 6079,
+          "changes": 489,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 42375,
+          "changes": 422,
+          "primary_counterpart": 204490
+        },
+        {
+          "asn": 44559,
+          "changes": 415,
+          "primary_counterpart": 44477
+        },
+        {
+          "asn": 367,
+          "changes": 394,
+          "primary_counterpart": 56
+        },
+        {
+          "asn": 198949,
+          "changes": 378,
+          "primary_counterpart": 13778
+        },
+        {
+          "asn": 44477,
+          "changes": 366,
+          "primary_counterpart": 214238
+        },
+        {
+          "asn": 984,
+          "changes": 366,
+          "primary_counterpart": 17561
+        }
+      ],
+      "total_changes": 47286,
+      "unmapped": 93
+    },
+    {
+      "entries_a": 387376,
+      "entries_b": 395389,
+      "from": "2025/1757606400_asmap.dat",
+      "newly_mapped": 0,
+      "reassigned": 68037,
+      "to": "2026/1767888000_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 3260,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 14618,
+          "changes": 2802,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 16509,
+          "changes": 2559,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 174,
+          "changes": 2485,
+          "primary_counterpart": 1239
+        },
+        {
+          "asn": 4155,
+          "changes": 1815,
+          "primary_counterpart": 4152
+        },
+        {
+          "asn": 4152,
+          "changes": 1804,
+          "primary_counterpart": 4155
+        },
+        {
+          "asn": 3257,
+          "changes": 1718,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 9304,
+          "changes": 1668,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 19905,
+          "changes": 1625,
+          "primary_counterpart": 30036
+        },
+        {
+          "asn": 4134,
+          "changes": 1197,
+          "primary_counterpart": 140292
+        },
+        {
+          "asn": 198949,
+          "changes": 898,
+          "primary_counterpart": 15557
+        },
+        {
+          "asn": 212238,
+          "changes": 862,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 17561,
+          "changes": 843,
+          "primary_counterpart": 203020
+        },
+        {
+          "asn": 7018,
+          "changes": 785,
+          "primary_counterpart": 7029
+        },
+        {
+          "asn": 367,
+          "changes": 782,
+          "primary_counterpart": 27064
+        },
+        {
+          "asn": 7029,
+          "changes": 779,
+          "primary_counterpart": 7018
+        },
+        {
+          "asn": 9009,
+          "changes": 678,
+          "primary_counterpart": 212238
+        },
+        {
+          "asn": 2914,
+          "changes": 664,
+          "primary_counterpart": 201115
+        },
+        {
+          "asn": 10515,
+          "changes": 631,
+          "primary_counterpart": 19836
+        },
+        {
+          "asn": 6079,
+          "changes": 624,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 140292,
+          "changes": 615,
+          "primary_counterpart": 4134
+        },
+        {
+          "asn": 44559,
+          "changes": 599,
+          "primary_counterpart": 214238
+        },
+        {
+          "asn": 42375,
+          "changes": 586,
+          "primary_counterpart": 205866
+        },
+        {
+          "asn": 154049,
+          "changes": 530,
+          "primary_counterpart": 60781
+        },
+        {
+          "asn": 3356,
+          "changes": 526,
+          "primary_counterpart": 0
+        }
+      ],
+      "total_changes": 68130,
+      "unmapped": 93
+    },
+    {
+      "entries_a": 387376,
+      "entries_b": 397278,
+      "from": "2025/1757606400_asmap.dat",
+      "newly_mapped": 1,
+      "reassigned": 76136,
+      "to": "2026/1770307200_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 3281,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 14618,
+          "changes": 2928,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 16509,
+          "changes": 2843,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 174,
+          "changes": 2686,
+          "primary_counterpart": 1239
+        },
+        {
+          "asn": 3257,
+          "changes": 1825,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 9304,
+          "changes": 1815,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 4155,
+          "changes": 1815,
+          "primary_counterpart": 4152
+        },
+        {
+          "asn": 4152,
+          "changes": 1804,
+          "primary_counterpart": 4155
+        },
+        {
+          "asn": 19905,
+          "changes": 1755,
+          "primary_counterpart": 30036
+        },
+        {
+          "asn": 4134,
+          "changes": 1301,
+          "primary_counterpart": 140292
+        },
+        {
+          "asn": 198949,
+          "changes": 963,
+          "primary_counterpart": 15557
+        },
+        {
+          "asn": 367,
+          "changes": 909,
+          "primary_counterpart": 27064
+        },
+        {
+          "asn": 17561,
+          "changes": 902,
+          "primary_counterpart": 203020
+        },
+        {
+          "asn": 212238,
+          "changes": 882,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 7029,
+          "changes": 820,
+          "primary_counterpart": 7018
+        },
+        {
+          "asn": 6079,
+          "changes": 794,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 3356,
+          "changes": 768,
+          "primary_counterpart": 203
+        },
+        {
+          "asn": 7018,
+          "changes": 740,
+          "primary_counterpart": 7029
+        },
+        {
+          "asn": 9009,
+          "changes": 730,
+          "primary_counterpart": 212238
+        },
+        {
+          "asn": 154049,
+          "changes": 719,
+          "primary_counterpart": 60781
+        },
+        {
+          "asn": 2914,
+          "changes": 644,
+          "primary_counterpart": 201115
+        },
+        {
+          "asn": 10515,
+          "changes": 631,
+          "primary_counterpart": 19836
+        },
+        {
+          "asn": 140292,
+          "changes": 628,
+          "primary_counterpart": 4134
+        },
+        {
+          "asn": 42375,
+          "changes": 574,
+          "primary_counterpart": 205866
+        },
+        {
+          "asn": 60781,
+          "changes": 519,
+          "primary_counterpart": 154049
+        }
+      ],
+      "total_changes": 76137,
+      "unmapped": 0
+    },
+    {
+      "entries_a": 387376,
+      "entries_b": 399450,
+      "from": "2025/1757606400_asmap.dat",
+      "newly_mapped": 0,
+      "reassigned": 83593,
+      "to": "2026/1772726400_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 3972,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 14618,
+          "changes": 3145,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 174,
+          "changes": 3107,
+          "primary_counterpart": 1239
+        },
+        {
+          "asn": 16509,
+          "changes": 2852,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 3257,
+          "changes": 1973,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 19905,
+          "changes": 1872,
+          "primary_counterpart": 30036
+        },
+        {
+          "asn": 4155,
+          "changes": 1819,
+          "primary_counterpart": 4152
+        },
+        {
+          "asn": 4152,
+          "changes": 1804,
+          "primary_counterpart": 4155
+        },
+        {
+          "asn": 9304,
+          "changes": 1435,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 4134,
+          "changes": 1331,
+          "primary_counterpart": 140292
+        },
+        {
+          "asn": 17561,
+          "changes": 966,
+          "primary_counterpart": 203020
+        },
+        {
+          "asn": 6079,
+          "changes": 945,
+          "primary_counterpart": 6253
+        },
+        {
+          "asn": 212238,
+          "changes": 936,
+          "primary_counterpart": 3257
+        },
+        {
+          "asn": 198949,
+          "changes": 908,
+          "primary_counterpart": 15557
+        },
+        {
+          "asn": 367,
+          "changes": 900,
+          "primary_counterpart": 1540
+        },
+        {
+          "asn": 7029,
+          "changes": 838,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 3356,
+          "changes": 806,
+          "primary_counterpart": 203
+        },
+        {
+          "asn": 9009,
+          "changes": 773,
+          "primary_counterpart": 212238
+        },
+        {
+          "asn": 7018,
+          "changes": 740,
+          "primary_counterpart": 4466
+        },
+        {
+          "asn": 2914,
+          "changes": 699,
+          "primary_counterpart": 1299
+        },
+        {
+          "asn": 154049,
+          "changes": 695,
+          "primary_counterpart": 60781
+        },
+        {
+          "asn": 30036,
+          "changes": 642,
+          "primary_counterpart": 19905
+        },
+        {
+          "asn": 140292,
+          "changes": 642,
+          "primary_counterpart": 4134
+        },
+        {
+          "asn": 10515,
+          "changes": 639,
+          "primary_counterpart": 19836
+        },
+        {
+          "asn": 60781,
+          "changes": 566,
+          "primary_counterpart": 154049
+        }
+      ],
+      "total_changes": 83686,
+      "unmapped": 93
+    },
+    {
+      "entries_a": 391254,
+      "entries_b": 393335,
+      "from": "2025/1762444800_asmap.dat",
+      "newly_mapped": 0,
+      "reassigned": 21498,
+      "to": "2025/1764864000_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 1948,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 14618,
+          "changes": 1654,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 16509,
+          "changes": 1430,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 174,
+          "changes": 835,
+          "primary_counterpart": 29571
+        },
+        {
+          "asn": 9304,
+          "changes": 783,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 17561,
+          "changes": 497,
+          "primary_counterpart": 203020
+        },
+        {
+          "asn": 3257,
+          "changes": 373,
+          "primary_counterpart": 397630
+        },
+        {
+          "asn": 205886,
+          "changes": 343,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 4134,
+          "changes": 318,
+          "primary_counterpart": 140309
+        },
+        {
+          "asn": 212238,
+          "changes": 306,
+          "primary_counterpart": 9009
+        },
+        {
+          "asn": 42375,
+          "changes": 305,
+          "primary_counterpart": 204490
+        },
+        {
+          "asn": 7018,
+          "changes": 294,
+          "primary_counterpart": 20001
+        },
+        {
+          "asn": 22516,
+          "changes": 262,
+          "primary_counterpart": 20115
+        },
+        {
+          "asn": 198949,
+          "changes": 253,
+          "primary_counterpart": 13778
+        },
+        {
+          "asn": 8987,
+          "changes": 247,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 9009,
+          "changes": 234,
+          "primary_counterpart": 212238
+        },
+        {
+          "asn": 3491,
+          "changes": 233,
+          "primary_counterpart": 31713
+        },
+        {
+          "asn": 31713,
+          "changes": 230,
+          "primary_counterpart": 3491
+        },
+        {
+          "asn": 33659,
+          "changes": 216,
+          "primary_counterpart": 33287
+        },
+        {
+          "asn": 19905,
+          "changes": 209,
+          "primary_counterpart": 30036
+        },
+        {
+          "asn": 33287,
+          "changes": 205,
+          "primary_counterpart": 33659
+        },
+        {
+          "asn": 44559,
+          "changes": 198,
+          "primary_counterpart": 214238
+        },
+        {
+          "asn": 20115,
+          "changes": 192,
+          "primary_counterpart": 22516
+        },
+        {
+          "asn": 25198,
+          "changes": 189,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 721,
+          "changes": 179,
+          "primary_counterpart": 647
+        }
+      ],
+      "total_changes": 21591,
+      "unmapped": 93
+    },
+    {
+      "entries_a": 391254,
+      "entries_b": 395389,
+      "from": "2025/1762444800_asmap.dat",
+      "newly_mapped": 0,
+      "reassigned": 45462,
+      "to": "2026/1767888000_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 3068,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 14618,
+          "changes": 2375,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 16509,
+          "changes": 1974,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 174,
+          "changes": 1676,
+          "primary_counterpart": 1239
+        },
+        {
+          "asn": 9304,
+          "changes": 1311,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 19905,
+          "changes": 1127,
+          "primary_counterpart": 50710
+        },
+        {
+          "asn": 198949,
+          "changes": 869,
+          "primary_counterpart": 15557
+        },
+        {
+          "asn": 17561,
+          "changes": 647,
+          "primary_counterpart": 203020
+        },
+        {
+          "asn": 3257,
+          "changes": 634,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 212238,
+          "changes": 560,
+          "primary_counterpart": 136787
+        },
+        {
+          "asn": 2914,
+          "changes": 522,
+          "primary_counterpart": 201115
+        },
+        {
+          "asn": 4134,
+          "changes": 516,
+          "primary_counterpart": 140318
+        },
+        {
+          "asn": 28006,
+          "changes": 477,
+          "primary_counterpart": 14420
+        },
+        {
+          "asn": 367,
+          "changes": 469,
+          "primary_counterpart": 27064
+        },
+        {
+          "asn": 42375,
+          "changes": 451,
+          "primary_counterpart": 204490
+        },
+        {
+          "asn": 9009,
+          "changes": 445,
+          "primary_counterpart": 209372
+        },
+        {
+          "asn": 1299,
+          "changes": 429,
+          "primary_counterpart": 16347
+        },
+        {
+          "asn": 7018,
+          "changes": 404,
+          "primary_counterpart": 7029
+        },
+        {
+          "asn": 14420,
+          "changes": 394,
+          "primary_counterpart": 28006
+        },
+        {
+          "asn": 9808,
+          "changes": 390,
+          "primary_counterpart": 56045
+        },
+        {
+          "asn": 7029,
+          "changes": 377,
+          "primary_counterpart": 7018
+        },
+        {
+          "asn": 3356,
+          "changes": 359,
+          "primary_counterpart": 0
+        },
+        {
+          "asn": 205886,
+          "changes": 356,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 44559,
+          "changes": 346,
+          "primary_counterpart": 214238
+        },
+        {
+          "asn": 6079,
+          "changes": 305,
+          "primary_counterpart": 174
+        }
+      ],
+      "total_changes": 45555,
+      "unmapped": 93
+    },
+    {
+      "entries_a": 391254,
+      "entries_b": 397278,
+      "from": "2025/1762444800_asmap.dat",
+      "newly_mapped": 1,
+      "reassigned": 54965,
+      "to": "2026/1770307200_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 3364,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 14618,
+          "changes": 2538,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 16509,
+          "changes": 2249,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 174,
+          "changes": 1890,
+          "primary_counterpart": 1239
+        },
+        {
+          "asn": 9304,
+          "changes": 1698,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 19905,
+          "changes": 1232,
+          "primary_counterpart": 50710
+        },
+        {
+          "asn": 198949,
+          "changes": 941,
+          "primary_counterpart": 15557
+        },
+        {
+          "asn": 3257,
+          "changes": 745,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 17561,
+          "changes": 709,
+          "primary_counterpart": 203020
+        },
+        {
+          "asn": 4134,
+          "changes": 675,
+          "primary_counterpart": 140318
+        },
+        {
+          "asn": 3356,
+          "changes": 601,
+          "primary_counterpart": 203
+        },
+        {
+          "asn": 367,
+          "changes": 597,
+          "primary_counterpart": 27064
+        },
+        {
+          "asn": 212238,
+          "changes": 573,
+          "primary_counterpart": 136787
+        },
+        {
+          "asn": 7029,
+          "changes": 511,
+          "primary_counterpart": 7018
+        },
+        {
+          "asn": 2914,
+          "changes": 502,
+          "primary_counterpart": 201115
+        },
+        {
+          "asn": 28006,
+          "changes": 492,
+          "primary_counterpart": 27757
+        },
+        {
+          "asn": 9009,
+          "changes": 488,
+          "primary_counterpart": 209372
+        },
+        {
+          "asn": 6079,
+          "changes": 486,
+          "primary_counterpart": 6253
+        },
+        {
+          "asn": 9808,
+          "changes": 459,
+          "primary_counterpart": 56045
+        },
+        {
+          "asn": 1299,
+          "changes": 452,
+          "primary_counterpart": 16347
+        },
+        {
+          "asn": 42375,
+          "changes": 437,
+          "primary_counterpart": 204490
+        },
+        {
+          "asn": 7018,
+          "changes": 413,
+          "primary_counterpart": 7029
+        },
+        {
+          "asn": 60781,
+          "changes": 397,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 203,
+          "changes": 393,
+          "primary_counterpart": 3356
+        },
+        {
+          "asn": 154049,
+          "changes": 359,
+          "primary_counterpart": 60781
+        }
+      ],
+      "total_changes": 54966,
+      "unmapped": 0
+    },
+    {
+      "entries_a": 391254,
+      "entries_b": 399450,
+      "from": "2025/1762444800_asmap.dat",
+      "newly_mapped": 0,
+      "reassigned": 65265,
+      "to": "2026/1772726400_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 3980,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 14618,
+          "changes": 2828,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 174,
+          "changes": 2309,
+          "primary_counterpart": 1239
+        },
+        {
+          "asn": 16509,
+          "changes": 2271,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 19905,
+          "changes": 1466,
+          "primary_counterpart": 30036
+        },
+        {
+          "asn": 9304,
+          "changes": 1335,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 198949,
+          "changes": 920,
+          "primary_counterpart": 15557
+        },
+        {
+          "asn": 3257,
+          "changes": 882,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 17561,
+          "changes": 777,
+          "primary_counterpart": 203020
+        },
+        {
+          "asn": 4134,
+          "changes": 712,
+          "primary_counterpart": 140318
+        },
+        {
+          "asn": 212238,
+          "changes": 658,
+          "primary_counterpart": 9009
+        },
+        {
+          "asn": 6079,
+          "changes": 648,
+          "primary_counterpart": 6253
+        },
+        {
+          "asn": 3356,
+          "changes": 647,
+          "primary_counterpart": 203
+        },
+        {
+          "asn": 7029,
+          "changes": 620,
+          "primary_counterpart": 7018
+        },
+        {
+          "asn": 2914,
+          "changes": 614,
+          "primary_counterpart": 1299
+        },
+        {
+          "asn": 1299,
+          "changes": 608,
+          "primary_counterpart": 2914
+        },
+        {
+          "asn": 367,
+          "changes": 602,
+          "primary_counterpart": 27064
+        },
+        {
+          "asn": 9009,
+          "changes": 562,
+          "primary_counterpart": 212238
+        },
+        {
+          "asn": 30036,
+          "changes": 543,
+          "primary_counterpart": 19905
+        },
+        {
+          "asn": 28006,
+          "changes": 492,
+          "primary_counterpart": 27757
+        },
+        {
+          "asn": 7018,
+          "changes": 479,
+          "primary_counterpart": 7029
+        },
+        {
+          "asn": 9808,
+          "changes": 477,
+          "primary_counterpart": 56045
+        },
+        {
+          "asn": 721,
+          "changes": 475,
+          "primary_counterpart": 647
+        },
+        {
+          "asn": 401152,
+          "changes": 455,
+          "primary_counterpart": 7385
+        },
+        {
+          "asn": 60781,
+          "changes": 440,
+          "primary_counterpart": 154049
+        }
+      ],
+      "total_changes": 65358,
+      "unmapped": 93
+    },
+    {
+      "entries_a": 393335,
+      "entries_b": 395389,
+      "from": "2025/1764864000_asmap.dat",
+      "newly_mapped": 0,
+      "reassigned": 33333,
+      "to": "2026/1767888000_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 2123,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 174,
+          "changes": 1317,
+          "primary_counterpart": 1239
+        },
+        {
+          "asn": 14618,
+          "changes": 1205,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 19905,
+          "changes": 1098,
+          "primary_counterpart": 50710
+        },
+        {
+          "asn": 16509,
+          "changes": 912,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 198949,
+          "changes": 723,
+          "primary_counterpart": 15557
+        },
+        {
+          "asn": 9304,
+          "changes": 602,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 28006,
+          "changes": 477,
+          "primary_counterpart": 14420
+        },
+        {
+          "asn": 367,
+          "changes": 408,
+          "primary_counterpart": 27064
+        },
+        {
+          "asn": 1299,
+          "changes": 406,
+          "primary_counterpart": 16347
+        },
+        {
+          "asn": 2914,
+          "changes": 397,
+          "primary_counterpart": 201115
+        },
+        {
+          "asn": 7029,
+          "changes": 396,
+          "primary_counterpart": 7018
+        },
+        {
+          "asn": 14420,
+          "changes": 394,
+          "primary_counterpart": 28006
+        },
+        {
+          "asn": 9808,
+          "changes": 380,
+          "primary_counterpart": 56045
+        },
+        {
+          "asn": 9009,
+          "changes": 356,
+          "primary_counterpart": 209372
+        },
+        {
+          "asn": 212238,
+          "changes": 337,
+          "primary_counterpart": 9009
+        },
+        {
+          "asn": 44559,
+          "changes": 329,
+          "primary_counterpart": 214238
+        },
+        {
+          "asn": 7018,
+          "changes": 327,
+          "primary_counterpart": 7029
+        },
+        {
+          "asn": 3257,
+          "changes": 326,
+          "primary_counterpart": 20001
+        },
+        {
+          "asn": 1239,
+          "changes": 301,
+          "primary_counterpart": 174
+        },
+        {
+          "asn": 214238,
+          "changes": 296,
+          "primary_counterpart": 44559
+        },
+        {
+          "asn": 22516,
+          "changes": 295,
+          "primary_counterpart": 20115
+        },
+        {
+          "asn": 12430,
+          "changes": 282,
+          "primary_counterpart": 6739
+        },
+        {
+          "asn": 6739,
+          "changes": 279,
+          "primary_counterpart": 12430
+        },
+        {
+          "asn": 56045,
+          "changes": 263,
+          "primary_counterpart": 9808
+        }
+      ],
+      "total_changes": 33333,
+      "unmapped": 0
+    },
+    {
+      "entries_a": 393335,
+      "entries_b": 397278,
+      "from": "2025/1764864000_asmap.dat",
+      "newly_mapped": 94,
+      "reassigned": 43534,
+      "to": "2026/1770307200_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 2801,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 174,
+          "changes": 1643,
+          "primary_counterpart": 1239
+        },
+        {
+          "asn": 14618,
+          "changes": 1386,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 16509,
+          "changes": 1252,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 19905,
+          "changes": 1163,
+          "primary_counterpart": 50710
+        },
+        {
+          "asn": 9304,
+          "changes": 1001,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 198949,
+          "changes": 786,
+          "primary_counterpart": 15557
+        },
+        {
+          "asn": 367,
+          "changes": 543,
+          "primary_counterpart": 27064
+        },
+        {
+          "asn": 7029,
+          "changes": 524,
+          "primary_counterpart": 7018
+        },
+        {
+          "asn": 28006,
+          "changes": 492,
+          "primary_counterpart": 27757
+        },
+        {
+          "asn": 3356,
+          "changes": 472,
+          "primary_counterpart": 203
+        },
+        {
+          "asn": 1299,
+          "changes": 469,
+          "primary_counterpart": 12312
+        },
+        {
+          "asn": 9808,
+          "changes": 455,
+          "primary_counterpart": 56045
+        },
+        {
+          "asn": 2914,
+          "changes": 443,
+          "primary_counterpart": 201115
+        },
+        {
+          "asn": 3257,
+          "changes": 405,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 4134,
+          "changes": 402,
+          "primary_counterpart": 140318
+        },
+        {
+          "asn": 9009,
+          "changes": 378,
+          "primary_counterpart": 209372
+        },
+        {
+          "asn": 6079,
+          "changes": 374,
+          "primary_counterpart": 6253
+        },
+        {
+          "asn": 203,
+          "changes": 369,
+          "primary_counterpart": 3356
+        },
+        {
+          "asn": 60781,
+          "changes": 362,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 212238,
+          "changes": 359,
+          "primary_counterpart": 9009
+        },
+        {
+          "asn": 154049,
+          "changes": 358,
+          "primary_counterpart": 60781
+        },
+        {
+          "asn": 20773,
+          "changes": 338,
+          "primary_counterpart": 21499
+        },
+        {
+          "asn": 7018,
+          "changes": 308,
+          "primary_counterpart": 7029
+        },
+        {
+          "asn": 1239,
+          "changes": 303,
+          "primary_counterpart": 174
+        }
+      ],
+      "total_changes": 43628,
+      "unmapped": 0
+    },
+    {
+      "entries_a": 393335,
+      "entries_b": 399450,
+      "from": "2025/1764864000_asmap.dat",
+      "newly_mapped": 0,
+      "reassigned": 53244,
+      "to": "2026/1772726400_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 3530,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 174,
+          "changes": 2049,
+          "primary_counterpart": 1239
+        },
+        {
+          "asn": 14618,
+          "changes": 2039,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 16509,
+          "changes": 1793,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 19905,
+          "changes": 1298,
+          "primary_counterpart": 30036
+        },
+        {
+          "asn": 9304,
+          "changes": 1018,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 198949,
+          "changes": 707,
+          "primary_counterpart": 15557
+        },
+        {
+          "asn": 7029,
+          "changes": 592,
+          "primary_counterpart": 7018
+        },
+        {
+          "asn": 1299,
+          "changes": 571,
+          "primary_counterpart": 2914
+        },
+        {
+          "asn": 367,
+          "changes": 556,
+          "primary_counterpart": 27064
+        },
+        {
+          "asn": 3257,
+          "changes": 552,
+          "primary_counterpart": 20001
+        },
+        {
+          "asn": 2914,
+          "changes": 546,
+          "primary_counterpart": 1299
+        },
+        {
+          "asn": 6079,
+          "changes": 531,
+          "primary_counterpart": 6253
+        },
+        {
+          "asn": 3356,
+          "changes": 508,
+          "primary_counterpart": 203
+        },
+        {
+          "asn": 28006,
+          "changes": 492,
+          "primary_counterpart": 27757
+        },
+        {
+          "asn": 9808,
+          "changes": 473,
+          "primary_counterpart": 56045
+        },
+        {
+          "asn": 9009,
+          "changes": 467,
+          "primary_counterpart": 212238
+        },
+        {
+          "asn": 212238,
+          "changes": 465,
+          "primary_counterpart": 9009
+        },
+        {
+          "asn": 30036,
+          "changes": 455,
+          "primary_counterpart": 19905
+        },
+        {
+          "asn": 4134,
+          "changes": 441,
+          "primary_counterpart": 140318
+        },
+        {
+          "asn": 721,
+          "changes": 418,
+          "primary_counterpart": 5852
+        },
+        {
+          "asn": 60781,
+          "changes": 405,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 203,
+          "changes": 384,
+          "primary_counterpart": 3356
+        },
+        {
+          "asn": 401152,
+          "changes": 362,
+          "primary_counterpart": 7385
+        },
+        {
+          "asn": 154049,
+          "changes": 344,
+          "primary_counterpart": 60781
+        }
+      ],
+      "total_changes": 53244,
+      "unmapped": 0
+    },
+    {
+      "entries_a": 395389,
+      "entries_b": 397278,
+      "from": "2026/1767888000_asmap.dat",
+      "newly_mapped": 94,
+      "reassigned": 21174,
+      "to": "2026/1770307200_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 1821,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 14618,
+          "changes": 662,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 174,
+          "changes": 646,
+          "primary_counterpart": 2914
+        },
+        {
+          "asn": 9304,
+          "changes": 582,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 16509,
+          "changes": 498,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 19905,
+          "changes": 427,
+          "primary_counterpart": 8851
+        },
+        {
+          "asn": 3356,
+          "changes": 358,
+          "primary_counterpart": 8895
+        },
+        {
+          "asn": 154049,
+          "changes": 335,
+          "primary_counterpart": 60781
+        },
+        {
+          "asn": 60781,
+          "changes": 330,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 4812,
+          "changes": 293,
+          "primary_counterpart": 4811
+        },
+        {
+          "asn": 2914,
+          "changes": 286,
+          "primary_counterpart": 174
+        },
+        {
+          "asn": 4811,
+          "changes": 286,
+          "primary_counterpart": 4812
+        },
+        {
+          "asn": 7029,
+          "changes": 261,
+          "primary_counterpart": 6079
+        },
+        {
+          "asn": 27757,
+          "changes": 257,
+          "primary_counterpart": 14420
+        },
+        {
+          "asn": 14420,
+          "changes": 255,
+          "primary_counterpart": 27757
+        },
+        {
+          "asn": 6079,
+          "changes": 229,
+          "primary_counterpart": 7922
+        },
+        {
+          "asn": 21499,
+          "changes": 226,
+          "primary_counterpart": 29066
+        },
+        {
+          "asn": 8895,
+          "changes": 224,
+          "primary_counterpart": 3356
+        },
+        {
+          "asn": 3214,
+          "changes": 223,
+          "primary_counterpart": 949
+        },
+        {
+          "asn": 29066,
+          "changes": 218,
+          "primary_counterpart": 21499
+        },
+        {
+          "asn": 198949,
+          "changes": 214,
+          "primary_counterpart": 378
+        },
+        {
+          "asn": 7922,
+          "changes": 212,
+          "primary_counterpart": 6079
+        },
+        {
+          "asn": 29802,
+          "changes": 206,
+          "primary_counterpart": 61317
+        },
+        {
+          "asn": 9009,
+          "changes": 202,
+          "primary_counterpart": 57169
+        },
+        {
+          "asn": 25198,
+          "changes": 191,
+          "primary_counterpart": 834
+        }
+      ],
+      "total_changes": 21268,
+      "unmapped": 0
+    },
+    {
+      "entries_a": 395389,
+      "entries_b": 399450,
+      "from": "2026/1767888000_asmap.dat",
+      "newly_mapped": 0,
+      "reassigned": 35807,
+      "to": "2026/1772726400_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 2717,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 14618,
+          "changes": 1719,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 16509,
+          "changes": 1562,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 19905,
+          "changes": 1062,
+          "primary_counterpart": 30036
+        },
+        {
+          "asn": 174,
+          "changes": 928,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 9304,
+          "changes": 595,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 7029,
+          "changes": 504,
+          "primary_counterpart": 7922
+        },
+        {
+          "asn": 30036,
+          "changes": 484,
+          "primary_counterpart": 19905
+        },
+        {
+          "asn": 3356,
+          "changes": 449,
+          "primary_counterpart": 8895
+        },
+        {
+          "asn": 6079,
+          "changes": 384,
+          "primary_counterpart": 7922
+        },
+        {
+          "asn": 60781,
+          "changes": 374,
+          "primary_counterpart": 154049
+        },
+        {
+          "asn": 401152,
+          "changes": 366,
+          "primary_counterpart": 7385
+        },
+        {
+          "asn": 9009,
+          "changes": 356,
+          "primary_counterpart": 16247
+        },
+        {
+          "asn": 199739,
+          "changes": 338,
+          "primary_counterpart": 19905
+        },
+        {
+          "asn": 721,
+          "changes": 328,
+          "primary_counterpart": 5371
+        },
+        {
+          "asn": 154049,
+          "changes": 321,
+          "primary_counterpart": 60781
+        },
+        {
+          "asn": 2914,
+          "changes": 299,
+          "primary_counterpart": 3949
+        },
+        {
+          "asn": 4812,
+          "changes": 294,
+          "primary_counterpart": 4811
+        },
+        {
+          "asn": 22516,
+          "changes": 291,
+          "primary_counterpart": 20115
+        },
+        {
+          "asn": 29802,
+          "changes": 289,
+          "primary_counterpart": 61317
+        },
+        {
+          "asn": 4811,
+          "changes": 288,
+          "primary_counterpart": 4812
+        },
+        {
+          "asn": 3257,
+          "changes": 286,
+          "primary_counterpart": 20001
+        },
+        {
+          "asn": 7922,
+          "changes": 286,
+          "primary_counterpart": 7029
+        },
+        {
+          "asn": 7018,
+          "changes": 269,
+          "primary_counterpart": 20115
+        },
+        {
+          "asn": 1659,
+          "changes": 265,
+          "primary_counterpart": 17716
+        }
+      ],
+      "total_changes": 35807,
+      "unmapped": 0
+    },
+    {
+      "entries_a": 397278,
+      "entries_b": 399450,
+      "from": "2026/1770307200_asmap.dat",
+      "newly_mapped": 0,
+      "reassigned": 21899,
+      "to": "2026/1772726400_asmap.dat",
+      "top_movers": [
+        {
+          "asn": 834,
+          "changes": 1879,
+          "primary_counterpart": 9304
+        },
+        {
+          "asn": 14618,
+          "changes": 1484,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 16509,
+          "changes": 1449,
+          "primary_counterpart": 14618
+        },
+        {
+          "asn": 19905,
+          "changes": 763,
+          "primary_counterpart": 30036
+        },
+        {
+          "asn": 9304,
+          "changes": 623,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 174,
+          "changes": 602,
+          "primary_counterpart": 2914
+        },
+        {
+          "asn": 30036,
+          "changes": 407,
+          "primary_counterpart": 19905
+        },
+        {
+          "asn": 199739,
+          "changes": 338,
+          "primary_counterpart": 19905
+        },
+        {
+          "asn": 7029,
+          "changes": 291,
+          "primary_counterpart": 7922
+        },
+        {
+          "asn": 721,
+          "changes": 279,
+          "primary_counterpart": 5371
+        },
+        {
+          "asn": 22516,
+          "changes": 262,
+          "primary_counterpart": 20115
+        },
+        {
+          "asn": 63199,
+          "changes": 240,
+          "primary_counterpart": 834
+        },
+        {
+          "asn": 3257,
+          "changes": 234,
+          "primary_counterpart": 20001
+        },
+        {
+          "asn": 6079,
+          "changes": 234,
+          "primary_counterpart": 401838
+        },
+        {
+          "asn": 212238,
+          "changes": 226,
+          "primary_counterpart": 9009
+        },
+        {
+          "asn": 2914,
+          "changes": 216,
+          "primary_counterpart": 174
+        },
+        {
+          "asn": 401152,
+          "changes": 210,
+          "primary_counterpart": 7385
+        },
+        {
+          "asn": 8987,
+          "changes": 202,
+          "primary_counterpart": 16509
+        },
+        {
+          "asn": 198949,
+          "changes": 198,
+          "primary_counterpart": 31898
+        },
+        {
+          "asn": 42375,
+          "changes": 196,
+          "primary_counterpart": 56325
+        },
+        {
+          "asn": 34984,
+          "changes": 190,
+          "primary_counterpart": 6453
+        },
+        {
+          "asn": 1299,
+          "changes": 188,
+          "primary_counterpart": 201115
+        },
+        {
+          "asn": 7018,
+          "changes": 182,
+          "primary_counterpart": 6079
+        },
+        {
+          "asn": 20115,
+          "changes": 180,
+          "primary_counterpart": 22516
+        },
+        {
+          "asn": 6453,
+          "changes": 174,
+          "primary_counterpart": 34984
+        }
+      ],
+      "total_changes": 21993,
+      "unmapped": 94
+    }
+  ],
+  "generated_at": "2026-05-07T18:11:25+00:00",
+  "maps": [
+    {
+      "entries_count": 377653,
+      "file_size_bytes": 1435868,
+      "ipv4_count": 302396,
+      "ipv6_count": 75257,
+      "name": "2025/1742572800_asmap.dat",
+      "released_at": "2025-03-21",
+      "top_ases": [
+        {
+          "asn": 3356,
+          "prefix_count": 1775
+        },
+        {
+          "asn": 14618,
+          "prefix_count": 1738
+        },
+        {
+          "asn": 174,
+          "prefix_count": 1330
+        },
+        {
+          "asn": 20940,
+          "prefix_count": 1280
+        },
+        {
+          "asn": 36183,
+          "prefix_count": 1256
+        },
+        {
+          "asn": 17622,
+          "prefix_count": 1174
+        },
+        {
+          "asn": 16509,
+          "prefix_count": 1148
+        },
+        {
+          "asn": 9009,
+          "prefix_count": 1146
+        },
+        {
+          "asn": 7018,
+          "prefix_count": 1121
+        },
+        {
+          "asn": 4134,
+          "prefix_count": 1090
+        },
+        {
+          "asn": 212238,
+          "prefix_count": 1075
+        },
+        {
+          "asn": 140292,
+          "prefix_count": 1052
+        },
+        {
+          "asn": 16625,
+          "prefix_count": 885
+        },
+        {
+          "asn": 721,
+          "prefix_count": 828
+        },
+        {
+          "asn": 834,
+          "prefix_count": 804
+        },
+        {
+          "asn": 19905,
+          "prefix_count": 793
+        },
+        {
+          "asn": 17816,
+          "prefix_count": 767
+        },
+        {
+          "asn": 20473,
+          "prefix_count": 765
+        },
+        {
+          "asn": 4152,
+          "prefix_count": 721
+        },
+        {
+          "asn": 367,
+          "prefix_count": 703
+        }
+      ],
+      "unique_asns": 88835
+    },
+    {
+      "entries_count": 385660,
+      "file_size_bytes": 1465546,
+      "ipv4_count": 308664,
+      "ipv6_count": 76996,
+      "name": "2025/1755187200_asmap.dat",
+      "released_at": "2025-08-14",
+      "top_ases": [
+        {
+          "asn": 14618,
+          "prefix_count": 1847
+        },
+        {
+          "asn": 3356,
+          "prefix_count": 1817
+        },
+        {
+          "asn": 174,
+          "prefix_count": 1331
+        },
+        {
+          "asn": 36183,
+          "prefix_count": 1320
+        },
+        {
+          "asn": 20940,
+          "prefix_count": 1287
+        },
+        {
+          "asn": 16509,
+          "prefix_count": 1284
+        },
+        {
+          "asn": 9009,
+          "prefix_count": 1277
+        },
+        {
+          "asn": 212238,
+          "prefix_count": 1207
+        },
+        {
+          "asn": 17622,
+          "prefix_count": 1174
+        },
+        {
+          "asn": 19905,
+          "prefix_count": 1075
+        },
+        {
+          "asn": 4134,
+          "prefix_count": 1032
+        },
+        {
+          "asn": 140292,
+          "prefix_count": 999
+        },
+        {
+          "asn": 834,
+          "prefix_count": 942
+        },
+        {
+          "asn": 16625,
+          "prefix_count": 865
+        },
+        {
+          "asn": 721,
+          "prefix_count": 856
+        },
+        {
+          "asn": 7018,
+          "prefix_count": 813
+        },
+        {
+          "asn": 20473,
+          "prefix_count": 807
+        },
+        {
+          "asn": 3257,
+          "prefix_count": 798
+        },
+        {
+          "asn": 984,
+          "prefix_count": 778
+        },
+        {
+          "asn": 4152,
+          "prefix_count": 760
+        }
+      ],
+      "unique_asns": 89306
+    },
+    {
+      "entries_count": 387376,
+      "file_size_bytes": 1472338,
+      "ipv4_count": 309805,
+      "ipv6_count": 77571,
+      "name": "2025/1757606400_asmap.dat",
+      "released_at": "2025-09-11",
+      "top_ases": [
+        {
+          "asn": 14618,
+          "prefix_count": 1851
+        },
+        {
+          "asn": 3356,
+          "prefix_count": 1772
+        },
+        {
+          "asn": 36183,
+          "prefix_count": 1321
+        },
+        {
+          "asn": 174,
+          "prefix_count": 1314
+        },
+        {
+          "asn": 16509,
+          "prefix_count": 1294
+        },
+        {
+          "asn": 20940,
+          "prefix_count": 1286
+        },
+        {
+          "asn": 9009,
+          "prefix_count": 1255
+        },
+        {
+          "asn": 212238,
+          "prefix_count": 1247
+        },
+        {
+          "asn": 17622,
+          "prefix_count": 1174
+        },
+        {
+          "asn": 19905,
+          "prefix_count": 1113
+        },
+        {
+          "asn": 4134,
+          "prefix_count": 1071
+        },
+        {
+          "asn": 140292,
+          "prefix_count": 999
+        },
+        {
+          "asn": 834,
+          "prefix_count": 901
+        },
+        {
+          "asn": 9304,
+          "prefix_count": 897
+        },
+        {
+          "asn": 721,
+          "prefix_count": 881
+        },
+        {
+          "asn": 16625,
+          "prefix_count": 870
+        },
+        {
+          "asn": 3257,
+          "prefix_count": 863
+        },
+        {
+          "asn": 4152,
+          "prefix_count": 757
+        },
+        {
+          "asn": 17816,
+          "prefix_count": 756
+        },
+        {
+          "asn": 203020,
+          "prefix_count": 735
+        }
+      ],
+      "unique_asns": 89414
+    },
+    {
+      "entries_count": 391254,
+      "file_size_bytes": 1487169,
+      "ipv4_count": 312482,
+      "ipv6_count": 78772,
+      "name": "2025/1762444800_asmap.dat",
+      "released_at": "2025-11-06",
+      "top_ases": [
+        {
+          "asn": 14618,
+          "prefix_count": 2227
+        },
+        {
+          "asn": 3356,
+          "prefix_count": 1748
+        },
+        {
+          "asn": 4134,
+          "prefix_count": 1420
+        },
+        {
+          "asn": 16509,
+          "prefix_count": 1359
+        },
+        {
+          "asn": 212238,
+          "prefix_count": 1354
+        },
+        {
+          "asn": 36183,
+          "prefix_count": 1321
+        },
+        {
+          "asn": 20940,
+          "prefix_count": 1285
+        },
+        {
+          "asn": 9009,
+          "prefix_count": 1277
+        },
+        {
+          "asn": 174,
+          "prefix_count": 1273
+        },
+        {
+          "asn": 19905,
+          "prefix_count": 1209
+        },
+        {
+          "asn": 17622,
+          "prefix_count": 1174
+        },
+        {
+          "asn": 834,
+          "prefix_count": 1036
+        },
+        {
+          "asn": 9304,
+          "prefix_count": 955
+        },
+        {
+          "asn": 140292,
+          "prefix_count": 934
+        },
+        {
+          "asn": 3257,
+          "prefix_count": 892
+        },
+        {
+          "asn": 721,
+          "prefix_count": 890
+        },
+        {
+          "asn": 16625,
+          "prefix_count": 876
+        },
+        {
+          "asn": 17816,
+          "prefix_count": 754
+        },
+        {
+          "asn": 8075,
+          "prefix_count": 722
+        },
+        {
+          "asn": 7018,
+          "prefix_count": 709
+        }
+      ],
+      "unique_asns": 89741
+    },
+    {
+      "entries_count": 393335,
+      "file_size_bytes": 1495422,
+      "ipv4_count": 314082,
+      "ipv6_count": 79253,
+      "name": "2025/1764864000_asmap.dat",
+      "released_at": "2025-12-04",
+      "top_ases": [
+        {
+          "asn": 14618,
+          "prefix_count": 2399
+        },
+        {
+          "asn": 3356,
+          "prefix_count": 1761
+        },
+        {
+          "asn": 4134,
+          "prefix_count": 1477
+        },
+        {
+          "asn": 16509,
+          "prefix_count": 1407
+        },
+        {
+          "asn": 212238,
+          "prefix_count": 1363
+        },
+        {
+          "asn": 36183,
+          "prefix_count": 1317
+        },
+        {
+          "asn": 834,
+          "prefix_count": 1314
+        },
+        {
+          "asn": 9009,
+          "prefix_count": 1296
+        },
+        {
+          "asn": 20940,
+          "prefix_count": 1280
+        },
+        {
+          "asn": 19905,
+          "prefix_count": 1266
+        },
+        {
+          "asn": 174,
+          "prefix_count": 1247
+        },
+        {
+          "asn": 17622,
+          "prefix_count": 1175
+        },
+        {
+          "asn": 140292,
+          "prefix_count": 930
+        },
+        {
+          "asn": 721,
+          "prefix_count": 885
+        },
+        {
+          "asn": 3257,
+          "prefix_count": 879
+        },
+        {
+          "asn": 16625,
+          "prefix_count": 877
+        },
+        {
+          "asn": 9304,
+          "prefix_count": 825
+        },
+        {
+          "asn": 17816,
+          "prefix_count": 754
+        },
+        {
+          "asn": 8075,
+          "prefix_count": 730
+        },
+        {
+          "asn": 20473,
+          "prefix_count": 691
+        }
+      ],
+      "unique_asns": 89879
+    },
+    {
+      "entries_count": 395389,
+      "file_size_bytes": 1503842,
+      "ipv4_count": 315702,
+      "ipv6_count": 79687,
+      "name": "2026/1767888000_asmap.dat",
+      "released_at": "2026-01-08",
+      "top_ases": [
+        {
+          "asn": 14618,
+          "prefix_count": 2380
+        },
+        {
+          "asn": 3356,
+          "prefix_count": 1768
+        },
+        {
+          "asn": 4134,
+          "prefix_count": 1533
+        },
+        {
+          "asn": 16509,
+          "prefix_count": 1500
+        },
+        {
+          "asn": 834,
+          "prefix_count": 1411
+        },
+        {
+          "asn": 212238,
+          "prefix_count": 1394
+        },
+        {
+          "asn": 19905,
+          "prefix_count": 1389
+        },
+        {
+          "asn": 36183,
+          "prefix_count": 1317
+        },
+        {
+          "asn": 9009,
+          "prefix_count": 1297
+        },
+        {
+          "asn": 20940,
+          "prefix_count": 1282
+        },
+        {
+          "asn": 174,
+          "prefix_count": 1223
+        },
+        {
+          "asn": 17622,
+          "prefix_count": 1175
+        },
+        {
+          "asn": 140292,
+          "prefix_count": 924
+        },
+        {
+          "asn": 721,
+          "prefix_count": 895
+        },
+        {
+          "asn": 16625,
+          "prefix_count": 876
+        },
+        {
+          "asn": 3257,
+          "prefix_count": 860
+        },
+        {
+          "asn": 17816,
+          "prefix_count": 755
+        },
+        {
+          "asn": 8075,
+          "prefix_count": 741
+        },
+        {
+          "asn": 9304,
+          "prefix_count": 695
+        },
+        {
+          "asn": 33287,
+          "prefix_count": 685
+        }
+      ],
+      "unique_asns": 90243
+    },
+    {
+      "entries_count": 397278,
+      "file_size_bytes": 1511227,
+      "ipv4_count": 317043,
+      "ipv6_count": 80235,
+      "name": "2026/1770307200_asmap.dat",
+      "released_at": "2026-02-05",
+      "top_ases": [
+        {
+          "asn": 14618,
+          "prefix_count": 2429
+        },
+        {
+          "asn": 3356,
+          "prefix_count": 1809
+        },
+        {
+          "asn": 4134,
+          "prefix_count": 1529
+        },
+        {
+          "asn": 16509,
+          "prefix_count": 1495
+        },
+        {
+          "asn": 834,
+          "prefix_count": 1488
+        },
+        {
+          "asn": 212238,
+          "prefix_count": 1399
+        },
+        {
+          "asn": 19905,
+          "prefix_count": 1342
+        },
+        {
+          "asn": 36183,
+          "prefix_count": 1317
+        },
+        {
+          "asn": 9009,
+          "prefix_count": 1298
+        },
+        {
+          "asn": 20940,
+          "prefix_count": 1274
+        },
+        {
+          "asn": 174,
+          "prefix_count": 1246
+        },
+        {
+          "asn": 17622,
+          "prefix_count": 1174
+        },
+        {
+          "asn": 140292,
+          "prefix_count": 961
+        },
+        {
+          "asn": 721,
+          "prefix_count": 893
+        },
+        {
+          "asn": 16625,
+          "prefix_count": 877
+        },
+        {
+          "asn": 3257,
+          "prefix_count": 855
+        },
+        {
+          "asn": 17816,
+          "prefix_count": 755
+        },
+        {
+          "asn": 8075,
+          "prefix_count": 751
+        },
+        {
+          "asn": 9304,
+          "prefix_count": 744
+        },
+        {
+          "asn": 20473,
+          "prefix_count": 703
+        }
+      ],
+      "unique_asns": 90368
+    },
+    {
+      "entries_count": 399450,
+      "file_size_bytes": 1519688,
+      "ipv4_count": 318312,
+      "ipv6_count": 81138,
+      "name": "2026/1772726400_asmap.dat",
+      "released_at": "2026-03-05",
+      "top_ases": [
+        {
+          "asn": 14618,
+          "prefix_count": 2501
+        },
+        {
+          "asn": 3356,
+          "prefix_count": 1778
+        },
+        {
+          "asn": 834,
+          "prefix_count": 1667
+        },
+        {
+          "asn": 16509,
+          "prefix_count": 1571
+        },
+        {
+          "asn": 19905,
+          "prefix_count": 1546
+        },
+        {
+          "asn": 4134,
+          "prefix_count": 1538
+        },
+        {
+          "asn": 212238,
+          "prefix_count": 1476
+        },
+        {
+          "asn": 36183,
+          "prefix_count": 1317
+        },
+        {
+          "asn": 9009,
+          "prefix_count": 1308
+        },
+        {
+          "asn": 20940,
+          "prefix_count": 1283
+        },
+        {
+          "asn": 174,
+          "prefix_count": 1237
+        },
+        {
+          "asn": 17622,
+          "prefix_count": 1174
+        },
+        {
+          "asn": 140292,
+          "prefix_count": 962
+        },
+        {
+          "asn": 721,
+          "prefix_count": 895
+        },
+        {
+          "asn": 3257,
+          "prefix_count": 894
+        },
+        {
+          "asn": 16625,
+          "prefix_count": 871
+        },
+        {
+          "asn": 8075,
+          "prefix_count": 759
+        },
+        {
+          "asn": 17816,
+          "prefix_count": 753
+        },
+        {
+          "asn": 20473,
+          "prefix_count": 698
+        },
+        {
+          "asn": 33287,
+          "prefix_count": 688
+        }
+      ],
+      "unique_asns": 90691
+    }
+  ],
+  "source": {
+    "data_dir": "/tmp/asmap-data"
+  }
+}
