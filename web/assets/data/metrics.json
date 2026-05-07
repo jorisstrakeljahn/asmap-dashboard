@@ -11,126 +11,176 @@
         {
           "asn": 7018,
           "changes": 3713,
+          "gained": 850,
+          "lost": 2863,
           "primary_counterpart": 2386
         },
         {
           "asn": 834,
           "changes": 3081,
-          "primary_counterpart": 6849
+          "gained": 1229,
+          "lost": 1852,
+          "primary_counterpart": 9304
         },
         {
           "asn": 174,
           "changes": 2024,
-          "primary_counterpart": 3257
+          "gained": 830,
+          "lost": 1194,
+          "primary_counterpart": 30058
         },
         {
           "asn": 14618,
           "changes": 1982,
+          "gained": 1081,
+          "lost": 901,
           "primary_counterpart": 16509
         },
         {
           "asn": 16509,
           "changes": 1577,
+          "gained": 771,
+          "lost": 806,
           "primary_counterpart": 14618
         },
         {
           "asn": 19905,
           "changes": 1317,
+          "gained": 841,
+          "lost": 476,
           "primary_counterpart": 8851
         },
         {
           "asn": 3257,
           "changes": 1260,
+          "gained": 183,
+          "lost": 1077,
           "primary_counterpart": 9009
         },
         {
           "asn": 701,
           "changes": 1082,
+          "gained": 979,
+          "lost": 103,
           "primary_counterpart": 6256
         },
         {
           "asn": 3356,
           "changes": 932,
+          "gained": 632,
+          "lost": 300,
           "primary_counterpart": 8895
         },
         {
           "asn": 9304,
           "changes": 760,
+          "gained": 689,
+          "lost": 71,
           "primary_counterpart": 834
         },
         {
           "asn": 60781,
           "changes": 693,
+          "gained": 164,
+          "lost": 529,
           "primary_counterpart": 30633
         },
         {
           "asn": 9009,
           "changes": 676,
+          "gained": 442,
+          "lost": 234,
           "primary_counterpart": 3257
         },
         {
           "asn": 4134,
           "changes": 653,
-          "primary_counterpart": 140292
+          "gained": 299,
+          "lost": 354,
+          "primary_counterpart": 140308
         },
         {
           "asn": 17561,
           "changes": 641,
+          "gained": 628,
+          "lost": 13,
           "primary_counterpart": 134548
         },
         {
           "asn": 18779,
           "changes": 628,
+          "gained": 55,
+          "lost": 573,
           "primary_counterpart": 834
         },
         {
           "asn": 396606,
           "changes": 607,
+          "gained": 0,
+          "lost": 607,
           "primary_counterpart": 397211
         },
         {
           "asn": 7029,
           "changes": 598,
+          "gained": 313,
+          "lost": 285,
           "primary_counterpart": 60781
         },
         {
           "asn": 6849,
           "changes": 583,
+          "gained": 0,
+          "lost": 583,
           "primary_counterpart": 834
         },
         {
           "asn": 2914,
           "changes": 552,
-          "primary_counterpart": 3949
+          "gained": 281,
+          "lost": 271,
+          "primary_counterpart": 16509
         },
         {
           "asn": 10515,
           "changes": 551,
+          "gained": 551,
+          "lost": 0,
           "primary_counterpart": 36623
         },
         {
           "asn": 721,
           "changes": 534,
+          "gained": 231,
+          "lost": 303,
           "primary_counterpart": 367
         },
         {
           "asn": 20473,
           "changes": 527,
+          "gained": 270,
+          "lost": 257,
           "primary_counterpart": 834
         },
         {
           "asn": 6939,
           "changes": 526,
+          "gained": 289,
+          "lost": 237,
           "primary_counterpart": 834
         },
         {
           "asn": 212238,
           "changes": 520,
-          "primary_counterpart": 834
+          "gained": 354,
+          "lost": 166,
+          "primary_counterpart": 3257
         },
         {
           "asn": 11003,
           "changes": 512,
+          "gained": 6,
+          "lost": 506,
           "primary_counterpart": 834
         }
       ],
@@ -148,126 +198,176 @@
         {
           "asn": 7018,
           "changes": 3996,
+          "gained": 869,
+          "lost": 3127,
           "primary_counterpart": 2386
         },
         {
           "asn": 834,
           "changes": 3019,
-          "primary_counterpart": 6849
+          "gained": 1098,
+          "lost": 1921,
+          "primary_counterpart": 9304
         },
         {
           "asn": 174,
           "changes": 2271,
+          "gained": 863,
+          "lost": 1408,
           "primary_counterpart": 30058
         },
         {
           "asn": 14618,
           "changes": 1987,
+          "gained": 938,
+          "lost": 1049,
           "primary_counterpart": 16509
         },
         {
           "asn": 16509,
           "changes": 1669,
+          "gained": 851,
+          "lost": 818,
           "primary_counterpart": 14618
         },
         {
           "asn": 3257,
           "changes": 1605,
+          "gained": 229,
+          "lost": 1376,
           "primary_counterpart": 9009
         },
         {
           "asn": 19905,
           "changes": 1435,
+          "gained": 928,
+          "lost": 507,
           "primary_counterpart": 8851
         },
         {
           "asn": 984,
           "changes": 1431,
+          "gained": 109,
+          "lost": 1322,
           "primary_counterpart": 17561
         },
         {
           "asn": 9304,
           "changes": 1186,
+          "gained": 1115,
+          "lost": 71,
           "primary_counterpart": 834
         },
         {
           "asn": 701,
           "changes": 1084,
+          "gained": 980,
+          "lost": 104,
           "primary_counterpart": 6256
         },
         {
           "asn": 20473,
           "changes": 1080,
+          "gained": 292,
+          "lost": 788,
           "primary_counterpart": 57878
         },
         {
           "asn": 17561,
           "changes": 1049,
+          "gained": 1032,
+          "lost": 17,
           "primary_counterpart": 984
         },
         {
           "asn": 10515,
           "changes": 1034,
+          "gained": 1034,
+          "lost": 0,
           "primary_counterpart": 396604
         },
         {
           "asn": 3356,
           "changes": 796,
-          "primary_counterpart": 3549
+          "gained": 461,
+          "lost": 335,
+          "primary_counterpart": 0
         },
         {
           "asn": 4134,
           "changes": 779,
+          "gained": 354,
+          "lost": 425,
           "primary_counterpart": 140292
         },
         {
           "asn": 7029,
           "changes": 756,
+          "gained": 406,
+          "lost": 350,
           "primary_counterpart": 7018
         },
         {
           "asn": 60781,
           "changes": 730,
+          "gained": 133,
+          "lost": 597,
           "primary_counterpart": 30633
         },
         {
           "asn": 9009,
           "changes": 718,
+          "gained": 464,
+          "lost": 254,
           "primary_counterpart": 3257
         },
         {
           "asn": 44477,
           "changes": 684,
+          "gained": 91,
+          "lost": 593,
           "primary_counterpart": 209847
         },
         {
           "asn": 18779,
           "changes": 679,
+          "gained": 52,
+          "lost": 627,
           "primary_counterpart": 834
         },
         {
           "asn": 2914,
           "changes": 675,
-          "primary_counterpart": 3949
+          "gained": 308,
+          "lost": 367,
+          "primary_counterpart": 6424
         },
         {
           "asn": 6849,
           "changes": 645,
+          "gained": 0,
+          "lost": 645,
           "primary_counterpart": 834
         },
         {
           "asn": 212238,
           "changes": 630,
+          "gained": 443,
+          "lost": 187,
           "primary_counterpart": 3257
         },
         {
           "asn": 721,
           "changes": 615,
+          "gained": 282,
+          "lost": 333,
           "primary_counterpart": 367
         },
         {
           "asn": 396606,
           "changes": 607,
+          "gained": 0,
+          "lost": 607,
           "primary_counterpart": 10515
         }
       ],
@@ -285,126 +385,176 @@
         {
           "asn": 7018,
           "changes": 4021,
+          "gained": 888,
+          "lost": 3133,
           "primary_counterpart": 2386
         },
         {
           "asn": 834,
           "changes": 3462,
+          "gained": 1385,
+          "lost": 2077,
           "primary_counterpart": 9304
         },
         {
           "asn": 174,
           "changes": 2967,
+          "gained": 1055,
+          "lost": 1912,
           "primary_counterpart": 30058
         },
         {
           "asn": 14618,
           "changes": 2851,
+          "gained": 1678,
+          "lost": 1173,
           "primary_counterpart": 16509
         },
         {
           "asn": 3257,
           "changes": 2732,
+          "gained": 242,
+          "lost": 2490,
           "primary_counterpart": 9304
         },
         {
           "asn": 16509,
           "changes": 2378,
+          "gained": 843,
+          "lost": 1535,
           "primary_counterpart": 14618
         },
         {
           "asn": 19905,
           "changes": 1820,
+          "gained": 1101,
+          "lost": 719,
           "primary_counterpart": 30036
         },
         {
           "asn": 4155,
           "changes": 1607,
+          "gained": 1606,
+          "lost": 1,
           "primary_counterpart": 4152
         },
         {
           "asn": 4152,
           "changes": 1593,
+          "gained": 0,
+          "lost": 1593,
           "primary_counterpart": 4155
         },
         {
           "asn": 984,
           "changes": 1563,
+          "gained": 159,
+          "lost": 1404,
           "primary_counterpart": 17561
         },
         {
           "asn": 10515,
           "changes": 1552,
+          "gained": 1552,
+          "lost": 0,
           "primary_counterpart": 396606
         },
         {
           "asn": 9304,
           "changes": 1335,
+          "gained": 1265,
+          "lost": 70,
           "primary_counterpart": 834
         },
         {
           "asn": 4134,
           "changes": 1261,
+          "gained": 222,
+          "lost": 1039,
           "primary_counterpart": 140292
         },
         {
           "asn": 20473,
           "changes": 1157,
+          "gained": 331,
+          "lost": 826,
           "primary_counterpart": 57878
         },
         {
           "asn": 17561,
           "changes": 1112,
+          "gained": 1088,
+          "lost": 24,
           "primary_counterpart": 984
         },
         {
           "asn": 701,
           "changes": 1094,
+          "gained": 983,
+          "lost": 111,
           "primary_counterpart": 6256
         },
         {
           "asn": 9009,
           "changes": 978,
+          "gained": 622,
+          "lost": 356,
           "primary_counterpart": 3257
         },
         {
           "asn": 7029,
           "changes": 977,
-          "primary_counterpart": 60781
+          "gained": 461,
+          "lost": 516,
+          "primary_counterpart": 154049
         },
         {
           "asn": 212238,
           "changes": 932,
+          "gained": 686,
+          "lost": 246,
           "primary_counterpart": 3257
         },
         {
           "asn": 60781,
           "changes": 929,
+          "gained": 124,
+          "lost": 805,
           "primary_counterpart": 154049
         },
         {
           "asn": 3356,
           "changes": 924,
+          "gained": 521,
+          "lost": 403,
           "primary_counterpart": 3549
         },
         {
           "asn": 2914,
           "changes": 816,
-          "primary_counterpart": 3949
+          "gained": 370,
+          "lost": 446,
+          "primary_counterpart": 6424
         },
         {
           "asn": 367,
           "changes": 763,
+          "gained": 258,
+          "lost": 505,
           "primary_counterpart": 56
         },
         {
           "asn": 18779,
           "changes": 749,
+          "gained": 93,
+          "lost": 656,
           "primary_counterpart": 834
         },
         {
           "asn": 6849,
           "changes": 740,
+          "gained": 0,
+          "lost": 740,
           "primary_counterpart": 834
         }
       ],
@@ -422,126 +572,176 @@
         {
           "asn": 7018,
           "changes": 4181,
+          "gained": 873,
+          "lost": 3308,
           "primary_counterpart": 2386
         },
         {
           "asn": 834,
           "changes": 4069,
+          "gained": 2062,
+          "lost": 2007,
           "primary_counterpart": 6849
         },
         {
           "asn": 14618,
           "changes": 3397,
+          "gained": 2200,
+          "lost": 1197,
           "primary_counterpart": 16509
         },
         {
           "asn": 174,
           "changes": 3391,
-          "primary_counterpart": 834
+          "gained": 1086,
+          "lost": 2305,
+          "primary_counterpart": 30058
         },
         {
           "asn": 3257,
           "changes": 3030,
-          "primary_counterpart": 834
+          "gained": 224,
+          "lost": 2806,
+          "primary_counterpart": 9009
         },
         {
           "asn": 16509,
           "changes": 2881,
+          "gained": 916,
+          "lost": 1965,
           "primary_counterpart": 14618
         },
         {
           "asn": 19905,
           "changes": 1906,
+          "gained": 1189,
+          "lost": 717,
           "primary_counterpart": 30036
         },
         {
           "asn": 984,
           "changes": 1610,
+          "gained": 133,
+          "lost": 1477,
           "primary_counterpart": 17561
         },
         {
           "asn": 4155,
           "changes": 1607,
+          "gained": 1606,
+          "lost": 1,
           "primary_counterpart": 4152
         },
         {
           "asn": 4152,
           "changes": 1593,
+          "gained": 0,
+          "lost": 1593,
           "primary_counterpart": 4155
         },
         {
           "asn": 10515,
           "changes": 1575,
+          "gained": 1575,
+          "lost": 0,
           "primary_counterpart": 396606
         },
         {
           "asn": 4134,
           "changes": 1456,
+          "gained": 218,
+          "lost": 1238,
           "primary_counterpart": 140292
         },
         {
           "asn": 17561,
           "changes": 1439,
+          "gained": 1417,
+          "lost": 22,
           "primary_counterpart": 984
         },
         {
           "asn": 20473,
           "changes": 1150,
+          "gained": 312,
+          "lost": 838,
           "primary_counterpart": 57878
         },
         {
           "asn": 701,
           "changes": 1109,
+          "gained": 985,
+          "lost": 124,
           "primary_counterpart": 6256
         },
         {
           "asn": 9304,
           "changes": 1101,
-          "primary_counterpart": 834
+          "gained": 1021,
+          "lost": 80,
+          "primary_counterpart": 3257
         },
         {
           "asn": 9009,
           "changes": 1076,
+          "gained": 728,
+          "lost": 348,
           "primary_counterpart": 3257
         },
         {
           "asn": 212238,
           "changes": 1073,
+          "gained": 756,
+          "lost": 317,
           "primary_counterpart": 3257
         },
         {
           "asn": 7029,
           "changes": 1070,
-          "primary_counterpart": 60781
+          "gained": 504,
+          "lost": 566,
+          "primary_counterpart": 154049
         },
         {
           "asn": 60781,
           "changes": 952,
+          "gained": 122,
+          "lost": 830,
           "primary_counterpart": 154049
         },
         {
           "asn": 2914,
           "changes": 904,
-          "primary_counterpart": 3257
+          "gained": 443,
+          "lost": 461,
+          "primary_counterpart": 6424
         },
         {
           "asn": 3356,
           "changes": 901,
+          "gained": 471,
+          "lost": 430,
           "primary_counterpart": 3549
         },
         {
           "asn": 367,
           "changes": 817,
+          "gained": 273,
+          "lost": 544,
           "primary_counterpart": 56
         },
         {
           "asn": 18779,
           "changes": 781,
+          "gained": 80,
+          "lost": 701,
           "primary_counterpart": 834
         },
         {
           "asn": 721,
           "changes": 754,
+          "gained": 345,
+          "lost": 409,
           "primary_counterpart": 367
         }
       ],
@@ -559,126 +759,176 @@
         {
           "asn": 834,
           "changes": 4388,
+          "gained": 2521,
+          "lost": 1867,
           "primary_counterpart": 6849
         },
         {
           "asn": 7018,
           "changes": 4195,
+          "gained": 883,
+          "lost": 3312,
           "primary_counterpart": 2386
         },
         {
           "asn": 174,
           "changes": 3985,
-          "primary_counterpart": 1239
+          "gained": 1648,
+          "lost": 2337,
+          "primary_counterpart": 30058
         },
         {
           "asn": 14618,
           "changes": 3886,
+          "gained": 2461,
+          "lost": 1425,
           "primary_counterpart": 16509
         },
         {
           "asn": 3257,
           "changes": 3289,
+          "gained": 239,
+          "lost": 3050,
           "primary_counterpart": 834
         },
         {
           "asn": 16509,
           "changes": 3155,
+          "gained": 1076,
+          "lost": 2079,
           "primary_counterpart": 14618
         },
         {
           "asn": 19905,
           "changes": 2380,
+          "gained": 1559,
+          "lost": 821,
           "primary_counterpart": 30036
         },
         {
           "asn": 984,
           "changes": 1666,
+          "gained": 193,
+          "lost": 1473,
           "primary_counterpart": 17561
         },
         {
           "asn": 4155,
           "changes": 1607,
+          "gained": 1606,
+          "lost": 1,
           "primary_counterpart": 4152
         },
         {
           "asn": 4134,
           "changes": 1599,
+          "gained": 216,
+          "lost": 1383,
           "primary_counterpart": 140292
         },
         {
           "asn": 4152,
           "changes": 1593,
+          "gained": 0,
+          "lost": 1593,
           "primary_counterpart": 4155
         },
         {
           "asn": 10515,
           "changes": 1575,
+          "gained": 1575,
+          "lost": 0,
           "primary_counterpart": 396606
         },
         {
           "asn": 17561,
           "changes": 1556,
+          "gained": 1524,
+          "lost": 32,
           "primary_counterpart": 984
         },
         {
           "asn": 212238,
           "changes": 1238,
+          "gained": 934,
+          "lost": 304,
           "primary_counterpart": 3257
         },
         {
           "asn": 2914,
           "changes": 1208,
+          "gained": 603,
+          "lost": 605,
           "primary_counterpart": 201115
         },
         {
           "asn": 20473,
           "changes": 1192,
+          "gained": 336,
+          "lost": 856,
           "primary_counterpart": 57878
         },
         {
           "asn": 367,
           "changes": 1190,
+          "gained": 309,
+          "lost": 881,
           "primary_counterpart": 27064
         },
         {
           "asn": 701,
           "changes": 1180,
+          "gained": 986,
+          "lost": 194,
           "primary_counterpart": 6256
         },
         {
           "asn": 7029,
           "changes": 1174,
-          "primary_counterpart": 7018
+          "gained": 535,
+          "lost": 639,
+          "primary_counterpart": 154049
         },
         {
           "asn": 9009,
           "changes": 1134,
+          "gained": 718,
+          "lost": 416,
           "primary_counterpart": 3257
         },
         {
           "asn": 3356,
           "changes": 1020,
+          "gained": 526,
+          "lost": 494,
           "primary_counterpart": 3549
         },
         {
           "asn": 60781,
           "changes": 986,
+          "gained": 143,
+          "lost": 843,
           "primary_counterpart": 154049
         },
         {
           "asn": 9304,
           "changes": 964,
+          "gained": 874,
+          "lost": 90,
           "primary_counterpart": 3257
         },
         {
           "asn": 198949,
           "changes": 947,
+          "gained": 769,
+          "lost": 178,
           "primary_counterpart": 15557
         },
         {
           "asn": 18779,
           "changes": 812,
+          "gained": 127,
+          "lost": 685,
           "primary_counterpart": 834
         }
       ],
@@ -696,126 +946,176 @@
         {
           "asn": 834,
           "changes": 4351,
+          "gained": 2492,
+          "lost": 1859,
           "primary_counterpart": 3257
         },
         {
           "asn": 7018,
           "changes": 4226,
+          "gained": 883,
+          "lost": 3343,
           "primary_counterpart": 2386
         },
         {
           "asn": 174,
           "changes": 4134,
-          "primary_counterpart": 1239
+          "gained": 1755,
+          "lost": 2379,
+          "primary_counterpart": 30058
         },
         {
           "asn": 14618,
           "changes": 3977,
+          "gained": 2462,
+          "lost": 1515,
           "primary_counterpart": 16509
         },
         {
           "asn": 16509,
           "changes": 3439,
+          "gained": 1293,
+          "lost": 2146,
           "primary_counterpart": 14618
         },
         {
           "asn": 3257,
           "changes": 3344,
+          "gained": 254,
+          "lost": 3090,
           "primary_counterpart": 834
         },
         {
           "asn": 19905,
           "changes": 2169,
+          "gained": 1414,
+          "lost": 755,
           "primary_counterpart": 30036
         },
         {
           "asn": 4134,
           "changes": 1677,
+          "gained": 239,
+          "lost": 1438,
           "primary_counterpart": 140292
         },
         {
           "asn": 984,
           "changes": 1632,
+          "gained": 185,
+          "lost": 1447,
           "primary_counterpart": 17561
         },
         {
           "asn": 4155,
           "changes": 1607,
+          "gained": 1606,
+          "lost": 1,
           "primary_counterpart": 4152
         },
         {
           "asn": 4152,
           "changes": 1593,
+          "gained": 0,
+          "lost": 1593,
           "primary_counterpart": 4155
         },
         {
           "asn": 17561,
           "changes": 1575,
+          "gained": 1543,
+          "lost": 32,
           "primary_counterpart": 984
         },
         {
           "asn": 10515,
           "changes": 1575,
+          "gained": 1575,
+          "lost": 0,
           "primary_counterpart": 396606
         },
         {
           "asn": 3356,
           "changes": 1291,
-          "primary_counterpart": 3549
+          "gained": 779,
+          "lost": 512,
+          "primary_counterpart": 8895
         },
         {
           "asn": 20473,
           "changes": 1259,
+          "gained": 398,
+          "lost": 861,
           "primary_counterpart": 57878
         },
         {
           "asn": 212238,
           "changes": 1229,
+          "gained": 919,
+          "lost": 310,
           "primary_counterpart": 3257
         },
         {
           "asn": 7029,
           "changes": 1226,
-          "primary_counterpart": 7018
+          "gained": 550,
+          "lost": 676,
+          "primary_counterpart": 154049
         },
         {
           "asn": 367,
           "changes": 1204,
+          "gained": 264,
+          "lost": 940,
           "primary_counterpart": 27064
         },
         {
           "asn": 701,
           "changes": 1186,
+          "gained": 982,
+          "lost": 204,
           "primary_counterpart": 6256
         },
         {
           "asn": 9009,
           "changes": 1176,
+          "gained": 710,
+          "lost": 466,
           "primary_counterpart": 3257
         },
         {
           "asn": 2914,
           "changes": 1175,
+          "gained": 543,
+          "lost": 632,
           "primary_counterpart": 201115
         },
         {
           "asn": 9304,
           "changes": 1130,
+          "gained": 1039,
+          "lost": 91,
           "primary_counterpart": 3257
         },
         {
           "asn": 60781,
           "changes": 1067,
+          "gained": 87,
+          "lost": 980,
           "primary_counterpart": 154049
         },
         {
           "asn": 198949,
           "changes": 968,
+          "gained": 788,
+          "lost": 180,
           "primary_counterpart": 15557
         },
         {
           "asn": 18779,
           "changes": 831,
+          "gained": 141,
+          "lost": 690,
           "primary_counterpart": 834
         }
       ],
@@ -833,126 +1133,176 @@
         {
           "asn": 834,
           "changes": 5014,
+          "gained": 3185,
+          "lost": 1829,
           "primary_counterpart": 3257
         },
         {
           "asn": 174,
           "changes": 4458,
-          "primary_counterpart": 1239
+          "gained": 1845,
+          "lost": 2613,
+          "primary_counterpart": 834
         },
         {
           "asn": 14618,
           "changes": 4370,
+          "gained": 2697,
+          "lost": 1673,
           "primary_counterpart": 16509
         },
         {
           "asn": 7018,
           "changes": 4297,
+          "gained": 918,
+          "lost": 3379,
           "primary_counterpart": 2386
         },
         {
           "asn": 16509,
           "changes": 3679,
+          "gained": 1407,
+          "lost": 2272,
           "primary_counterpart": 14618
         },
         {
           "asn": 3257,
           "changes": 3556,
+          "gained": 283,
+          "lost": 3273,
           "primary_counterpart": 834
         },
         {
           "asn": 19905,
           "changes": 2335,
+          "gained": 1563,
+          "lost": 772,
           "primary_counterpart": 30036
         },
         {
           "asn": 4134,
           "changes": 1698,
+          "gained": 247,
+          "lost": 1451,
           "primary_counterpart": 140292
         },
         {
           "asn": 17561,
           "changes": 1639,
+          "gained": 1607,
+          "lost": 32,
           "primary_counterpart": 984
         },
         {
           "asn": 4155,
           "changes": 1603,
+          "gained": 1602,
+          "lost": 1,
           "primary_counterpart": 4152
         },
         {
           "asn": 4152,
           "changes": 1593,
+          "gained": 0,
+          "lost": 1593,
           "primary_counterpart": 4155
         },
         {
           "asn": 10515,
           "changes": 1583,
+          "gained": 1583,
+          "lost": 0,
           "primary_counterpart": 396606
         },
         {
           "asn": 984,
           "changes": 1581,
+          "gained": 142,
+          "lost": 1439,
           "primary_counterpart": 17561
         },
         {
           "asn": 212238,
           "changes": 1306,
+          "gained": 987,
+          "lost": 319,
           "primary_counterpart": 3257
         },
         {
           "asn": 3356,
           "changes": 1284,
-          "primary_counterpart": 3549
+          "gained": 740,
+          "lost": 544,
+          "primary_counterpart": 8895
         },
         {
           "asn": 20473,
           "changes": 1271,
+          "gained": 412,
+          "lost": 859,
           "primary_counterpart": 57878
         },
         {
           "asn": 7029,
           "changes": 1260,
-          "primary_counterpart": 7018
+          "gained": 461,
+          "lost": 799,
+          "primary_counterpart": 21769
         },
         {
           "asn": 2914,
           "changes": 1249,
+          "gained": 579,
+          "lost": 670,
           "primary_counterpart": 1299
         },
         {
           "asn": 9009,
           "changes": 1224,
+          "gained": 726,
+          "lost": 498,
           "primary_counterpart": 3257
         },
         {
           "asn": 367,
           "changes": 1189,
+          "gained": 231,
+          "lost": 958,
           "primary_counterpart": 27064
         },
         {
           "asn": 701,
           "changes": 1186,
+          "gained": 983,
+          "lost": 203,
           "primary_counterpart": 6256
         },
         {
           "asn": 60781,
           "changes": 1076,
+          "gained": 94,
+          "lost": 982,
           "primary_counterpart": 154049
         },
         {
           "asn": 6079,
           "changes": 966,
+          "gained": 826,
+          "lost": 140,
           "primary_counterpart": 3257
         },
         {
           "asn": 721,
           "changes": 965,
+          "gained": 497,
+          "lost": 468,
           "primary_counterpart": 367
         },
         {
           "asn": 198949,
           "changes": 961,
+          "gained": 775,
+          "lost": 186,
           "primary_counterpart": 15557
         }
       ],
@@ -970,126 +1320,176 @@
         {
           "asn": 984,
           "changes": 1678,
+          "gained": 83,
+          "lost": 1595,
           "primary_counterpart": 17561
         },
         {
           "asn": 834,
           "changes": 1245,
+          "gained": 420,
+          "lost": 825,
           "primary_counterpart": 9304
         },
         {
           "asn": 14618,
           "changes": 1178,
+          "gained": 457,
+          "lost": 721,
           "primary_counterpart": 16509
         },
         {
           "asn": 16509,
           "changes": 1001,
+          "gained": 553,
+          "lost": 448,
           "primary_counterpart": 14618
         },
         {
           "asn": 17561,
           "changes": 898,
+          "gained": 758,
+          "lost": 140,
           "primary_counterpart": 984
         },
         {
           "asn": 20473,
           "changes": 669,
+          "gained": 84,
+          "lost": 585,
           "primary_counterpart": 57878
         },
         {
           "asn": 10515,
           "changes": 669,
+          "gained": 576,
+          "lost": 93,
           "primary_counterpart": 20362
         },
         {
           "asn": 174,
           "changes": 582,
+          "gained": 213,
+          "lost": 369,
           "primary_counterpart": 30058
         },
         {
           "asn": 9304,
           "changes": 531,
+          "gained": 482,
+          "lost": 49,
           "primary_counterpart": 834
         },
         {
           "asn": 57878,
           "changes": 509,
+          "gained": 508,
+          "lost": 1,
           "primary_counterpart": 20473
         },
         {
           "asn": 7018,
           "changes": 414,
-          "primary_counterpart": 7029
+          "gained": 104,
+          "lost": 310,
+          "primary_counterpart": 22773
         },
         {
           "asn": 3356,
           "changes": 356,
+          "gained": 74,
+          "lost": 282,
           "primary_counterpart": 203
         },
         {
           "asn": 3257,
           "changes": 335,
+          "gained": 67,
+          "lost": 268,
           "primary_counterpart": 984
         },
         {
           "asn": 7029,
           "changes": 310,
+          "gained": 164,
+          "lost": 146,
           "primary_counterpart": 7018
         },
         {
           "asn": 19905,
           "changes": 266,
+          "gained": 133,
+          "lost": 133,
           "primary_counterpart": 30036
         },
         {
           "asn": 44477,
           "changes": 265,
+          "gained": 17,
+          "lost": 248,
           "primary_counterpart": 209847
         },
         {
           "asn": 203020,
           "changes": 253,
+          "gained": 248,
+          "lost": 5,
           "primary_counterpart": 984
         },
         {
           "asn": 2914,
           "changes": 238,
+          "gained": 80,
+          "lost": 158,
           "primary_counterpart": 6424
         },
         {
           "asn": 203,
           "changes": 237,
+          "gained": 229,
+          "lost": 8,
           "primary_counterpart": 3356
         },
         {
           "asn": 3491,
           "changes": 230,
+          "gained": 2,
+          "lost": 228,
           "primary_counterpart": 31713
         },
         {
           "asn": 31713,
           "changes": 227,
+          "gained": 227,
+          "lost": 0,
           "primary_counterpart": 3491
         },
         {
           "asn": 367,
           "changes": 204,
+          "gained": 23,
+          "lost": 181,
           "primary_counterpart": 1540
         },
         {
           "asn": 212238,
           "changes": 203,
+          "gained": 133,
+          "lost": 70,
           "primary_counterpart": 136787
         },
         {
           "asn": 721,
           "changes": 201,
+          "gained": 110,
+          "lost": 91,
           "primary_counterpart": 367
         },
         {
           "asn": 209847,
           "changes": 200,
+          "gained": 199,
+          "lost": 1,
           "primary_counterpart": 44477
         }
       ],
@@ -1107,126 +1507,176 @@
         {
           "asn": 834,
           "changes": 2384,
+          "gained": 999,
+          "lost": 1385,
           "primary_counterpart": 9304
         },
         {
           "asn": 4155,
           "changes": 1822,
+          "gained": 1821,
+          "lost": 1,
           "primary_counterpart": 4152
         },
         {
           "asn": 4152,
           "changes": 1812,
+          "gained": 0,
+          "lost": 1812,
           "primary_counterpart": 4155
         },
         {
           "asn": 984,
           "changes": 1807,
+          "gained": 137,
+          "lost": 1670,
           "primary_counterpart": 17561
         },
         {
           "asn": 14618,
           "changes": 1802,
+          "gained": 1087,
+          "lost": 715,
           "primary_counterpart": 16509
         },
         {
           "asn": 16509,
           "changes": 1798,
+          "gained": 558,
+          "lost": 1240,
           "primary_counterpart": 14618
         },
         {
           "asn": 174,
           "changes": 1523,
+          "gained": 516,
+          "lost": 1007,
           "primary_counterpart": 30058
         },
         {
           "asn": 3257,
           "changes": 1462,
+          "gained": 103,
+          "lost": 1359,
           "primary_counterpart": 9304
         },
         {
           "asn": 10515,
           "changes": 1184,
+          "gained": 1091,
+          "lost": 93,
           "primary_counterpart": 20362
         },
         {
           "asn": 9304,
           "changes": 1105,
+          "gained": 833,
+          "lost": 272,
           "primary_counterpart": 834
         },
         {
           "asn": 17561,
           "changes": 959,
+          "gained": 794,
+          "lost": 165,
           "primary_counterpart": 984
         },
         {
           "asn": 4134,
           "changes": 920,
+          "gained": 82,
+          "lost": 838,
           "primary_counterpart": 140292
         },
         {
           "asn": 20473,
           "changes": 787,
+          "gained": 138,
+          "lost": 649,
           "primary_counterpart": 57878
         },
         {
           "asn": 19905,
           "changes": 717,
+          "gained": 344,
+          "lost": 373,
           "primary_counterpart": 28885
         },
         {
           "asn": 7018,
           "changes": 645,
-          "primary_counterpart": 4466
+          "gained": 237,
+          "lost": 408,
+          "primary_counterpart": 33659
         },
         {
           "asn": 140292,
           "changes": 642,
+          "gained": 641,
+          "lost": 1,
           "primary_counterpart": 4134
         },
         {
           "asn": 7029,
           "changes": 599,
+          "gained": 269,
+          "lost": 330,
           "primary_counterpart": 50113
         },
         {
           "asn": 212238,
           "changes": 597,
+          "gained": 428,
+          "lost": 169,
           "primary_counterpart": 3257
         },
         {
           "asn": 6079,
           "changes": 551,
+          "gained": 240,
+          "lost": 311,
           "primary_counterpart": 154049
         },
         {
           "asn": 9009,
           "changes": 533,
+          "gained": 284,
+          "lost": 249,
           "primary_counterpart": 212238
         },
         {
           "asn": 57878,
           "changes": 529,
+          "gained": 527,
+          "lost": 2,
           "primary_counterpart": 20473
         },
         {
           "asn": 3356,
           "changes": 513,
+          "gained": 143,
+          "lost": 370,
           "primary_counterpart": 203
         },
         {
           "asn": 154049,
           "changes": 507,
+          "gained": 507,
+          "lost": 0,
           "primary_counterpart": 60781
         },
         {
           "asn": 44477,
           "changes": 467,
+          "gained": 10,
+          "lost": 457,
           "primary_counterpart": 209847
         },
         {
           "asn": 60781,
           "changes": 446,
+          "gained": 102,
+          "lost": 344,
           "primary_counterpart": 154049
         }
       ],
@@ -1244,126 +1694,176 @@
         {
           "asn": 834,
           "changes": 2968,
+          "gained": 1671,
+          "lost": 1297,
           "primary_counterpart": 9304
         },
         {
           "asn": 14618,
           "changes": 2353,
+          "gained": 1597,
+          "lost": 756,
           "primary_counterpart": 16509
         },
         {
           "asn": 16509,
           "changes": 2193,
+          "gained": 607,
+          "lost": 1586,
           "primary_counterpart": 14618
         },
         {
           "asn": 174,
           "changes": 2062,
+          "gained": 621,
+          "lost": 1441,
           "primary_counterpart": 834
         },
         {
           "asn": 984,
           "changes": 1871,
+          "gained": 116,
+          "lost": 1755,
           "primary_counterpart": 17561
         },
         {
           "asn": 4155,
           "changes": 1822,
+          "gained": 1821,
+          "lost": 1,
           "primary_counterpart": 4152
         },
         {
           "asn": 4152,
           "changes": 1812,
+          "gained": 0,
+          "lost": 1812,
           "primary_counterpart": 4155
         },
         {
           "asn": 3257,
           "changes": 1799,
+          "gained": 104,
+          "lost": 1695,
           "primary_counterpart": 834
         },
         {
           "asn": 17561,
           "changes": 1333,
+          "gained": 1177,
+          "lost": 156,
           "primary_counterpart": 984
         },
         {
           "asn": 9304,
           "changes": 1303,
+          "gained": 797,
+          "lost": 506,
           "primary_counterpart": 834
         },
         {
           "asn": 10515,
           "changes": 1300,
+          "gained": 1207,
+          "lost": 93,
           "primary_counterpart": 20362
         },
         {
           "asn": 4134,
           "changes": 1162,
+          "gained": 103,
+          "lost": 1059,
           "primary_counterpart": 140292
         },
         {
           "asn": 19905,
           "changes": 875,
+          "gained": 469,
+          "lost": 406,
           "primary_counterpart": 30036
         },
         {
           "asn": 7018,
           "changes": 859,
-          "primary_counterpart": 4466
+          "gained": 240,
+          "lost": 619,
+          "primary_counterpart": 33659
         },
         {
           "asn": 212238,
           "changes": 818,
+          "gained": 529,
+          "lost": 289,
           "primary_counterpart": 3257
         },
         {
           "asn": 20473,
           "changes": 806,
+          "gained": 132,
+          "lost": 674,
           "primary_counterpart": 57878
         },
         {
           "asn": 7029,
           "changes": 703,
+          "gained": 327,
+          "lost": 376,
           "primary_counterpart": 50113
         },
         {
           "asn": 6079,
           "changes": 685,
+          "gained": 288,
+          "lost": 397,
           "primary_counterpart": 154049
         },
         {
           "asn": 3356,
           "changes": 682,
+          "gained": 188,
+          "lost": 494,
           "primary_counterpart": 203
         },
         {
           "asn": 140292,
           "changes": 663,
+          "gained": 662,
+          "lost": 1,
           "primary_counterpart": 4134
         },
         {
           "asn": 9009,
           "changes": 657,
+          "gained": 390,
+          "lost": 267,
           "primary_counterpart": 212238
         },
         {
           "asn": 57878,
           "changes": 540,
+          "gained": 539,
+          "lost": 1,
           "primary_counterpart": 20473
         },
         {
           "asn": 2914,
           "changes": 535,
-          "primary_counterpart": 3257
+          "gained": 251,
+          "lost": 284,
+          "primary_counterpart": 6424
         },
         {
           "asn": 154049,
           "changes": 504,
+          "gained": 504,
+          "lost": 0,
           "primary_counterpart": 60781
         },
         {
           "asn": 367,
           "changes": 494,
+          "gained": 58,
+          "lost": 436,
           "primary_counterpart": 56
         }
       ],
@@ -1381,126 +1881,176 @@
         {
           "asn": 834,
           "changes": 3456,
+          "gained": 2242,
+          "lost": 1214,
           "primary_counterpart": 9304
         },
         {
           "asn": 14618,
           "changes": 2802,
+          "gained": 1899,
+          "lost": 903,
           "primary_counterpart": 16509
         },
         {
           "asn": 174,
           "changes": 2785,
-          "primary_counterpart": 1239
+          "gained": 1234,
+          "lost": 1551,
+          "primary_counterpart": 2914
         },
         {
           "asn": 16509,
           "changes": 2589,
+          "gained": 774,
+          "lost": 1815,
           "primary_counterpart": 14618
         },
         {
           "asn": 3257,
           "changes": 2099,
+          "gained": 139,
+          "lost": 1960,
           "primary_counterpart": 834
         },
         {
           "asn": 984,
           "changes": 1928,
+          "gained": 175,
+          "lost": 1753,
           "primary_counterpart": 17561
         },
         {
           "asn": 4155,
           "changes": 1822,
+          "gained": 1821,
+          "lost": 1,
           "primary_counterpart": 4152
         },
         {
           "asn": 4152,
           "changes": 1812,
+          "gained": 0,
+          "lost": 1812,
           "primary_counterpart": 4155
         },
         {
           "asn": 19905,
           "changes": 1733,
+          "gained": 1034,
+          "lost": 699,
           "primary_counterpart": 30036
         },
         {
           "asn": 17561,
           "changes": 1439,
+          "gained": 1284,
+          "lost": 155,
           "primary_counterpart": 984
         },
         {
           "asn": 9304,
           "changes": 1328,
-          "primary_counterpart": 834
+          "gained": 720,
+          "lost": 608,
+          "primary_counterpart": 3257
         },
         {
           "asn": 4134,
           "changes": 1322,
+          "gained": 108,
+          "lost": 1214,
           "primary_counterpart": 140292
         },
         {
           "asn": 10515,
           "changes": 1300,
+          "gained": 1207,
+          "lost": 93,
           "primary_counterpart": 20362
         },
         {
           "asn": 212238,
           "changes": 984,
+          "gained": 691,
+          "lost": 293,
           "primary_counterpart": 3257
         },
         {
           "asn": 198949,
           "changes": 914,
+          "gained": 672,
+          "lost": 242,
           "primary_counterpart": 15557
         },
         {
           "asn": 367,
           "changes": 879,
+          "gained": 103,
+          "lost": 776,
           "primary_counterpart": 56
         },
         {
           "asn": 7029,
           "changes": 873,
-          "primary_counterpart": 7018
-        },
-        {
-          "asn": 2914,
-          "changes": 856,
-          "primary_counterpart": 201115
+          "gained": 396,
+          "lost": 477,
+          "primary_counterpart": 50113
         },
         {
           "asn": 7018,
           "changes": 856,
-          "primary_counterpart": 4466
+          "gained": 232,
+          "lost": 624,
+          "primary_counterpart": 7029
+        },
+        {
+          "asn": 2914,
+          "changes": 856,
+          "gained": 419,
+          "lost": 437,
+          "primary_counterpart": 201115
         },
         {
           "asn": 20473,
           "changes": 851,
+          "gained": 149,
+          "lost": 702,
           "primary_counterpart": 57878
         },
         {
           "asn": 3356,
           "changes": 836,
+          "gained": 258,
+          "lost": 578,
           "primary_counterpart": 8895
         },
         {
           "asn": 6079,
           "changes": 773,
+          "gained": 337,
+          "lost": 436,
           "primary_counterpart": 154049
         },
         {
           "asn": 9009,
           "changes": 742,
+          "gained": 394,
+          "lost": 348,
           "primary_counterpart": 212238
         },
         {
           "asn": 140292,
           "changes": 665,
+          "gained": 664,
+          "lost": 1,
           "primary_counterpart": 4134
         },
         {
           "asn": 44559,
           "changes": 642,
+          "gained": 475,
+          "lost": 167,
           "primary_counterpart": 214238
         }
       ],
@@ -1518,127 +2068,177 @@
         {
           "asn": 834,
           "changes": 3511,
-          "primary_counterpart": 9304
+          "gained": 2238,
+          "lost": 1273,
+          "primary_counterpart": 3257
         },
         {
           "asn": 14618,
           "changes": 3026,
+          "gained": 1989,
+          "lost": 1037,
           "primary_counterpart": 16509
         },
         {
           "asn": 174,
           "changes": 3009,
-          "primary_counterpart": 1239
+          "gained": 1384,
+          "lost": 1625,
+          "primary_counterpart": 834
         },
         {
           "asn": 16509,
           "changes": 2878,
+          "gained": 1020,
+          "lost": 1858,
           "primary_counterpart": 14618
         },
         {
           "asn": 3257,
           "changes": 2203,
+          "gained": 167,
+          "lost": 2036,
           "primary_counterpart": 834
         },
         {
           "asn": 984,
           "changes": 1905,
+          "gained": 171,
+          "lost": 1734,
           "primary_counterpart": 17561
         },
         {
           "asn": 4155,
           "changes": 1822,
+          "gained": 1821,
+          "lost": 1,
           "primary_counterpart": 4152
         },
         {
           "asn": 19905,
           "changes": 1815,
+          "gained": 1027,
+          "lost": 788,
           "primary_counterpart": 30036
         },
         {
           "asn": 4152,
           "changes": 1812,
+          "gained": 0,
+          "lost": 1812,
           "primary_counterpart": 4155
         },
         {
           "asn": 9304,
           "changes": 1490,
+          "gained": 880,
+          "lost": 610,
           "primary_counterpart": 834
         },
         {
           "asn": 17561,
           "changes": 1483,
+          "gained": 1316,
+          "lost": 167,
           "primary_counterpart": 984
         },
         {
           "asn": 4134,
           "changes": 1415,
+          "gained": 126,
+          "lost": 1289,
           "primary_counterpart": 140292
         },
         {
           "asn": 10515,
           "changes": 1300,
+          "gained": 1207,
+          "lost": 93,
           "primary_counterpart": 20362
         },
         {
           "asn": 212238,
           "changes": 998,
+          "gained": 686,
+          "lost": 312,
           "primary_counterpart": 3257
         },
         {
           "asn": 367,
           "changes": 978,
+          "gained": 98,
+          "lost": 880,
           "primary_counterpart": 56
         },
         {
           "asn": 198949,
           "changes": 977,
+          "gained": 706,
+          "lost": 271,
           "primary_counterpart": 15557
         },
         {
           "asn": 6079,
           "changes": 947,
+          "gained": 454,
+          "lost": 493,
           "primary_counterpart": 154049
         },
         {
           "asn": 20473,
           "changes": 908,
+          "gained": 203,
+          "lost": 705,
           "primary_counterpart": 57878
         },
         {
           "asn": 7029,
           "changes": 903,
+          "gained": 439,
+          "lost": 464,
           "primary_counterpart": 154049
         },
         {
           "asn": 7018,
           "changes": 878,
+          "gained": 237,
+          "lost": 641,
           "primary_counterpart": 7029
         },
         {
           "asn": 9009,
           "changes": 840,
+          "gained": 410,
+          "lost": 430,
           "primary_counterpart": 212238
         },
         {
           "asn": 2914,
           "changes": 825,
+          "gained": 355,
+          "lost": 470,
           "primary_counterpart": 201115
         },
         {
           "asn": 154049,
           "changes": 706,
+          "gained": 705,
+          "lost": 1,
           "primary_counterpart": 60781
         },
         {
           "asn": 140292,
           "changes": 667,
+          "gained": 650,
+          "lost": 17,
           "primary_counterpart": 4134
         },
         {
           "asn": 3356,
           "changes": 655,
-          "primary_counterpart": 3549
+          "gained": 282,
+          "lost": 373,
+          "primary_counterpart": 16509
         }
       ],
       "total_changes": 85331,
@@ -1655,126 +2255,176 @@
         {
           "asn": 834,
           "changes": 4106,
-          "primary_counterpart": 9304
+          "gained": 2893,
+          "lost": 1213,
+          "primary_counterpart": 3257
         },
         {
           "asn": 14618,
           "changes": 3491,
+          "gained": 2251,
+          "lost": 1240,
           "primary_counterpart": 16509
         },
         {
           "asn": 174,
           "changes": 3397,
-          "primary_counterpart": 1239
+          "gained": 1492,
+          "lost": 1905,
+          "primary_counterpart": 834
         },
         {
           "asn": 16509,
           "changes": 3130,
+          "gained": 1163,
+          "lost": 1967,
           "primary_counterpart": 14618
         },
         {
           "asn": 3257,
           "changes": 2365,
+          "gained": 179,
+          "lost": 2186,
           "primary_counterpart": 834
         },
         {
           "asn": 19905,
           "changes": 2010,
+          "gained": 1194,
+          "lost": 816,
           "primary_counterpart": 30036
         },
         {
           "asn": 984,
           "changes": 1856,
+          "gained": 131,
+          "lost": 1725,
           "primary_counterpart": 17561
         },
         {
           "asn": 4155,
           "changes": 1826,
+          "gained": 1821,
+          "lost": 5,
           "primary_counterpart": 4152
         },
         {
           "asn": 4152,
           "changes": 1812,
+          "gained": 0,
+          "lost": 1812,
           "primary_counterpart": 4155
         },
         {
           "asn": 17561,
           "changes": 1546,
+          "gained": 1380,
+          "lost": 166,
           "primary_counterpart": 984
         },
         {
           "asn": 4134,
           "changes": 1445,
+          "gained": 132,
+          "lost": 1313,
           "primary_counterpart": 140292
         },
         {
           "asn": 10515,
           "changes": 1308,
+          "gained": 1215,
+          "lost": 93,
           "primary_counterpart": 20362
         },
         {
           "asn": 6079,
           "changes": 1115,
-          "primary_counterpart": 154049
+          "gained": 592,
+          "lost": 523,
+          "primary_counterpart": 6253
         },
         {
           "asn": 9304,
           "changes": 1054,
+          "gained": 421,
+          "lost": 633,
           "primary_counterpart": 834
         },
         {
           "asn": 212238,
           "changes": 1047,
+          "gained": 746,
+          "lost": 301,
           "primary_counterpart": 3257
         },
         {
           "asn": 198949,
           "changes": 974,
+          "gained": 682,
+          "lost": 292,
           "primary_counterpart": 15557
         },
         {
           "asn": 367,
           "changes": 969,
+          "gained": 68,
+          "lost": 901,
           "primary_counterpart": 56
         },
         {
           "asn": 7029,
           "changes": 939,
+          "gained": 356,
+          "lost": 583,
           "primary_counterpart": 154049
         },
         {
           "asn": 20473,
           "changes": 936,
+          "gained": 214,
+          "lost": 722,
           "primary_counterpart": 57878
         },
         {
           "asn": 7018,
           "changes": 933,
-          "primary_counterpart": 4466
+          "gained": 269,
+          "lost": 664,
+          "primary_counterpart": 6079
         },
         {
           "asn": 2914,
           "changes": 899,
+          "gained": 401,
+          "lost": 498,
           "primary_counterpart": 1299
         },
         {
           "asn": 9009,
           "changes": 880,
+          "gained": 418,
+          "lost": 462,
           "primary_counterpart": 212238
         },
         {
           "asn": 30036,
           "changes": 701,
+          "gained": 5,
+          "lost": 696,
           "primary_counterpart": 19905
         },
         {
           "asn": 3356,
           "changes": 683,
-          "primary_counterpart": 3549
+          "gained": 264,
+          "lost": 419,
+          "primary_counterpart": 0
         },
         {
           "asn": 154049,
           "changes": 682,
+          "gained": 681,
+          "lost": 1,
           "primary_counterpart": 60781
         }
       ],
@@ -1792,126 +2442,176 @@
         {
           "asn": 834,
           "changes": 1823,
+          "gained": 885,
+          "lost": 938,
           "primary_counterpart": 9304
         },
         {
           "asn": 4155,
           "changes": 1815,
+          "gained": 1813,
+          "lost": 2,
           "primary_counterpart": 4152
         },
         {
           "asn": 4152,
           "changes": 1804,
+          "gained": 0,
+          "lost": 1804,
           "primary_counterpart": 4155
         },
         {
           "asn": 14618,
           "changes": 1612,
+          "gained": 1188,
+          "lost": 424,
           "primary_counterpart": 16509
         },
         {
           "asn": 16509,
           "changes": 1493,
+          "gained": 406,
+          "lost": 1087,
           "primary_counterpart": 14618
         },
         {
           "asn": 174,
           "changes": 1176,
+          "gained": 425,
+          "lost": 751,
           "primary_counterpart": 834
         },
         {
           "asn": 3257,
           "changes": 1068,
+          "gained": 54,
+          "lost": 1014,
           "primary_counterpart": 9304
         },
         {
           "asn": 9304,
           "changes": 956,
+          "gained": 539,
+          "lost": 417,
           "primary_counterpart": 834
         },
         {
           "asn": 4134,
           "changes": 796,
+          "gained": 30,
+          "lost": 766,
           "primary_counterpart": 140292
         },
         {
           "asn": 19905,
           "changes": 621,
+          "gained": 297,
+          "lost": 324,
           "primary_counterpart": 28885
         },
         {
           "asn": 140292,
           "changes": 592,
+          "gained": 592,
+          "lost": 0,
           "primary_counterpart": 4134
         },
         {
           "asn": 7018,
           "changes": 584,
+          "gained": 311,
+          "lost": 273,
           "primary_counterpart": 4466
         },
         {
           "asn": 10515,
           "changes": 515,
+          "gained": 515,
+          "lost": 0,
           "primary_counterpart": 19836
         },
         {
           "asn": 154049,
           "changes": 507,
+          "gained": 507,
+          "lost": 0,
           "primary_counterpart": 60781
         },
         {
           "asn": 7029,
           "changes": 481,
-          "primary_counterpart": 7018
+          "gained": 204,
+          "lost": 277,
+          "primary_counterpart": 154049
         },
         {
           "asn": 212238,
           "changes": 478,
-          "primary_counterpart": 9009
+          "gained": 325,
+          "lost": 153,
+          "primary_counterpart": 3257
         },
         {
           "asn": 9009,
           "changes": 454,
+          "gained": 255,
+          "lost": 199,
           "primary_counterpart": 212238
         },
         {
           "asn": 3491,
           "changes": 425,
+          "gained": 227,
+          "lost": 198,
           "primary_counterpart": 31713
         },
         {
           "asn": 31713,
           "changes": 421,
+          "gained": 194,
+          "lost": 227,
           "primary_counterpart": 3491
         },
         {
           "asn": 6079,
           "changes": 391,
+          "gained": 184,
+          "lost": 207,
           "primary_counterpart": 154049
         },
         {
           "asn": 44477,
           "changes": 357,
-          "primary_counterpart": 44559
+          "gained": 15,
+          "lost": 342,
+          "primary_counterpart": 209847
         },
         {
           "asn": 5384,
           "changes": 347,
+          "gained": 2,
+          "lost": 345,
           "primary_counterpart": 8966
         },
         {
           "asn": 8966,
           "changes": 347,
+          "gained": 345,
+          "lost": 2,
           "primary_counterpart": 5384
         },
         {
           "asn": 367,
           "changes": 337,
+          "gained": 34,
+          "lost": 303,
           "primary_counterpart": 56
         },
         {
           "asn": 44559,
           "changes": 327,
+          "gained": 195,
+          "lost": 132,
           "primary_counterpart": 44477
         }
       ],
@@ -1929,126 +2629,176 @@
         {
           "asn": 834,
           "changes": 2630,
+          "gained": 1665,
+          "lost": 965,
           "primary_counterpart": 9304
         },
         {
           "asn": 14618,
           "changes": 2186,
+          "gained": 1710,
+          "lost": 476,
           "primary_counterpart": 16509
         },
         {
           "asn": 16509,
           "changes": 2101,
+          "gained": 583,
+          "lost": 1518,
           "primary_counterpart": 14618
         },
         {
           "asn": 4155,
           "changes": 1815,
+          "gained": 1813,
+          "lost": 2,
           "primary_counterpart": 4152
         },
         {
           "asn": 4152,
           "changes": 1804,
+          "gained": 0,
+          "lost": 1804,
           "primary_counterpart": 4155
         },
         {
           "asn": 174,
           "changes": 1686,
+          "gained": 510,
+          "lost": 1176,
           "primary_counterpart": 834
         },
         {
           "asn": 9304,
           "changes": 1378,
+          "gained": 602,
+          "lost": 776,
           "primary_counterpart": 834
         },
         {
           "asn": 3257,
           "changes": 1378,
+          "gained": 51,
+          "lost": 1327,
           "primary_counterpart": 834
         },
         {
           "asn": 4134,
           "changes": 1039,
+          "gained": 52,
+          "lost": 987,
           "primary_counterpart": 140292
         },
         {
           "asn": 17561,
           "changes": 717,
+          "gained": 543,
+          "lost": 174,
           "primary_counterpart": 203020
         },
         {
           "asn": 212238,
           "changes": 676,
-          "primary_counterpart": 9009
+          "gained": 421,
+          "lost": 255,
+          "primary_counterpart": 3257
         },
         {
           "asn": 19905,
           "changes": 637,
-          "primary_counterpart": 28885
+          "gained": 352,
+          "lost": 285,
+          "primary_counterpart": 30036
         },
         {
           "asn": 10515,
           "changes": 631,
+          "gained": 631,
+          "lost": 0,
           "primary_counterpart": 19836
         },
         {
           "asn": 7018,
           "changes": 617,
-          "primary_counterpart": 4466
+          "gained": 221,
+          "lost": 396,
+          "primary_counterpart": 7029
         },
         {
           "asn": 140292,
           "changes": 613,
+          "gained": 613,
+          "lost": 0,
           "primary_counterpart": 4134
         },
         {
           "asn": 7029,
           "changes": 567,
-          "primary_counterpart": 7018
+          "gained": 257,
+          "lost": 310,
+          "primary_counterpart": 154049
         },
         {
           "asn": 9009,
           "changes": 558,
+          "gained": 351,
+          "lost": 207,
           "primary_counterpart": 212238
         },
         {
           "asn": 154049,
           "changes": 504,
+          "gained": 504,
+          "lost": 0,
           "primary_counterpart": 60781
         },
         {
           "asn": 6079,
           "changes": 489,
+          "gained": 227,
+          "lost": 262,
           "primary_counterpart": 154049
         },
         {
           "asn": 42375,
           "changes": 422,
+          "gained": 371,
+          "lost": 51,
           "primary_counterpart": 204490
         },
         {
           "asn": 44559,
           "changes": 415,
+          "gained": 255,
+          "lost": 160,
           "primary_counterpart": 44477
         },
         {
           "asn": 367,
           "changes": 394,
+          "gained": 50,
+          "lost": 344,
           "primary_counterpart": 56
         },
         {
           "asn": 198949,
           "changes": 378,
+          "gained": 205,
+          "lost": 173,
           "primary_counterpart": 13778
         },
         {
           "asn": 44477,
           "changes": 366,
+          "gained": 16,
+          "lost": 350,
           "primary_counterpart": 214238
         },
         {
           "asn": 984,
           "changes": 366,
+          "gained": 111,
+          "lost": 255,
           "primary_counterpart": 17561
         }
       ],
@@ -2066,126 +2816,176 @@
         {
           "asn": 834,
           "changes": 3260,
+          "gained": 2304,
+          "lost": 956,
           "primary_counterpart": 9304
         },
         {
           "asn": 14618,
           "changes": 2802,
+          "gained": 2066,
+          "lost": 736,
           "primary_counterpart": 16509
         },
         {
           "asn": 16509,
           "changes": 2559,
+          "gained": 820,
+          "lost": 1739,
           "primary_counterpart": 14618
         },
         {
           "asn": 174,
           "changes": 2485,
-          "primary_counterpart": 1239
+          "gained": 1166,
+          "lost": 1319,
+          "primary_counterpart": 2914
         },
         {
           "asn": 4155,
           "changes": 1815,
+          "gained": 1813,
+          "lost": 2,
           "primary_counterpart": 4152
         },
         {
           "asn": 4152,
           "changes": 1804,
+          "gained": 0,
+          "lost": 1804,
           "primary_counterpart": 4155
         },
         {
           "asn": 3257,
           "changes": 1718,
+          "gained": 110,
+          "lost": 1608,
           "primary_counterpart": 834
         },
         {
           "asn": 9304,
           "changes": 1668,
+          "gained": 650,
+          "lost": 1018,
           "primary_counterpart": 834
         },
         {
           "asn": 19905,
           "changes": 1625,
+          "gained": 977,
+          "lost": 648,
           "primary_counterpart": 30036
         },
         {
           "asn": 4134,
           "changes": 1197,
+          "gained": 56,
+          "lost": 1141,
           "primary_counterpart": 140292
         },
         {
           "asn": 198949,
           "changes": 898,
+          "gained": 649,
+          "lost": 249,
           "primary_counterpart": 15557
         },
         {
           "asn": 212238,
           "changes": 862,
+          "gained": 606,
+          "lost": 256,
           "primary_counterpart": 3257
         },
         {
           "asn": 17561,
           "changes": 843,
+          "gained": 647,
+          "lost": 196,
           "primary_counterpart": 203020
         },
         {
           "asn": 7018,
           "changes": 785,
+          "gained": 302,
+          "lost": 483,
           "primary_counterpart": 7029
         },
         {
           "asn": 367,
           "changes": 782,
+          "gained": 94,
+          "lost": 688,
           "primary_counterpart": 27064
         },
         {
           "asn": 7029,
           "changes": 779,
-          "primary_counterpart": 7018
+          "gained": 340,
+          "lost": 439,
+          "primary_counterpart": 154049
         },
         {
           "asn": 9009,
           "changes": 678,
+          "gained": 367,
+          "lost": 311,
           "primary_counterpart": 212238
         },
         {
           "asn": 2914,
           "changes": 664,
-          "primary_counterpart": 201115
+          "gained": 368,
+          "lost": 296,
+          "primary_counterpart": 3257
         },
         {
           "asn": 10515,
           "changes": 631,
+          "gained": 631,
+          "lost": 0,
           "primary_counterpart": 19836
         },
         {
           "asn": 6079,
           "changes": 624,
+          "gained": 289,
+          "lost": 335,
           "primary_counterpart": 154049
         },
         {
           "asn": 140292,
           "changes": 615,
+          "gained": 615,
+          "lost": 0,
           "primary_counterpart": 4134
         },
         {
           "asn": 44559,
           "changes": 599,
+          "gained": 416,
+          "lost": 183,
           "primary_counterpart": 214238
         },
         {
           "asn": 42375,
           "changes": 586,
-          "primary_counterpart": 205866
+          "gained": 536,
+          "lost": 50,
+          "primary_counterpart": 204490
         },
         {
           "asn": 154049,
           "changes": 530,
+          "gained": 530,
+          "lost": 0,
           "primary_counterpart": 60781
         },
         {
           "asn": 3356,
           "changes": 526,
+          "gained": 206,
+          "lost": 320,
           "primary_counterpart": 0
         }
       ],
@@ -2203,126 +3003,176 @@
         {
           "asn": 834,
           "changes": 3281,
+          "gained": 2284,
+          "lost": 997,
           "primary_counterpart": 9304
         },
         {
           "asn": 14618,
           "changes": 2928,
+          "gained": 2085,
+          "lost": 843,
           "primary_counterpart": 16509
         },
         {
           "asn": 16509,
           "changes": 2843,
+          "gained": 1057,
+          "lost": 1786,
           "primary_counterpart": 14618
         },
         {
           "asn": 174,
           "changes": 2686,
-          "primary_counterpart": 1239
+          "gained": 1306,
+          "lost": 1380,
+          "primary_counterpart": 834
         },
         {
           "asn": 3257,
           "changes": 1825,
+          "gained": 133,
+          "lost": 1692,
           "primary_counterpart": 834
         },
         {
           "asn": 9304,
           "changes": 1815,
+          "gained": 805,
+          "lost": 1010,
           "primary_counterpart": 834
         },
         {
           "asn": 4155,
           "changes": 1815,
+          "gained": 1813,
+          "lost": 2,
           "primary_counterpart": 4152
         },
         {
           "asn": 4152,
           "changes": 1804,
+          "gained": 0,
+          "lost": 1804,
           "primary_counterpart": 4155
         },
         {
           "asn": 19905,
           "changes": 1755,
+          "gained": 996,
+          "lost": 759,
           "primary_counterpart": 30036
         },
         {
           "asn": 4134,
           "changes": 1301,
+          "gained": 80,
+          "lost": 1221,
           "primary_counterpart": 140292
         },
         {
           "asn": 198949,
           "changes": 963,
+          "gained": 684,
+          "lost": 279,
           "primary_counterpart": 15557
         },
         {
           "asn": 367,
           "changes": 909,
+          "gained": 89,
+          "lost": 820,
           "primary_counterpart": 27064
         },
         {
           "asn": 17561,
           "changes": 902,
+          "gained": 700,
+          "lost": 202,
           "primary_counterpart": 203020
         },
         {
           "asn": 212238,
           "changes": 882,
+          "gained": 600,
+          "lost": 282,
           "primary_counterpart": 3257
         },
         {
           "asn": 7029,
           "changes": 820,
-          "primary_counterpart": 7018
+          "gained": 385,
+          "lost": 435,
+          "primary_counterpart": 154049
         },
         {
           "asn": 6079,
           "changes": 794,
-          "primary_counterpart": 154049
+          "gained": 414,
+          "lost": 380,
+          "primary_counterpart": 6253
         },
         {
           "asn": 3356,
           "changes": 768,
+          "gained": 442,
+          "lost": 326,
           "primary_counterpart": 203
         },
         {
           "asn": 7018,
           "changes": 740,
+          "gained": 270,
+          "lost": 470,
           "primary_counterpart": 7029
         },
         {
           "asn": 9009,
           "changes": 730,
+          "gained": 363,
+          "lost": 367,
           "primary_counterpart": 212238
         },
         {
           "asn": 154049,
           "changes": 719,
+          "gained": 718,
+          "lost": 1,
           "primary_counterpart": 60781
         },
         {
           "asn": 2914,
           "changes": 644,
+          "gained": 312,
+          "lost": 332,
           "primary_counterpart": 201115
         },
         {
           "asn": 10515,
           "changes": 631,
+          "gained": 631,
+          "lost": 0,
           "primary_counterpart": 19836
         },
         {
           "asn": 140292,
           "changes": 628,
+          "gained": 606,
+          "lost": 22,
           "primary_counterpart": 4134
         },
         {
           "asn": 42375,
           "changes": 574,
-          "primary_counterpart": 205866
+          "gained": 528,
+          "lost": 46,
+          "primary_counterpart": 204490
         },
         {
           "asn": 60781,
           "changes": 519,
+          "gained": 69,
+          "lost": 450,
           "primary_counterpart": 154049
         }
       ],
@@ -2340,126 +3190,176 @@
         {
           "asn": 834,
           "changes": 3972,
+          "gained": 3007,
+          "lost": 965,
           "primary_counterpart": 9304
         },
         {
           "asn": 14618,
           "changes": 3145,
+          "gained": 2289,
+          "lost": 856,
           "primary_counterpart": 16509
         },
         {
           "asn": 174,
           "changes": 3107,
-          "primary_counterpart": 1239
+          "gained": 1431,
+          "lost": 1676,
+          "primary_counterpart": 834
         },
         {
           "asn": 16509,
           "changes": 2852,
+          "gained": 1002,
+          "lost": 1850,
           "primary_counterpart": 14618
         },
         {
           "asn": 3257,
           "changes": 1973,
+          "gained": 129,
+          "lost": 1844,
           "primary_counterpart": 834
         },
         {
           "asn": 19905,
           "changes": 1872,
+          "gained": 1124,
+          "lost": 748,
           "primary_counterpart": 30036
         },
         {
           "asn": 4155,
           "changes": 1819,
+          "gained": 1813,
+          "lost": 6,
           "primary_counterpart": 4152
         },
         {
           "asn": 4152,
           "changes": 1804,
+          "gained": 0,
+          "lost": 1804,
           "primary_counterpart": 4155
         },
         {
           "asn": 9304,
           "changes": 1435,
+          "gained": 372,
+          "lost": 1063,
           "primary_counterpart": 834
         },
         {
           "asn": 4134,
           "changes": 1331,
+          "gained": 86,
+          "lost": 1245,
           "primary_counterpart": 140292
         },
         {
           "asn": 17561,
           "changes": 966,
+          "gained": 764,
+          "lost": 202,
           "primary_counterpart": 203020
         },
         {
           "asn": 6079,
           "changes": 945,
+          "gained": 549,
+          "lost": 396,
           "primary_counterpart": 6253
         },
         {
           "asn": 212238,
           "changes": 936,
+          "gained": 652,
+          "lost": 284,
           "primary_counterpart": 3257
         },
         {
           "asn": 198949,
           "changes": 908,
+          "gained": 634,
+          "lost": 274,
           "primary_counterpart": 15557
         },
         {
           "asn": 367,
           "changes": 900,
+          "gained": 60,
+          "lost": 840,
           "primary_counterpart": 1540
         },
         {
           "asn": 7029,
           "changes": 838,
+          "gained": 300,
+          "lost": 538,
           "primary_counterpart": 154049
         },
         {
           "asn": 3356,
           "changes": 806,
+          "gained": 428,
+          "lost": 378,
           "primary_counterpart": 203
         },
         {
           "asn": 9009,
           "changes": 773,
+          "gained": 374,
+          "lost": 399,
           "primary_counterpart": 212238
         },
         {
           "asn": 7018,
           "changes": 740,
-          "primary_counterpart": 4466
+          "gained": 275,
+          "lost": 465,
+          "primary_counterpart": 6079
         },
         {
           "asn": 2914,
           "changes": 699,
+          "gained": 346,
+          "lost": 353,
           "primary_counterpart": 1299
         },
         {
           "asn": 154049,
           "changes": 695,
+          "gained": 694,
+          "lost": 1,
           "primary_counterpart": 60781
         },
         {
           "asn": 30036,
           "changes": 642,
+          "gained": 2,
+          "lost": 640,
           "primary_counterpart": 19905
         },
         {
           "asn": 140292,
           "changes": 642,
+          "gained": 616,
+          "lost": 26,
           "primary_counterpart": 4134
         },
         {
           "asn": 10515,
           "changes": 639,
+          "gained": 639,
+          "lost": 0,
           "primary_counterpart": 19836
         },
         {
           "asn": 60781,
           "changes": 566,
+          "gained": 93,
+          "lost": 473,
           "primary_counterpart": 154049
         }
       ],
@@ -2477,126 +3377,176 @@
         {
           "asn": 834,
           "changes": 1948,
+          "gained": 1248,
+          "lost": 700,
           "primary_counterpart": 9304
         },
         {
           "asn": 14618,
           "changes": 1654,
+          "gained": 1139,
+          "lost": 515,
           "primary_counterpart": 16509
         },
         {
           "asn": 16509,
           "changes": 1430,
+          "gained": 513,
+          "lost": 917,
           "primary_counterpart": 14618
         },
         {
           "asn": 174,
           "changes": 835,
-          "primary_counterpart": 29571
+          "gained": 272,
+          "lost": 563,
+          "primary_counterpart": 4637
         },
         {
           "asn": 9304,
           "changes": 783,
+          "gained": 234,
+          "lost": 549,
           "primary_counterpart": 834
         },
         {
           "asn": 17561,
           "changes": 497,
+          "gained": 431,
+          "lost": 66,
           "primary_counterpart": 203020
         },
         {
           "asn": 3257,
           "changes": 373,
+          "gained": 44,
+          "lost": 329,
           "primary_counterpart": 397630
         },
         {
           "asn": 205886,
           "changes": 343,
+          "gained": 126,
+          "lost": 217,
           "primary_counterpart": 834
         },
         {
           "asn": 4134,
           "changes": 318,
+          "gained": 26,
+          "lost": 292,
           "primary_counterpart": 140309
         },
         {
           "asn": 212238,
           "changes": 306,
-          "primary_counterpart": 9009
+          "gained": 153,
+          "lost": 153,
+          "primary_counterpart": 201341
         },
         {
           "asn": 42375,
           "changes": 305,
+          "gained": 305,
+          "lost": 0,
           "primary_counterpart": 204490
         },
         {
           "asn": 7018,
           "changes": 294,
+          "gained": 47,
+          "lost": 247,
           "primary_counterpart": 20001
         },
         {
           "asn": 22516,
           "changes": 262,
+          "gained": 261,
+          "lost": 1,
           "primary_counterpart": 20115
         },
         {
           "asn": 198949,
           "changes": 253,
+          "gained": 175,
+          "lost": 78,
           "primary_counterpart": 13778
         },
         {
           "asn": 8987,
           "changes": 247,
+          "gained": 65,
+          "lost": 182,
           "primary_counterpart": 16509
         },
         {
           "asn": 9009,
           "changes": 234,
+          "gained": 153,
+          "lost": 81,
           "primary_counterpart": 212238
         },
         {
           "asn": 3491,
           "changes": 233,
+          "gained": 4,
+          "lost": 229,
           "primary_counterpart": 31713
         },
         {
           "asn": 31713,
           "changes": 230,
+          "gained": 229,
+          "lost": 1,
           "primary_counterpart": 3491
         },
         {
           "asn": 33659,
           "changes": 216,
+          "gained": 20,
+          "lost": 196,
           "primary_counterpart": 33287
         },
         {
           "asn": 19905,
           "changes": 209,
+          "gained": 154,
+          "lost": 55,
           "primary_counterpart": 30036
         },
         {
           "asn": 33287,
           "changes": 205,
+          "gained": 190,
+          "lost": 15,
           "primary_counterpart": 33659
         },
         {
           "asn": 44559,
           "changes": 198,
-          "primary_counterpart": 214238
+          "gained": 104,
+          "lost": 94,
+          "primary_counterpart": 14962
         },
         {
           "asn": 20115,
           "changes": 192,
+          "gained": 28,
+          "lost": 164,
           "primary_counterpart": 22516
         },
         {
           "asn": 25198,
           "changes": 189,
-          "primary_counterpart": 834
+          "gained": 101,
+          "lost": 88,
+          "primary_counterpart": 205886
         },
         {
           "asn": 721,
           "changes": 179,
+          "gained": 87,
+          "lost": 92,
           "primary_counterpart": 647
         }
       ],
@@ -2614,126 +3564,176 @@
         {
           "asn": 834,
           "changes": 3068,
+          "gained": 2124,
+          "lost": 944,
           "primary_counterpart": 9304
         },
         {
           "asn": 14618,
           "changes": 2375,
+          "gained": 1537,
+          "lost": 838,
           "primary_counterpart": 16509
         },
         {
           "asn": 16509,
           "changes": 1974,
+          "gained": 826,
+          "lost": 1148,
           "primary_counterpart": 14618
         },
         {
           "asn": 174,
           "changes": 1676,
+          "gained": 942,
+          "lost": 734,
           "primary_counterpart": 1239
         },
         {
           "asn": 9304,
           "changes": 1311,
+          "gained": 388,
+          "lost": 923,
           "primary_counterpart": 834
         },
         {
           "asn": 19905,
           "changes": 1127,
+          "gained": 722,
+          "lost": 405,
           "primary_counterpart": 50710
         },
         {
           "asn": 198949,
           "changes": 869,
+          "gained": 684,
+          "lost": 185,
           "primary_counterpart": 15557
         },
         {
           "asn": 17561,
           "changes": 647,
+          "gained": 548,
+          "lost": 99,
           "primary_counterpart": 203020
         },
         {
           "asn": 3257,
           "changes": 634,
+          "gained": 108,
+          "lost": 526,
           "primary_counterpart": 834
         },
         {
           "asn": 212238,
           "changes": 560,
-          "primary_counterpart": 136787
+          "gained": 378,
+          "lost": 182,
+          "primary_counterpart": 9009
         },
         {
           "asn": 2914,
           "changes": 522,
-          "primary_counterpart": 201115
+          "gained": 293,
+          "lost": 229,
+          "primary_counterpart": 174
         },
         {
           "asn": 4134,
           "changes": 516,
+          "gained": 35,
+          "lost": 481,
           "primary_counterpart": 140318
         },
         {
           "asn": 28006,
           "changes": 477,
+          "gained": 0,
+          "lost": 477,
           "primary_counterpart": 14420
         },
         {
           "asn": 367,
           "changes": 469,
+          "gained": 73,
+          "lost": 396,
           "primary_counterpart": 27064
         },
         {
           "asn": 42375,
           "changes": 451,
+          "gained": 451,
+          "lost": 0,
           "primary_counterpart": 204490
         },
         {
           "asn": 9009,
           "changes": 445,
+          "gained": 214,
+          "lost": 231,
           "primary_counterpart": 209372
         },
         {
           "asn": 1299,
           "changes": 429,
+          "gained": 222,
+          "lost": 207,
           "primary_counterpart": 16347
         },
         {
           "asn": 7018,
           "changes": 404,
-          "primary_counterpart": 7029
+          "gained": 106,
+          "lost": 298,
+          "primary_counterpart": 20115
         },
         {
           "asn": 14420,
           "changes": 394,
+          "gained": 394,
+          "lost": 0,
           "primary_counterpart": 28006
         },
         {
           "asn": 9808,
           "changes": 390,
+          "gained": 112,
+          "lost": 278,
           "primary_counterpart": 56045
         },
         {
           "asn": 7029,
           "changes": 377,
-          "primary_counterpart": 7018
+          "gained": 183,
+          "lost": 194,
+          "primary_counterpart": 399989
         },
         {
           "asn": 3356,
           "changes": 359,
+          "gained": 133,
+          "lost": 226,
           "primary_counterpart": 0
         },
         {
           "asn": 205886,
           "changes": 356,
+          "gained": 52,
+          "lost": 304,
           "primary_counterpart": 834
         },
         {
           "asn": 44559,
           "changes": 346,
+          "gained": 248,
+          "lost": 98,
           "primary_counterpart": 214238
         },
         {
           "asn": 6079,
           "changes": 305,
+          "gained": 148,
+          "lost": 157,
           "primary_counterpart": 174
         }
       ],
@@ -2751,126 +3751,176 @@
         {
           "asn": 834,
           "changes": 3364,
+          "gained": 2241,
+          "lost": 1123,
           "primary_counterpart": 9304
         },
         {
           "asn": 14618,
           "changes": 2538,
+          "gained": 1574,
+          "lost": 964,
           "primary_counterpart": 16509
         },
         {
           "asn": 16509,
           "changes": 2249,
+          "gained": 1046,
+          "lost": 1203,
           "primary_counterpart": 14618
         },
         {
           "asn": 174,
           "changes": 1890,
+          "gained": 1083,
+          "lost": 807,
           "primary_counterpart": 1239
         },
         {
           "asn": 9304,
           "changes": 1698,
+          "gained": 662,
+          "lost": 1036,
           "primary_counterpart": 834
         },
         {
           "asn": 19905,
           "changes": 1232,
+          "gained": 730,
+          "lost": 502,
           "primary_counterpart": 50710
         },
         {
           "asn": 198949,
           "changes": 941,
+          "gained": 724,
+          "lost": 217,
           "primary_counterpart": 15557
         },
         {
           "asn": 3257,
           "changes": 745,
+          "gained": 134,
+          "lost": 611,
           "primary_counterpart": 834
         },
         {
           "asn": 17561,
           "changes": 709,
+          "gained": 602,
+          "lost": 107,
           "primary_counterpart": 203020
         },
         {
           "asn": 4134,
           "changes": 675,
+          "gained": 84,
+          "lost": 591,
           "primary_counterpart": 140318
         },
         {
           "asn": 3356,
           "changes": 601,
+          "gained": 369,
+          "lost": 232,
           "primary_counterpart": 203
         },
         {
           "asn": 367,
           "changes": 597,
+          "gained": 71,
+          "lost": 526,
           "primary_counterpart": 27064
         },
         {
           "asn": 212238,
           "changes": 573,
-          "primary_counterpart": 136787
+          "gained": 368,
+          "lost": 205,
+          "primary_counterpart": 9009
         },
         {
           "asn": 7029,
           "changes": 511,
+          "gained": 266,
+          "lost": 245,
           "primary_counterpart": 7018
         },
         {
           "asn": 2914,
           "changes": 502,
+          "gained": 233,
+          "lost": 269,
           "primary_counterpart": 201115
         },
         {
           "asn": 28006,
           "changes": 492,
+          "gained": 0,
+          "lost": 492,
           "primary_counterpart": 27757
         },
         {
           "asn": 9009,
           "changes": 488,
-          "primary_counterpart": 209372
+          "gained": 205,
+          "lost": 283,
+          "primary_counterpart": 16247
         },
         {
           "asn": 6079,
           "changes": 486,
+          "gained": 286,
+          "lost": 200,
           "primary_counterpart": 6253
         },
         {
           "asn": 9808,
           "changes": 459,
+          "gained": 116,
+          "lost": 343,
           "primary_counterpart": 56045
         },
         {
           "asn": 1299,
           "changes": 452,
+          "gained": 254,
+          "lost": 198,
           "primary_counterpart": 16347
         },
         {
           "asn": 42375,
           "changes": 437,
+          "gained": 435,
+          "lost": 2,
           "primary_counterpart": 204490
         },
         {
           "asn": 7018,
           "changes": 413,
+          "gained": 104,
+          "lost": 309,
           "primary_counterpart": 7029
         },
         {
           "asn": 60781,
           "changes": 397,
+          "gained": 65,
+          "lost": 332,
           "primary_counterpart": 154049
         },
         {
           "asn": 203,
           "changes": 393,
+          "gained": 59,
+          "lost": 334,
           "primary_counterpart": 3356
         },
         {
           "asn": 154049,
           "changes": 359,
+          "gained": 339,
+          "lost": 20,
           "primary_counterpart": 60781
         }
       ],
@@ -2888,126 +3938,176 @@
         {
           "asn": 834,
           "changes": 3980,
+          "gained": 2918,
+          "lost": 1062,
           "primary_counterpart": 9304
         },
         {
           "asn": 14618,
           "changes": 2828,
+          "gained": 1769,
+          "lost": 1059,
           "primary_counterpart": 16509
         },
         {
           "asn": 174,
           "changes": 2309,
+          "gained": 1225,
+          "lost": 1084,
           "primary_counterpart": 1239
         },
         {
           "asn": 16509,
           "changes": 2271,
+          "gained": 1067,
+          "lost": 1204,
           "primary_counterpart": 14618
         },
         {
           "asn": 19905,
           "changes": 1466,
+          "gained": 928,
+          "lost": 538,
           "primary_counterpart": 30036
         },
         {
           "asn": 9304,
           "changes": 1335,
+          "gained": 234,
+          "lost": 1101,
           "primary_counterpart": 834
         },
         {
           "asn": 198949,
           "changes": 920,
+          "gained": 703,
+          "lost": 217,
           "primary_counterpart": 15557
         },
         {
           "asn": 3257,
           "changes": 882,
+          "gained": 132,
+          "lost": 750,
           "primary_counterpart": 834
         },
         {
           "asn": 17561,
           "changes": 777,
+          "gained": 668,
+          "lost": 109,
           "primary_counterpart": 203020
         },
         {
           "asn": 4134,
           "changes": 712,
+          "gained": 93,
+          "lost": 619,
           "primary_counterpart": 140318
         },
         {
           "asn": 212238,
           "changes": 658,
+          "gained": 439,
+          "lost": 219,
           "primary_counterpart": 9009
         },
         {
           "asn": 6079,
           "changes": 648,
+          "gained": 430,
+          "lost": 218,
           "primary_counterpart": 6253
         },
         {
           "asn": 3356,
           "changes": 647,
+          "gained": 360,
+          "lost": 287,
           "primary_counterpart": 203
         },
         {
           "asn": 7029,
           "changes": 620,
-          "primary_counterpart": 7018
+          "gained": 227,
+          "lost": 393,
+          "primary_counterpart": 5065
         },
         {
           "asn": 2914,
           "changes": 614,
+          "gained": 278,
+          "lost": 336,
           "primary_counterpart": 1299
         },
         {
           "asn": 1299,
           "changes": 608,
+          "gained": 380,
+          "lost": 228,
           "primary_counterpart": 2914
         },
         {
           "asn": 367,
           "changes": 602,
+          "gained": 48,
+          "lost": 554,
           "primary_counterpart": 27064
         },
         {
           "asn": 9009,
           "changes": 562,
+          "gained": 229,
+          "lost": 333,
           "primary_counterpart": 212238
         },
         {
           "asn": 30036,
           "changes": 543,
+          "gained": 17,
+          "lost": 526,
           "primary_counterpart": 19905
         },
         {
           "asn": 28006,
           "changes": 492,
+          "gained": 0,
+          "lost": 492,
           "primary_counterpart": 27757
         },
         {
           "asn": 7018,
           "changes": 479,
+          "gained": 146,
+          "lost": 333,
           "primary_counterpart": 7029
         },
         {
           "asn": 9808,
           "changes": 477,
+          "gained": 78,
+          "lost": 399,
           "primary_counterpart": 56045
         },
         {
           "asn": 721,
           "changes": 475,
-          "primary_counterpart": 647
+          "gained": 267,
+          "lost": 208,
+          "primary_counterpart": 367
         },
         {
           "asn": 401152,
           "changes": 455,
-          "primary_counterpart": 7385
+          "gained": 89,
+          "lost": 366,
+          "primary_counterpart": 834
         },
         {
           "asn": 60781,
           "changes": 440,
+          "gained": 82,
+          "lost": 358,
           "primary_counterpart": 154049
         }
       ],
@@ -3025,126 +4125,176 @@
         {
           "asn": 834,
           "changes": 2123,
+          "gained": 1339,
+          "lost": 784,
           "primary_counterpart": 9304
         },
         {
           "asn": 174,
           "changes": 1317,
+          "gained": 900,
+          "lost": 417,
           "primary_counterpart": 1239
         },
         {
           "asn": 14618,
           "changes": 1205,
+          "gained": 704,
+          "lost": 501,
           "primary_counterpart": 16509
         },
         {
           "asn": 19905,
           "changes": 1098,
+          "gained": 657,
+          "lost": 441,
           "primary_counterpart": 50710
         },
         {
           "asn": 16509,
           "changes": 912,
+          "gained": 467,
+          "lost": 445,
           "primary_counterpart": 14618
         },
         {
           "asn": 198949,
           "changes": 723,
+          "gained": 559,
+          "lost": 164,
           "primary_counterpart": 15557
         },
         {
           "asn": 9304,
           "changes": 602,
+          "gained": 198,
+          "lost": 404,
           "primary_counterpart": 834
         },
         {
           "asn": 28006,
           "changes": 477,
+          "gained": 0,
+          "lost": 477,
           "primary_counterpart": 14420
         },
         {
           "asn": 367,
           "changes": 408,
+          "gained": 53,
+          "lost": 355,
           "primary_counterpart": 27064
         },
         {
           "asn": 1299,
           "changes": 406,
+          "gained": 215,
+          "lost": 191,
           "primary_counterpart": 16347
         },
         {
           "asn": 2914,
           "changes": 397,
-          "primary_counterpart": 201115
+          "gained": 210,
+          "lost": 187,
+          "primary_counterpart": 174
         },
         {
           "asn": 7029,
           "changes": 396,
-          "primary_counterpart": 7018
+          "gained": 183,
+          "lost": 213,
+          "primary_counterpart": 399989
         },
         {
           "asn": 14420,
           "changes": 394,
+          "gained": 394,
+          "lost": 0,
           "primary_counterpart": 28006
         },
         {
           "asn": 9808,
           "changes": 380,
+          "gained": 108,
+          "lost": 272,
           "primary_counterpart": 56045
         },
         {
           "asn": 9009,
           "changes": 356,
-          "primary_counterpart": 209372
+          "gained": 139,
+          "lost": 217,
+          "primary_counterpart": 212238
         },
         {
           "asn": 212238,
           "changes": 337,
+          "gained": 261,
+          "lost": 76,
           "primary_counterpart": 9009
         },
         {
           "asn": 44559,
           "changes": 329,
+          "gained": 200,
+          "lost": 129,
           "primary_counterpart": 214238
         },
         {
           "asn": 7018,
           "changes": 327,
-          "primary_counterpart": 7029
+          "gained": 172,
+          "lost": 155,
+          "primary_counterpart": 20001
         },
         {
           "asn": 3257,
           "changes": 326,
+          "gained": 85,
+          "lost": 241,
           "primary_counterpart": 20001
         },
         {
           "asn": 1239,
           "changes": 301,
+          "gained": 15,
+          "lost": 286,
           "primary_counterpart": 174
         },
         {
           "asn": 214238,
           "changes": 296,
+          "gained": 52,
+          "lost": 244,
           "primary_counterpart": 44559
         },
         {
           "asn": 22516,
           "changes": 295,
+          "gained": 35,
+          "lost": 260,
           "primary_counterpart": 20115
         },
         {
           "asn": 12430,
           "changes": 282,
+          "gained": 0,
+          "lost": 282,
           "primary_counterpart": 6739
         },
         {
           "asn": 6739,
           "changes": 279,
+          "gained": 279,
+          "lost": 0,
           "primary_counterpart": 12430
         },
         {
           "asn": 56045,
           "changes": 263,
+          "gained": 263,
+          "lost": 0,
           "primary_counterpart": 9808
         }
       ],
@@ -3162,126 +4312,176 @@
         {
           "asn": 834,
           "changes": 2801,
+          "gained": 1655,
+          "lost": 1146,
           "primary_counterpart": 9304
         },
         {
           "asn": 174,
           "changes": 1643,
+          "gained": 1097,
+          "lost": 546,
           "primary_counterpart": 1239
         },
         {
           "asn": 14618,
           "changes": 1386,
+          "gained": 749,
+          "lost": 637,
           "primary_counterpart": 16509
         },
         {
           "asn": 16509,
           "changes": 1252,
+          "gained": 724,
+          "lost": 528,
           "primary_counterpart": 14618
         },
         {
           "asn": 19905,
           "changes": 1163,
+          "gained": 646,
+          "lost": 517,
           "primary_counterpart": 50710
         },
         {
           "asn": 9304,
           "changes": 1001,
+          "gained": 483,
+          "lost": 518,
           "primary_counterpart": 834
         },
         {
           "asn": 198949,
           "changes": 786,
+          "gained": 598,
+          "lost": 188,
           "primary_counterpart": 15557
         },
         {
           "asn": 367,
           "changes": 543,
+          "gained": 52,
+          "lost": 491,
           "primary_counterpart": 27064
         },
         {
           "asn": 7029,
           "changes": 524,
-          "primary_counterpart": 7018
+          "gained": 261,
+          "lost": 263,
+          "primary_counterpart": 399989
         },
         {
           "asn": 28006,
           "changes": 492,
+          "gained": 0,
+          "lost": 492,
           "primary_counterpart": 27757
         },
         {
           "asn": 3356,
           "changes": 472,
+          "gained": 344,
+          "lost": 128,
           "primary_counterpart": 203
         },
         {
           "asn": 1299,
           "changes": 469,
+          "gained": 267,
+          "lost": 202,
           "primary_counterpart": 12312
         },
         {
           "asn": 9808,
           "changes": 455,
+          "gained": 115,
+          "lost": 340,
           "primary_counterpart": 56045
         },
         {
           "asn": 2914,
           "changes": 443,
+          "gained": 183,
+          "lost": 260,
           "primary_counterpart": 201115
         },
         {
           "asn": 3257,
           "changes": 405,
+          "gained": 106,
+          "lost": 299,
           "primary_counterpart": 834
         },
         {
           "asn": 4134,
           "changes": 402,
+          "gained": 58,
+          "lost": 344,
           "primary_counterpart": 140318
         },
         {
           "asn": 9009,
           "changes": 378,
-          "primary_counterpart": 209372
+          "gained": 117,
+          "lost": 261,
+          "primary_counterpart": 212238
         },
         {
           "asn": 6079,
           "changes": 374,
+          "gained": 235,
+          "lost": 139,
           "primary_counterpart": 6253
         },
         {
           "asn": 203,
           "changes": 369,
+          "gained": 29,
+          "lost": 340,
           "primary_counterpart": 3356
         },
         {
           "asn": 60781,
           "changes": 362,
+          "gained": 61,
+          "lost": 301,
           "primary_counterpart": 154049
         },
         {
           "asn": 212238,
           "changes": 359,
+          "gained": 260,
+          "lost": 99,
           "primary_counterpart": 9009
         },
         {
           "asn": 154049,
           "changes": 358,
+          "gained": 341,
+          "lost": 17,
           "primary_counterpart": 60781
         },
         {
           "asn": 20773,
           "changes": 338,
+          "gained": 128,
+          "lost": 210,
           "primary_counterpart": 21499
         },
         {
           "asn": 7018,
           "changes": 308,
-          "primary_counterpart": 7029
+          "gained": 154,
+          "lost": 154,
+          "primary_counterpart": 22773
         },
         {
           "asn": 1239,
           "changes": 303,
+          "gained": 15,
+          "lost": 288,
           "primary_counterpart": 174
         }
       ],
@@ -3299,126 +4499,176 @@
         {
           "asn": 834,
           "changes": 3530,
+          "gained": 2403,
+          "lost": 1127,
           "primary_counterpart": 9304
         },
         {
           "asn": 174,
           "changes": 2049,
+          "gained": 1219,
+          "lost": 830,
           "primary_counterpart": 1239
         },
         {
           "asn": 14618,
           "changes": 2039,
+          "gained": 1118,
+          "lost": 921,
           "primary_counterpart": 16509
         },
         {
           "asn": 16509,
           "changes": 1793,
+          "gained": 1006,
+          "lost": 787,
           "primary_counterpart": 14618
         },
         {
           "asn": 19905,
           "changes": 1298,
+          "gained": 799,
+          "lost": 499,
           "primary_counterpart": 30036
         },
         {
           "asn": 9304,
           "changes": 1018,
+          "gained": 238,
+          "lost": 780,
           "primary_counterpart": 834
         },
         {
           "asn": 198949,
           "changes": 707,
+          "gained": 548,
+          "lost": 159,
           "primary_counterpart": 15557
         },
         {
           "asn": 7029,
           "changes": 592,
-          "primary_counterpart": 7018
+          "gained": 201,
+          "lost": 391,
+          "primary_counterpart": 5065
         },
         {
           "asn": 1299,
           "changes": 571,
+          "gained": 366,
+          "lost": 205,
           "primary_counterpart": 2914
         },
         {
           "asn": 367,
           "changes": 556,
+          "gained": 31,
+          "lost": 525,
           "primary_counterpart": 27064
         },
         {
           "asn": 3257,
           "changes": 552,
+          "gained": 119,
+          "lost": 433,
           "primary_counterpart": 20001
         },
         {
           "asn": 2914,
           "changes": 546,
+          "gained": 224,
+          "lost": 322,
           "primary_counterpart": 1299
         },
         {
           "asn": 6079,
           "changes": 531,
+          "gained": 376,
+          "lost": 155,
           "primary_counterpart": 6253
         },
         {
           "asn": 3356,
           "changes": 508,
+          "gained": 330,
+          "lost": 178,
           "primary_counterpart": 203
         },
         {
           "asn": 28006,
           "changes": 492,
+          "gained": 0,
+          "lost": 492,
           "primary_counterpart": 27757
         },
         {
           "asn": 9808,
           "changes": 473,
+          "gained": 77,
+          "lost": 396,
           "primary_counterpart": 56045
         },
         {
           "asn": 9009,
           "changes": 467,
+          "gained": 146,
+          "lost": 321,
           "primary_counterpart": 212238
         },
         {
           "asn": 212238,
           "changes": 465,
+          "gained": 343,
+          "lost": 122,
           "primary_counterpart": 9009
         },
         {
           "asn": 30036,
           "changes": 455,
+          "gained": 8,
+          "lost": 447,
           "primary_counterpart": 19905
         },
         {
           "asn": 4134,
           "changes": 441,
+          "gained": 68,
+          "lost": 373,
           "primary_counterpart": 140318
         },
         {
           "asn": 721,
           "changes": 418,
-          "primary_counterpart": 5852
+          "gained": 242,
+          "lost": 176,
+          "primary_counterpart": 6034
         },
         {
           "asn": 60781,
           "changes": 405,
+          "gained": 78,
+          "lost": 327,
           "primary_counterpart": 154049
         },
         {
           "asn": 203,
           "changes": 384,
+          "gained": 40,
+          "lost": 344,
           "primary_counterpart": 3356
         },
         {
           "asn": 401152,
           "changes": 362,
-          "primary_counterpart": 7385
+          "gained": 82,
+          "lost": 280,
+          "primary_counterpart": 14618
         },
         {
           "asn": 154049,
           "changes": 344,
+          "gained": 322,
+          "lost": 22,
           "primary_counterpart": 60781
         }
       ],
@@ -3436,126 +4686,176 @@
         {
           "asn": 834,
           "changes": 1821,
+          "gained": 817,
+          "lost": 1004,
           "primary_counterpart": 9304
         },
         {
           "asn": 14618,
           "changes": 662,
+          "gained": 275,
+          "lost": 387,
           "primary_counterpart": 16509
         },
         {
           "asn": 174,
           "changes": 646,
+          "gained": 370,
+          "lost": 276,
           "primary_counterpart": 2914
         },
         {
           "asn": 9304,
           "changes": 582,
+          "gained": 367,
+          "lost": 215,
           "primary_counterpart": 834
         },
         {
           "asn": 16509,
           "changes": 498,
+          "gained": 339,
+          "lost": 159,
           "primary_counterpart": 14618
         },
         {
           "asn": 19905,
           "changes": 427,
+          "gained": 158,
+          "lost": 269,
           "primary_counterpart": 8851
         },
         {
           "asn": 3356,
           "changes": 358,
+          "gained": 296,
+          "lost": 62,
           "primary_counterpart": 8895
         },
         {
           "asn": 154049,
           "changes": 335,
+          "gained": 318,
+          "lost": 17,
           "primary_counterpart": 60781
         },
         {
           "asn": 60781,
           "changes": 330,
+          "gained": 46,
+          "lost": 284,
           "primary_counterpart": 154049
         },
         {
           "asn": 4812,
           "changes": 293,
+          "gained": 4,
+          "lost": 289,
           "primary_counterpart": 4811
         },
         {
           "asn": 2914,
           "changes": 286,
+          "gained": 97,
+          "lost": 189,
           "primary_counterpart": 174
         },
         {
           "asn": 4811,
           "changes": 286,
+          "gained": 286,
+          "lost": 0,
           "primary_counterpart": 4812
         },
         {
           "asn": 7029,
           "changes": 261,
-          "primary_counterpart": 6079
+          "gained": 121,
+          "lost": 140,
+          "primary_counterpart": 41095
         },
         {
           "asn": 27757,
           "changes": 257,
+          "gained": 256,
+          "lost": 1,
           "primary_counterpart": 14420
         },
         {
           "asn": 14420,
           "changes": 255,
+          "gained": 0,
+          "lost": 255,
           "primary_counterpart": 27757
         },
         {
           "asn": 6079,
           "changes": 229,
+          "gained": 172,
+          "lost": 57,
           "primary_counterpart": 7922
         },
         {
           "asn": 21499,
           "changes": 226,
+          "gained": 224,
+          "lost": 2,
           "primary_counterpart": 29066
         },
         {
           "asn": 8895,
           "changes": 224,
+          "gained": 1,
+          "lost": 223,
           "primary_counterpart": 3356
         },
         {
           "asn": 3214,
           "changes": 223,
+          "gained": 223,
+          "lost": 0,
           "primary_counterpart": 949
         },
         {
           "asn": 29066,
           "changes": 218,
+          "gained": 1,
+          "lost": 217,
           "primary_counterpart": 21499
         },
         {
           "asn": 198949,
           "changes": 214,
-          "primary_counterpart": 378
+          "gained": 115,
+          "lost": 99,
+          "primary_counterpart": 46606
         },
         {
           "asn": 7922,
           "changes": 212,
+          "gained": 13,
+          "lost": 199,
           "primary_counterpart": 6079
         },
         {
           "asn": 29802,
           "changes": 206,
+          "gained": 179,
+          "lost": 27,
           "primary_counterpart": 61317
         },
         {
           "asn": 9009,
           "changes": 202,
+          "gained": 63,
+          "lost": 139,
           "primary_counterpart": 57169
         },
         {
           "asn": 25198,
           "changes": 191,
+          "gained": 42,
+          "lost": 149,
           "primary_counterpart": 834
         }
       ],
@@ -3573,126 +4873,176 @@
         {
           "asn": 834,
           "changes": 2717,
+          "gained": 1671,
+          "lost": 1046,
           "primary_counterpart": 9304
         },
         {
           "asn": 14618,
           "changes": 1719,
+          "gained": 848,
+          "lost": 871,
           "primary_counterpart": 16509
         },
         {
           "asn": 16509,
           "changes": 1562,
+          "gained": 860,
+          "lost": 702,
           "primary_counterpart": 14618
         },
         {
           "asn": 19905,
           "changes": 1062,
+          "gained": 565,
+          "lost": 497,
           "primary_counterpart": 30036
         },
         {
           "asn": 174,
           "changes": 928,
+          "gained": 423,
+          "lost": 505,
           "primary_counterpart": 834
         },
         {
           "asn": 9304,
           "changes": 595,
+          "gained": 124,
+          "lost": 471,
           "primary_counterpart": 834
         },
         {
           "asn": 7029,
           "changes": 504,
+          "gained": 119,
+          "lost": 385,
           "primary_counterpart": 7922
         },
         {
           "asn": 30036,
           "changes": 484,
+          "gained": 25,
+          "lost": 459,
           "primary_counterpart": 19905
         },
         {
           "asn": 3356,
           "changes": 449,
+          "gained": 307,
+          "lost": 142,
           "primary_counterpart": 8895
         },
         {
           "asn": 6079,
           "changes": 384,
+          "gained": 315,
+          "lost": 69,
           "primary_counterpart": 7922
         },
         {
           "asn": 60781,
           "changes": 374,
+          "gained": 64,
+          "lost": 310,
           "primary_counterpart": 154049
         },
         {
           "asn": 401152,
           "changes": 366,
-          "primary_counterpart": 7385
+          "gained": 83,
+          "lost": 283,
+          "primary_counterpart": 14618
         },
         {
           "asn": 9009,
           "changes": 356,
-          "primary_counterpart": 16247
+          "gained": 112,
+          "lost": 244,
+          "primary_counterpart": 57169
         },
         {
           "asn": 199739,
           "changes": 338,
+          "gained": 338,
+          "lost": 0,
           "primary_counterpart": 19905
         },
         {
           "asn": 721,
           "changes": 328,
-          "primary_counterpart": 5371
+          "gained": 192,
+          "lost": 136,
+          "primary_counterpart": 6034
         },
         {
           "asn": 154049,
           "changes": 321,
+          "gained": 299,
+          "lost": 22,
           "primary_counterpart": 60781
         },
         {
           "asn": 2914,
           "changes": 299,
+          "gained": 135,
+          "lost": 164,
           "primary_counterpart": 3949
         },
         {
           "asn": 4812,
           "changes": 294,
+          "gained": 4,
+          "lost": 290,
           "primary_counterpart": 4811
         },
         {
           "asn": 22516,
           "changes": 291,
+          "gained": 259,
+          "lost": 32,
           "primary_counterpart": 20115
         },
         {
           "asn": 29802,
           "changes": 289,
+          "gained": 243,
+          "lost": 46,
           "primary_counterpart": 61317
         },
         {
           "asn": 4811,
           "changes": 288,
+          "gained": 288,
+          "lost": 0,
           "primary_counterpart": 4812
         },
         {
           "asn": 3257,
           "changes": 286,
+          "gained": 65,
+          "lost": 221,
           "primary_counterpart": 20001
         },
         {
           "asn": 7922,
           "changes": 286,
-          "primary_counterpart": 7029
+          "gained": 84,
+          "lost": 202,
+          "primary_counterpart": 6079
         },
         {
           "asn": 7018,
           "changes": 269,
+          "gained": 135,
+          "lost": 134,
           "primary_counterpart": 20115
         },
         {
           "asn": 1659,
           "changes": 265,
+          "gained": 1,
+          "lost": 264,
           "primary_counterpart": 17716
         }
       ],
@@ -3710,126 +5060,176 @@
         {
           "asn": 834,
           "changes": 1879,
+          "gained": 1330,
+          "lost": 549,
           "primary_counterpart": 9304
         },
         {
           "asn": 14618,
           "changes": 1484,
+          "gained": 817,
+          "lost": 667,
           "primary_counterpart": 16509
         },
         {
           "asn": 16509,
           "changes": 1449,
+          "gained": 722,
+          "lost": 727,
           "primary_counterpart": 14618
         },
         {
           "asn": 19905,
           "changes": 763,
+          "gained": 475,
+          "lost": 288,
           "primary_counterpart": 30036
         },
         {
           "asn": 9304,
           "changes": 623,
+          "gained": 62,
+          "lost": 561,
           "primary_counterpart": 834
         },
         {
           "asn": 174,
           "changes": 602,
+          "gained": 222,
+          "lost": 380,
           "primary_counterpart": 2914
         },
         {
           "asn": 30036,
           "changes": 407,
+          "gained": 8,
+          "lost": 399,
           "primary_counterpart": 19905
         },
         {
           "asn": 199739,
           "changes": 338,
+          "gained": 338,
+          "lost": 0,
           "primary_counterpart": 19905
         },
         {
           "asn": 7029,
           "changes": 291,
+          "gained": 50,
+          "lost": 241,
           "primary_counterpart": 7922
         },
         {
           "asn": 721,
           "changes": 279,
-          "primary_counterpart": 5371
+          "gained": 175,
+          "lost": 104,
+          "primary_counterpart": 6034
         },
         {
           "asn": 22516,
           "changes": 262,
+          "gained": 261,
+          "lost": 1,
           "primary_counterpart": 20115
         },
         {
           "asn": 63199,
           "changes": 240,
+          "gained": 114,
+          "lost": 126,
           "primary_counterpart": 834
         },
         {
           "asn": 3257,
           "changes": 234,
+          "gained": 57,
+          "lost": 177,
           "primary_counterpart": 20001
         },
         {
           "asn": 6079,
           "changes": 234,
+          "gained": 181,
+          "lost": 53,
           "primary_counterpart": 401838
         },
         {
           "asn": 212238,
           "changes": 226,
-          "primary_counterpart": 9009
+          "gained": 124,
+          "lost": 102,
+          "primary_counterpart": 5400
         },
         {
           "asn": 2914,
           "changes": 216,
+          "gained": 129,
+          "lost": 87,
           "primary_counterpart": 174
         },
         {
           "asn": 401152,
           "changes": 210,
-          "primary_counterpart": 7385
+          "gained": 62,
+          "lost": 148,
+          "primary_counterpart": 212238
         },
         {
           "asn": 8987,
           "changes": 202,
+          "gained": 139,
+          "lost": 63,
           "primary_counterpart": 16509
         },
         {
           "asn": 198949,
           "changes": 198,
+          "gained": 89,
+          "lost": 109,
           "primary_counterpart": 31898
         },
         {
           "asn": 42375,
           "changes": 196,
+          "gained": 18,
+          "lost": 178,
           "primary_counterpart": 56325
         },
         {
           "asn": 34984,
           "changes": 190,
+          "gained": 159,
+          "lost": 31,
           "primary_counterpart": 6453
         },
         {
           "asn": 1299,
           "changes": 188,
+          "gained": 142,
+          "lost": 46,
           "primary_counterpart": 201115
         },
         {
           "asn": 7018,
           "changes": 182,
-          "primary_counterpart": 6079
+          "gained": 103,
+          "lost": 79,
+          "primary_counterpart": 2914
         },
         {
           "asn": 20115,
           "changes": 180,
+          "gained": 19,
+          "lost": 161,
           "primary_counterpart": 22516
         },
         {
           "asn": 6453,
           "changes": 174,
+          "gained": 7,
+          "lost": 167,
           "primary_counterpart": 34984
         }
       ],
@@ -3837,7 +5237,7 @@
       "unmapped": 94
     }
   ],
-  "generated_at": "2026-05-07T18:11:25+00:00",
+  "generated_at": "2026-05-07T19:55:52+00:00",
   "maps": [
     {
       "entries_count": 377653,
