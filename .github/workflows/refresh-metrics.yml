@@ -1,0 +1,36 @@
+name: refresh-metrics
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Clone bitcoin-core/asmap-data
+        run: git clone --depth=1 https://github.com/bitcoin-core/asmap-data.git /tmp/asmap-data
+
+      - name: Generate metrics.json
+        run: python -m asmap_dashboard metrics --data-dir /tmp/asmap-data --out web/assets/data/metrics.json
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/assets/data/metrics.json
+          if git diff --cached --quiet; then
+            echo "metrics.json unchanged, nothing to commit"
+          else
+            git commit -m "data: Refresh metrics.json"
+            git push
+          fi
