@@ -2,6 +2,8 @@
 
 Dashboard for exploring ASmap binary files used by Bitcoin Core for peer diversity.
 
+Live: <https://jorisstrakeljahn.github.io/asmap-dashboard/>
+
 ## What it does
 
 Two parts that talk to each other through a single JSON payload.
@@ -9,6 +11,8 @@ Two parts that talk to each other through a single JSON payload.
 The Python package `asmap_dashboard` reads the `.dat` files published in [bitcoin-core/asmap-data](https://github.com/bitcoin-core/asmap-data), profiles each build, diffs every pair of distinct maps, and emits a `metrics.json` payload describing the entire history.
 
 The static site under `web/` consumes `metrics.json` and renders the Maps tab: per-build overview cards, file-size and entry-count delta charts over the published history, and a diff explorer with match-rate banner, change classification, and top-mover table for any pair of distinct builds.
+
+A scheduled GitHub Actions workflow regenerates `metrics.json` from the upstream asmap-data repo once a day, and a separate workflow redeploys the site to GitHub Pages whenever `web/` changes. Both run without manual intervention.
 
 ## Requirements
 
