@@ -42,6 +42,17 @@ git clone https://github.com/bitcoin-core/asmap-data.git
 python -m asmap_dashboard metrics --data-dir asmap-data --out web/assets/data/metrics.json
 ```
 
+## Running the dashboard
+
+The frontend is plain HTML, CSS, and ES modules, so any static file server will do. The standard library's built-in server is enough:
+
+```
+cd web
+python3 -m http.server 8000
+```
+
+Open <http://localhost:8000> in a browser. The page reads `web/assets/data/metrics.json`, which is committed to the repo, so the dashboard works on a fresh clone without running the analysis pipeline first.
+
 ## Testing
 
 ```
