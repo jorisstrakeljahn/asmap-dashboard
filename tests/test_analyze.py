@@ -6,7 +6,8 @@ import ipaddress
 
 import pytest
 
-from asmap_dashboard.analyze import analyze_map
+from asmap_dashboard.analyze import analyze_loaded_map, analyze_map
+from asmap_dashboard.loader import load_map
 
 from .conftest import write_asmap
 
@@ -104,3 +105,17 @@ def test_realistic_mixed_map(tmp_path):
     assert profile["ipv6_count"] == 2
     assert profile["unique_asns"] == 4
     assert profile["top_ases"][0] == {"asn": 100, "prefix_count": 2}
+
+
+def test_analyze_loaded_map_matches_analyze_map(tmp_path):
+    """The pipeline entry point must produce the same profile as the CLI one."""
+    path = write_asmap(
+        tmp_path / "shared.dat",
+        [
+            (ipaddress.IPv4Network("1.0.0.0/8"), 100),
+            (ipaddress.IPv4Network("2.0.0.0/8"), 200),
+            (ipaddress.IPv6Network("2001::/16"), 300),
+        ],
+    )
+
+    assert analyze_loaded_map(load_map(path)) == analyze_map(path)
