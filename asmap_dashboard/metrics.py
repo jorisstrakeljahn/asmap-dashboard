@@ -28,7 +28,6 @@ def generate_dashboard_data(data_dir: PathLike) -> dict:
     Returns a dict shaped like::
 
         {
-          "generated_at": "2026-05-07T20:08:00+00:00",
           "source": {"data_dir": "..."},
           "maps":  [{name, released_at, entries_count, ...}, ...],
           "diffs": [{from, to, total_changes, ...}, ...],
@@ -57,7 +56,6 @@ def generate_dashboard_data(data_dir: PathLike) -> dict:
         diffs.append(diff)
 
     return {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "source": {"data_dir": str(data_dir)},
         "maps": maps,
         "diffs": diffs,

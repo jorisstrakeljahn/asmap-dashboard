@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ipaddress
+import json
 
 from asmap_dashboard.metrics import discover_maps, generate_dashboard_data
 
@@ -48,7 +49,6 @@ def test_generate_dashboard_data_shape(tmp_path):
 
     payload = generate_dashboard_data(tmp_path)
 
-    assert "generated_at" in payload
     assert payload["source"]["data_dir"] == str(tmp_path)
 
     assert [m["name"] for m in payload["maps"]] == [
@@ -91,3 +91,12 @@ def test_generate_dashboard_data_emits_combinations_for_four_builds(tmp_path):
     pairs = {(d["from"], d["to"]) for d in payload["diffs"]}
     assert len(pairs) == 6
 
+
+def test_generate_dashboard_data_is_deterministic(tmp_path):
+    """Two runs against the same data directory produce byte-equal payloads."""
+    _layout_three_builds(tmp_path)
+
+    a = json.dumps(generate_dashboard_data(tmp_path), sort_keys=True)
+    b = json.dumps(generate_dashboard_data(tmp_path), sort_keys=True)
+
+    assert a == b
