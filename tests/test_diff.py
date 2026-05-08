@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import ipaddress
 
-from asmap_dashboard.diff import diff_maps
+from asmap_dashboard.diff import diff_loaded_maps, diff_maps
+from asmap_dashboard.loader import load_map
 
 from .conftest import write_asmap
 
@@ -211,3 +212,25 @@ def test_top_movers_record_gain_and_loss_for_reassigned_pair(tmp_path):
     assert by_asn[200]["gained"] == 2 and by_asn[200]["lost"] == 0
     assert by_asn[100]["primary_counterpart"] == 200
     assert by_asn[200]["primary_counterpart"] == 100
+
+
+def test_diff_loaded_maps_matches_diff_maps(tmp_path):
+    """The pipeline entry point must produce the same diff as the CLI one."""
+    a = write_asmap(
+        tmp_path / "a.dat",
+        [
+            (ipaddress.IPv4Network("1.0.0.0/8"), 100),
+            (ipaddress.IPv4Network("16.0.0.0/8"), 100),
+            (ipaddress.IPv4Network("64.0.0.0/8"), 0),
+        ],
+    )
+    b = write_asmap(
+        tmp_path / "b.dat",
+        [
+            (ipaddress.IPv4Network("1.0.0.0/8"), 200),
+            (ipaddress.IPv4Network("16.0.0.0/8"), 100),
+            (ipaddress.IPv4Network("64.0.0.0/8"), 300),
+        ],
+    )
+
+    assert diff_loaded_maps(load_map(a), load_map(b)) == diff_maps(a, b)

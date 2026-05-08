@@ -5,11 +5,11 @@ from __future__ import annotations
 import ipaddress
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 from asmap_dashboard._vendor.asmap import ASMap, net_to_prefix
+from asmap_dashboard.loader import LoadedMap, PathLike, load_map
 
-PathLike = Union[str, Path]
 TOP_MOVERS_LIMIT = 25
 
 
@@ -19,6 +19,23 @@ def diff_maps(
     addrs_file: Optional[PathLike] = None,
 ) -> dict:
     """Compute an aggregated diff between two ASmap binary files.
+
+    Convenience wrapper for one-shot use (CLI, single comparisons).
+    Pipelines that compare the same map against many others should
+    call ``load_map`` once per file and pass the results to
+    ``diff_loaded_maps`` to skip per-call re-parsing.
+
+    See ``diff_loaded_maps`` for the result shape.
+    """
+    return diff_loaded_maps(load_map(map_a), load_map(map_b), addrs_file=addrs_file)
+
+
+def diff_loaded_maps(
+    loaded_a: LoadedMap,
+    loaded_b: LoadedMap,
+    addrs_file: Optional[PathLike] = None,
+) -> dict:
+    """Compute an aggregated diff between two already-loaded ASmaps.
 
     Each prefix-level change is classified into one of three buckets:
       reassigned:   both maps assign the prefix, but to different ASes
@@ -51,8 +68,8 @@ def diff_maps(
             {"asn", "changes", "gained", "lost", "primary_counterpart"}.
         bitcoin_node_impact: optional dict, present only when addrs_file is set.
     """
-    asmap_a = _load(map_a)
-    asmap_b = _load(map_b)
+    asmap_a = loaded_a.asmap
+    asmap_b = loaded_b.asmap
 
     diff_entries = asmap_a.diff(asmap_b)
 
@@ -91,8 +108,8 @@ def diff_maps(
     ]
 
     result: dict = {
-        "entries_a": len(asmap_a.to_entries()),
-        "entries_b": len(asmap_b.to_entries()),
+        "entries_a": loaded_a.entries_count,
+        "entries_b": loaded_b.entries_count,
         "total_changes": reassigned + newly_mapped + unmapped,
         "reassigned": reassigned,
         "newly_mapped": newly_mapped,
@@ -133,14 +150,6 @@ def _top_mover_row(
         "lost": lost,
         "primary_counterpart": primary,
     }
-
-
-def _load(path: PathLike) -> ASMap:
-    bindata = Path(path).read_bytes()
-    asmap = ASMap.from_binary(bindata)
-    if asmap is None:
-        raise ValueError(f"{path} is not a valid ASmap binary file")
-    return asmap
 
 
 def _node_impact(asmap_a: ASMap, asmap_b: ASMap, addrs_file: PathLike) -> dict:

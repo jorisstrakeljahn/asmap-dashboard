@@ -4,19 +4,34 @@ from __future__ import annotations
 
 import ipaddress
 from collections import Counter
-from pathlib import Path
-from typing import Union
 
-from asmap_dashboard._vendor.asmap import ASMap, prefix_to_net
+from asmap_dashboard._vendor.asmap import prefix_to_net
+from asmap_dashboard.loader import LoadedMap, PathLike, load_map
 
 
-def analyze_map(path: Union[str, Path]) -> dict:
+def analyze_map(path: PathLike) -> dict:
     """Read an ASmap binary file and return a profile of its contents.
 
-    The profile contains entry totals, address-family split, file size,
-    and the top ASes by prefix count. Unmapped entries (ASN 0) are
-    counted in totals but excluded from the unique-AS count and the
-    top-AS ranking, since ASN 0 is a sentinel rather than a real AS.
+    Convenience wrapper for one-shot use (CLI, single-file scripts).
+    Pipelines that touch the same .dat file more than once should
+    call ``load_map`` themselves and pass the result to
+    ``analyze_loaded_map`` to skip a second parse.
+
+    Returns the same dict described on ``analyze_loaded_map``.
+
+    Raises:
+        ValueError: if the file does not parse as a valid ASmap binary.
+    """
+    return analyze_loaded_map(load_map(path))
+
+
+def analyze_loaded_map(loaded: LoadedMap) -> dict:
+    """Profile an already-loaded ASmap.
+
+    Counts entries, splits by address family, and ranks the most
+    prefix-heavy ASes. Unmapped entries (ASN 0) are counted in the
+    totals but excluded from the unique-AS count and the top-AS
+    ranking, since ASN 0 is a sentinel rather than a real AS.
 
     Returns a dict with these keys:
         entries_count:    int, number of (prefix, asn) entries in the trie.
@@ -26,17 +41,8 @@ def analyze_map(path: Union[str, Path]) -> dict:
         file_size_bytes:  int, raw size of the .dat file.
         top_ases:         list of {"asn": int, "prefix_count": int},
                           sorted by prefix_count descending, max 20.
-
-    Raises:
-        ValueError: if the file does not parse as a valid ASmap binary.
     """
-    path = Path(path)
-    bindata = path.read_bytes()
-    asmap = ASMap.from_binary(bindata)
-    if asmap is None:
-        raise ValueError(f"{path} is not a valid ASmap binary file")
-
-    entries = asmap.to_entries()
+    entries = loaded.asmap.to_entries()
     ipv4_count = 0
     ipv6_count = 0
     asn_prefix_count: Counter[int] = Counter()
@@ -59,6 +65,6 @@ def analyze_map(path: Union[str, Path]) -> dict:
         "unique_asns": len(asn_prefix_count),
         "ipv4_count": ipv4_count,
         "ipv6_count": ipv6_count,
-        "file_size_bytes": len(bindata),
+        "file_size_bytes": loaded.file_size_bytes,
         "top_ases": top_ases,
     }
