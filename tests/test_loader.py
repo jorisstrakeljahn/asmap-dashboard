@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import ipaddress
 
 import pytest
@@ -60,5 +61,5 @@ def test_loaded_map_is_immutable(tmp_path):
 
     loaded = load_map(path)
 
-    with pytest.raises(Exception):
+    with pytest.raises(dataclasses.FrozenInstanceError):
         loaded.file_size_bytes = 0  # type: ignore[misc]
