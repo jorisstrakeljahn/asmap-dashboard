@@ -1,0 +1,39 @@
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Cancel in-progress runs when a new commit is pushed to the same
+# pull request or branch, so a quick fix-up push doesn't keep an
+# obsolete run burning a runner slot.
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    strategy:
+      # Don't bail on the whole matrix when one Python version
+      # fails; the other version's result is still useful triage.
+      fail-fast: false
+      matrix:
+        # Lower bound matches the README's Python 3.10+ pledge;
+        # upper bound mirrors the version the daily refresh-metrics
+        # cron runs on, so what gets tested in PRs matches what
+        # actually generates production data.
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - run: pip install -r requirements-dev.txt
+
+      - run: python -m pytest tests
