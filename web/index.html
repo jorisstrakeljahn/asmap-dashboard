@@ -20,10 +20,15 @@
 
         <main class="content">
             <section class="section" aria-labelledby="overview-title">
-                <h2 id="overview-title" class="section__title">Overview</h2>
-                <p class="section__lede">
-                    Key metrics from the latest ASmap build
-                </p>
+                <header class="section__header">
+                    <div class="section__heading">
+                        <h2 id="overview-title" class="section__title">Overview</h2>
+                        <p class="section__lede">
+                            Key metrics for the selected ASmap build
+                        </p>
+                    </div>
+                    <div class="section__aside" data-build-selector></div>
+                </header>
                 <div class="section__body" data-overview></div>
                 <div class="section__body" data-map-size-chart></div>
                 <div class="section__body" data-map-delta-chart></div>
