@@ -1,4 +1,21 @@
+/*
+ * Design tokens. Edit values here, never in component CSS.
+ *
+ * Conventions:
+ *   --color-*     foreground / background / state colors
+ *   --font-*      typography (family, size, weight)
+ *   --space-*     spacing scale (4 px base)
+ *   --radius-*    corner radii
+ *   --shadow-*    elevation
+ *   --motion-*    transition durations
+ *   --z-*         z-index scale (named, not raw numbers)
+ *   --control-*   form control geometry (height, focus ring)
+ *   --layout-*    page-level sizing (gutter, content max, etc.)
+ *
+ * Anything used in more than one place belongs here.
+ */
 :root {
+    /* ── Color ────────────────────────────────────────────── */
     --color-text-strong: #0f172a;
     --color-text-base: #1e293b;
     --color-text-muted: #475569;
@@ -8,13 +25,25 @@
     --color-bg: #ffffff;
     --color-surface: #ffffff;
     --color-border: #e2e8f0;
+    /* Slightly darker hairline reserved for floating surfaces
+       (dropdown trigger, dropdown panel) where the default
+       --color-border washes out against the page background. */
+    --color-border-strong: #cbd5e1;
     --color-divider: #f1f5f9;
     --color-track: #f1f5f9;
 
     --color-accent: #6366f1;
+    --color-accent-soft: #c4b5fd;
     --color-success: #10b981;
     --color-neutral: #94a3b8;
 
+    /* Text drawn on top of a saturated --color-accent /
+       --color-success / --color-neutral fill (e.g. the stacked
+       diff bar segments). Pulled out so theming or contrast
+       tuning happens in one place. */
+    --color-on-fill: #ffffff;
+
+    /* ── Typography ───────────────────────────────────────── */
     --font-sans:
         -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
         "Helvetica Neue", Arial, sans-serif;
@@ -32,6 +61,20 @@
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
 
+    /* Line heights kept tight; metric headlines use --line-tight
+       so the giant numbers don't push the cards taller than
+       they need to be. */
+    --line-tight: 1.05;
+    --line-snug: 1.25;
+    --line-normal: 1.4;
+
+    /* Uppercase labels (section labels, table heads) tighten the
+       tracking; the higher value is used on the table heads
+       because they sit on a smaller font size. */
+    --letter-uppercase: 0.06em;
+    --letter-uppercase-tight: 0.04em;
+
+    /* ── Spacing ──────────────────────────────────────────── */
     --space-1: 4px;
     --space-2: 8px;
     --space-3: 12px;
@@ -41,7 +84,50 @@
     --space-8: 32px;
     --space-12: 48px;
 
+    /* ── Radius ───────────────────────────────────────────── */
+    --radius-sm: 4px;
     --radius: 8px;
-    --content-max: 960px;
+    --radius-pill: 999px;
+
+    /* ── Shadow / Elevation ───────────────────────────────── */
+    /* Floating surfaces stack on top of cards. Tooltip shadow
+       sits lower because it hovers over the chart inline; the
+       popover shadow is bigger to read against any background
+       when the dropdown panel detaches from its trigger. */
+    --shadow-tooltip: 0 6px 28px rgba(15, 23, 42, 0.1);
+    --shadow-popover: 0 12px 36px rgba(15, 23, 42, 0.18);
+
+    /* ── Motion ───────────────────────────────────────────── */
+    /* Three durations covering the dashboard's tiny interaction
+       surface. Hover/state colour changes use --motion-fast,
+       border tints use --motion-base, chevron rotation uses
+       --motion-slow so the open/close feels deliberate. */
+    --motion-fast: 0.08s;
+    --motion-base: 0.12s;
+    --motion-slow: 0.16s;
+    --motion-ease: ease;
+
+    /* ── Z-index scale ────────────────────────────────────── */
+    /* Tooltip lives inside a card; popover lives above the
+       layout (it can overflow card edges). Keep both far below
+       any future overlay / modal so adding one won't require
+       re-numbering. */
+    --z-tooltip: 5;
+    --z-popover: 30;
+
+    /* ── Form controls ────────────────────────────────────── */
+    --control-height: 36px;
+    --control-height-sm: 28px;
+    --control-icon-size: 12px;
+    --control-panel-gap: 6px;
+    --control-panel-max-height: 300px;
+
+    --focus-ring-width: 2px;
+    --focus-ring-offset: 1px;
+
+    /* ── Layout ───────────────────────────────────────────── */
+    --content-max: 1040px;
+    --page-gutter: 40px;
     --header-height: 69px;
+    --chart-min-height: 240px;
 }
