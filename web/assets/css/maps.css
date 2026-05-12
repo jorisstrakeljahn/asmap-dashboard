@@ -2,7 +2,7 @@
     display: flex;
     align-items: center;
     height: var(--header-height);
-    padding: 0 40px;
+    padding: 0 var(--page-gutter);
     border-bottom: 1px solid var(--color-border);
     background: var(--color-bg);
 }
@@ -19,14 +19,14 @@
 
 .site-header__nav {
     display: flex;
-    gap: 32px;
+    gap: var(--space-8);
     margin-left: auto;
     margin-right: auto;
 }
 
 .site-header__nav-link {
     position: relative;
-    padding-bottom: 4px;
+    padding-bottom: var(--space-1);
     color: var(--color-text-base);
 }
 
@@ -58,7 +58,7 @@
 .content {
     max-width: var(--content-max);
     margin: 0 auto;
-    padding: var(--space-8) 40px var(--space-12);
+    padding: var(--space-8) var(--page-gutter) var(--space-12);
 }
 
 .section + .section {
@@ -81,28 +81,174 @@
     margin-top: var(--space-5);
 }
 
+.section__header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+}
+
+.section__heading {
+    min-width: 0;
+}
+
+.section__aside {
+    flex-shrink: 0;
+}
+
+/* ───────── Custom dropdown ─────────────────────────────────
+   Replaces every native <select> in the dashboard. JS source
+   lives in components/dropdown.js. Layout: trigger button
+   (chevron right) plus an absolutely-positioned listbox panel
+   beneath it. The panel flips above the trigger automatically
+   when the viewport edge would clip it.
+*/
+.dropdown {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.dropdown__trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    width: 100%;
+    height: var(--control-height);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius);
+    background: var(--color-bg);
+    color: var(--color-text-base);
+    font: inherit;
+    font-size: var(--font-size-base);
+    text-align: left;
+    cursor: pointer;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+        border-color var(--motion-base) var(--motion-ease),
+        box-shadow var(--motion-base) var(--motion-ease);
+}
+
+.dropdown__trigger:hover,
+.dropdown.is-open .dropdown__trigger {
+    border-color: var(--color-text-muted);
+}
+
+.dropdown__trigger:focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-accent);
+    outline-offset: var(--focus-ring-offset);
+}
+
+.dropdown__value {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dropdown__chevron {
+    flex: 0 0 var(--control-icon-size);
+    color: var(--color-text-subtle);
+    transition: transform var(--motion-slow) var(--motion-ease);
+}
+
+.dropdown.is-open .dropdown__chevron {
+    transform: rotate(180deg);
+    color: var(--color-text-muted);
+}
+
+.dropdown__panel {
+    position: absolute;
+    top: calc(100% + var(--control-panel-gap));
+    left: 0;
+    right: 0;
+    z-index: var(--z-popover);
+    margin: 0;
+    padding: var(--space-1) 0;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius);
+    background: var(--color-bg);
+    box-shadow: var(--shadow-popover);
+    list-style: none;
+    max-height: min(var(--control-panel-max-height), 60vh);
+    overflow-y: auto;
+}
+
+.dropdown__panel[hidden] {
+    display: none;
+}
+
+.dropdown__option {
+    padding: var(--space-2) var(--space-3);
+    color: var(--color-text-base);
+    cursor: pointer;
+    line-height: var(--line-snug);
+    user-select: none;
+    transition: background var(--motion-fast) var(--motion-ease);
+}
+
+.dropdown__option.is-highlighted {
+    background: var(--color-divider);
+}
+
+.dropdown__option[aria-selected="true"] {
+    color: var(--color-text-strong);
+    font-weight: var(--font-weight-medium);
+}
+
+/* Small variant, used for the Top Movers page-size picker so it
+   sits comfortably inside the table header. min-width keeps two-
+   digit values ("10") from sitting flush against the chevron. */
+.dropdown--small .dropdown__trigger {
+    height: var(--control-height-sm);
+    min-width: 64px;
+    padding: 0 var(--space-3);
+    font-size: var(--font-size-sm);
+    border-radius: var(--radius-sm);
+}
+
+.dropdown--small .dropdown__option {
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--font-size-sm);
+}
+
+/* Per-usage tweaks: only width / min-width belongs here, the
+   look is driven by the dropdown classes themselves. */
+.build-selector {
+    min-width: 200px;
+}
+
 .card-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: var(--space-3);
 }
 
+/* All cards share the same padding rhythm. The grid in .card-row
+   stretches every cell to the height of the tallest sibling, so we
+   no longer need a min-height floor to keep them aligned. */
 .card {
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
-    padding: var(--space-5);
+    padding: var(--space-4) var(--space-5);
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
     background: var(--color-surface);
-    min-height: 150px;
 }
 
 .card__metric {
     font-size: var(--font-size-2xl);
     font-weight: var(--font-weight-semibold);
     color: var(--color-text-strong);
-    line-height: 1.05;
+    line-height: var(--line-tight);
+    margin-top: var(--space-1);
 }
 
 .card__unit {
@@ -110,34 +256,136 @@
     color: var(--color-text-muted);
 }
 
+/* "vs previous" sits at the bottom edge of the card and gets pushed
+   there by margin-top: auto so the cards still feel balanced when
+   the body content is short (e.g. Map Size has no split bar). */
 .card__delta {
+    margin-top: auto;
+    padding-top: var(--space-3);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+/* Two-color rounded split bar so IPv4 and IPv6 read as distinct
+   categories (not "more vs less"). A small gap separates the
+   segments; each segment is fully pill-rounded for a clear "two
+   different things" reading. */
+.split-bar {
+    display: flex;
+    gap: 3px;
+    margin-top: var(--space-3);
+    height: 8px;
+}
+
+.split-bar__segment {
+    height: 100%;
+    border-radius: var(--radius-pill);
+    min-width: 0;
+}
+
+.split-bar__segment--ipv4 {
+    background: var(--color-accent);
+}
+
+.split-bar__segment--ipv6 {
+    background: var(--color-accent-soft);
+}
+
+.split-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
     margin-top: var(--space-2);
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
 }
 
-.split-bar {
-    margin-top: var(--space-3);
-    height: 6px;
-    border-radius: 3px;
-    background: var(--color-track);
-    overflow: hidden;
+.split-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
-.split-bar__fill {
-    height: 100%;
+.split-legend__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-pill);
+    flex-shrink: 0;
+}
+
+.split-legend__dot--ipv4 {
     background: var(--color-accent);
 }
 
-.split-legend {
-    display: flex;
-    gap: var(--space-3);
-    font-size: var(--font-size-sm);
-    color: var(--color-text-muted);
+.split-legend__dot--ipv6 {
+    background: var(--color-accent-soft);
 }
 
 .chart-card {
     min-height: auto;
+}
+
+/* Stable resize anchor: the inner chart is re-rendered whenever
+   this slot's width changes, so the ResizeObserver needs an
+   element that lives across renders. The chart-shell inside
+   provides the tooltip's positioning context. */
+.chart-slot {
+    position: relative;
+    width: 100%;
+    min-height: var(--chart-min-height);
+}
+
+.chart-shell {
+    position: relative;
+}
+
+.chart-shell .chart {
+    margin-top: 0;
+}
+
+.chart-tooltip {
+    position: absolute;
+    z-index: var(--z-tooltip);
+    min-width: 200px;
+    max-width: min(320px, 92vw);
+    padding: var(--space-3);
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    box-shadow: var(--shadow-tooltip);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-normal);
+    pointer-events: none;
+    text-align: left;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+        opacity var(--motion-fast) var(--motion-ease),
+        visibility var(--motion-fast) var(--motion-ease);
+}
+
+.chart-tooltip.is-visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.chart-tooltip__title {
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-strong);
+}
+
+.chart-tooltip__kv {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-top: var(--space-2);
+}
+
+.chart-tooltip__muted {
+    margin-top: var(--space-2);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    word-break: break-word;
 }
 
 .chart {
@@ -160,7 +408,7 @@
 .chart__y-label,
 .chart__x-label {
     font-family: var(--font-sans);
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     fill: var(--color-text-subtle);
 }
 
@@ -168,12 +416,30 @@
     fill: none;
     stroke: var(--color-accent);
     stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+/* Tinted fill between the line and the bottom of the plot area.
+   currentColor lets the area inherit --color-accent through the
+   .chart__area selector below, so theming stays driven by tokens. */
+.chart__area {
+    fill: var(--color-accent);
+    fill-opacity: 0.08;
+    stroke: none;
 }
 
 .chart__dot {
     fill: var(--color-accent);
     stroke: var(--color-bg);
     stroke-width: 2;
+}
+
+.chart__cursor-line {
+    stroke: var(--color-accent);
+    stroke-opacity: 0.35;
+    stroke-width: 1;
+    pointer-events: none;
 }
 
 .chart__bar {
@@ -186,10 +452,22 @@
     gap: var(--space-4);
 }
 
+/* Map A / Map B row: no surrounding card chrome so the Diff Explorer
+   is not a box inside a box. Selects still share the global trigger
+   style. */
+.diff-selectors {
+    min-height: auto;
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+}
+
 .diff-selectors__row {
     display: flex;
     align-items: end;
     gap: var(--space-3);
+    width: 100%;
 }
 
 .diff-selectors__field {
@@ -203,24 +481,15 @@
     font-size: var(--font-size-xs);
     color: var(--color-text-uppercase);
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: var(--letter-uppercase);
     font-weight: var(--font-weight-medium);
 }
 
-.diff-selectors__select {
-    height: 36px;
-    padding: 0 var(--space-3);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius);
-    background: var(--color-bg);
-    color: var(--color-text-base);
-    font-size: var(--font-size-base);
-}
-
-.diff-selectors__vs {
-    padding-bottom: 8px;
-    color: var(--color-text-muted);
-    font-size: var(--font-size-base);
+.diff-selectors__arrow {
+    padding-bottom: var(--space-2);
+    color: var(--color-text-subtle);
+    font-size: var(--font-size-lg);
+    line-height: 1;
 }
 
 .diff-results {
@@ -229,9 +498,9 @@
 
 .match-banner {
     display: flex;
-    align-items: baseline;
-    gap: var(--space-2);
+    align-items: center;
     flex-wrap: wrap;
+    gap: var(--space-2);
 }
 
 .match-banner__headline {
@@ -284,7 +553,7 @@
 
 .stacked-bar {
     display: flex;
-    height: 32px;
+    height: var(--space-8);
     border-radius: var(--radius);
     overflow: hidden;
     background: var(--color-track);
@@ -294,7 +563,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #ffffff;
+    color: var(--color-on-fill);
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
     min-width: 0;
@@ -332,6 +601,29 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
+.top-movers__controls {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+}
+
+.top-movers__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    user-select: none;
+}
+
+.top-movers__toggle input {
+    cursor: pointer;
+    accent-color: var(--color-text-strong);
 }
 
 .top-movers__page-size {
@@ -339,15 +631,7 @@
     align-items: center;
     gap: var(--space-2);
     font-size: var(--font-size-sm);
-}
-
-.top-movers__page-size select {
-    height: 28px;
-    padding: 0 var(--space-2);
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    background: var(--color-bg);
-    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
 }
 
 .top-movers__table {
@@ -362,23 +646,93 @@
 .top-movers__grid th,
 .top-movers__grid td {
     text-align: left;
-    padding: var(--space-3) var(--space-2);
+    padding: var(--space-3) var(--space-3);
     border-bottom: 1px solid var(--color-divider);
     font-size: var(--font-size-sm);
+    vertical-align: middle;
 }
 
 .top-movers__grid th {
     font-weight: var(--font-weight-medium);
     color: var(--color-text-uppercase);
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: var(--letter-uppercase-tight);
     font-size: var(--font-size-xs);
+    white-space: nowrap;
+}
+
+/* Numeric columns right-align so the digit places line up across
+   rows; the rank column rides along so "1 / 2 / 3" sit under the
+   "#" header instead of floating in the gutter to its left. */
+.top-movers__grid th.top-movers__rank,
+.top-movers__grid td.top-movers__rank,
+.top-movers__grid th.top-movers__num,
+.top-movers__grid td.top-movers__num {
+    text-align: right;
 }
 
 .top-movers__rank {
     color: var(--color-text-subtle);
     font-variant-numeric: tabular-nums;
     width: 36px;
+}
+
+.top-movers__num {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* Two-line ASN cell: AS<num> on top, operator name muted below.
+   When the toggle hides names the cell collapses naturally to a
+   single line via the --no-names variant. */
+.asn-cell {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    line-height: var(--line-snug);
+}
+
+.asn-cell__num {
+    color: var(--color-text-strong);
+    font-weight: var(--font-weight-medium);
+    font-variant-numeric: tabular-nums;
+}
+
+.asn-cell__name {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    overflow-wrap: anywhere;
+}
+
+.top-movers__grid--no-names .asn-cell__name {
+    display: none;
+}
+
+.top-movers__asn {
+    min-width: 140px;
+}
+
+.top-movers__direction {
+    min-width: 180px;
+}
+
+/* Flex sits on the inner span so the <td> stays a regular table
+   cell - browsers ignore table layout sizing on cells with
+   `display: flex`, which was making the column collapse to
+   content width instead of filling the allocated 180 px. */
+.top-movers__direction-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.top-movers__arrow {
+    color: var(--color-text-subtle);
+    font-size: var(--font-size-base);
+    line-height: 1;
+    flex-shrink: 0;
+    cursor: help;
 }
 
 .top-movers__pagination {
@@ -388,18 +742,214 @@
 }
 
 .top-movers__page {
-    height: 28px;
-    min-width: 28px;
+    height: var(--control-height-sm);
+    min-width: var(--control-height-sm);
     padding: 0 var(--space-2);
     border: 1px solid var(--color-border);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     background: var(--color-bg);
     color: var(--color-text-base);
     font-size: var(--font-size-sm);
+    cursor: pointer;
 }
 
 .top-movers__page.is-active {
     background: var(--color-text-strong);
     color: var(--color-bg);
     border-color: var(--color-text-strong);
+}
+
+/* ───────── Site footer ─────────────────────────────────────
+   Sits below the main content with a thin top rule so it
+   detaches from the last section without competing with it.
+   Two lines: data attributions on top, project meta + last
+   refresh below. Center-aligned so the footer feels like a
+   stable anchor regardless of how short or long the page is.
+*/
+.site-footer {
+    margin-top: var(--space-12);
+    padding: var(--space-6) var(--page-gutter) var(--space-8);
+    border-top: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.site-footer__inner {
+    max-width: var(--content-max);
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    text-align: center;
+}
+
+.site-footer p {
+    margin: 0;
+}
+
+.site-footer a {
+    color: var(--color-text-base);
+    text-decoration: underline;
+    text-decoration-color: var(--color-border-strong);
+    text-underline-offset: 3px;
+    transition: color var(--motion-base) var(--motion-ease);
+}
+
+.site-footer a:hover {
+    color: var(--color-text-strong);
+    text-decoration-color: var(--color-text-subtle);
+}
+
+/* ---------- Responsive ----------
+   Breakpoints are picked where a specific layout pattern stops
+   working, not at fixed device widths. Each breakpoint also
+   trims gutters, section spacing, and card padding so the
+   dashboard does not waste vertical screen real estate on
+   whitespace when it stacks down to a single column.
+
+   - 1024px: shrink the page gutter so content keeps breathing
+     room once the viewport is narrower than the laptop
+     "comfortable" range.
+   - 900px: the three Overview cards get cramped; collapse the
+     row to a single column, let the build selector go
+     full-width, and tighten section-to-section spacing.
+   - 720px: the Diff Explorer's two map selectors no longer fit
+     side by side; stack them, rotate the arrow downward, and
+     drop padding inside cards. Top Movers controls wrap.
+   - 540px: the site header is too wide for a single row; wrap
+     the primary nav under the logo line and tighten gutters,
+     section gaps, and section-body margins.
+   - 380px: smallest mobile refinements (metric font, card
+     chrome).
+*/
+@media (max-width: 1024px) {
+    .site-header {
+        padding: 0 var(--space-5);
+    }
+    .content {
+        padding-left: var(--space-5);
+        padding-right: var(--space-5);
+    }
+}
+
+@media (max-width: 900px) {
+    .card-row {
+        grid-template-columns: 1fr;
+    }
+    .section__aside,
+    .build-selector {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+    .section + .section {
+        margin-top: var(--space-6);
+        padding-top: var(--space-6);
+    }
+    .section__body {
+        margin-top: var(--space-4);
+    }
+}
+
+@media (max-width: 720px) {
+    .content {
+        padding-top: var(--space-6);
+        padding-bottom: var(--space-8);
+    }
+    .section__header {
+        gap: var(--space-3);
+    }
+    .card {
+        padding: var(--space-3) var(--space-4);
+    }
+    .diff-selectors__row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-3);
+    }
+    .diff-selectors__arrow {
+        padding: 0;
+        align-self: center;
+        transform: rotate(90deg);
+    }
+    .classification-row {
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+    }
+    .stacked-bar__segment {
+        font-size: 10px;
+    }
+    .top-movers__header {
+        align-items: flex-start;
+    }
+    .top-movers__controls {
+        width: 100%;
+        justify-content: space-between;
+        gap: var(--space-2);
+    }
+    .top-movers__direction {
+        min-width: 0;
+    }
+    .top-movers__grid th,
+    .top-movers__grid td {
+        padding: var(--space-2);
+    }
+}
+
+@media (max-width: 540px) {
+    .site-header {
+        flex-wrap: wrap;
+        height: auto;
+        row-gap: var(--space-2);
+        padding-top: var(--space-3);
+        padding-bottom: var(--space-3);
+        align-items: center;
+    }
+    .site-header__nav {
+        order: 3;
+        width: 100%;
+        margin: 0;
+        gap: var(--space-4);
+        flex-wrap: wrap;
+    }
+    .site-header__meta {
+        margin-left: auto;
+        text-align: right;
+        max-width: min(100%, 12rem);
+        word-break: break-word;
+    }
+    .content {
+        padding: var(--space-5) var(--space-4) var(--space-6);
+    }
+    .section + .section {
+        margin-top: var(--space-5);
+        padding-top: var(--space-5);
+    }
+    .section__body {
+        margin-top: var(--space-3);
+    }
+    .section__header {
+        gap: var(--space-2);
+    }
+    .section__lede {
+        margin-top: 2px;
+    }
+    .site-footer {
+        margin-top: var(--space-8);
+        padding: var(--space-5) var(--space-4) var(--space-6);
+    }
+}
+
+@media (max-width: 380px) {
+    .site-header__logo {
+        font-size: var(--font-size-base);
+    }
+    .card {
+        padding: var(--space-3);
+    }
+    .card__metric,
+    .match-banner__headline {
+        font-size: var(--font-size-xl);
+    }
 }
