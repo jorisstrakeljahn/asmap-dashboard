@@ -43,6 +43,25 @@ def test_discover_maps_skips_unfilled_and_sorts_by_timestamp(tmp_path):
     assert all("unfilled" not in str(p) for _, p in found)
 
 
+def test_discover_maps_ignores_non_year_directories(tmp_path):
+    """Discovery walks only four-digit year folders, so docs/ or .git/ are skipped."""
+    _layout_three_builds(tmp_path)
+    (tmp_path / "docs").mkdir()
+    write_asmap(
+        tmp_path / "docs" / "1799999999_asmap.dat",
+        [(ipaddress.IPv4Network("9.0.0.0/8"), 999)],
+    )
+    (tmp_path / ".git").mkdir()
+    write_asmap(
+        tmp_path / ".git" / "1799999999_asmap.dat",
+        [(ipaddress.IPv4Network("9.0.0.0/8"), 999)],
+    )
+
+    found = discover_maps(tmp_path)
+
+    assert [ts for ts, _ in found] == [1700000000, 1710000000, 1750000000]
+
+
 def test_generate_dashboard_data_shape(tmp_path):
     """Generated payload contains every map and every unordered pair diff."""
     _layout_three_builds(tmp_path)

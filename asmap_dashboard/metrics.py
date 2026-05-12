@@ -26,6 +26,7 @@ from asmap_dashboard.loader import load_map
 
 PathLike = Union[str, Path]
 TIMESTAMP_FILENAME_RE = re.compile(r"^(\d+)_asmap\.dat$")
+YEAR_DIRNAME_RE = re.compile(r"^\d{4}$")
 
 
 def generate_dashboard_data(data_dir: PathLike) -> dict:
@@ -71,10 +72,18 @@ def generate_dashboard_data(data_dir: PathLike) -> dict:
 
 
 def discover_maps(data_dir: PathLike) -> List[Tuple[int, Path]]:
-    """Return (unix_timestamp, path) tuples for filled .dat files, sorted."""
+    """Return (unix_timestamp, path) tuples for filled .dat files, sorted.
+
+    Only four-digit year subdirectories are walked so unrelated entries
+    in the asmap-data checkout (``.git``, ``README.md``, future
+    ``docs/`` folder, etc.) cannot accidentally feed the parser.
+    """
     data_dir = Path(data_dir)
     found: List[Tuple[int, Path]] = []
-    for year_dir in sorted(p for p in data_dir.iterdir() if p.is_dir()):
+    year_dirs = sorted(
+        p for p in data_dir.iterdir() if p.is_dir() and YEAR_DIRNAME_RE.match(p.name)
+    )
+    for year_dir in year_dirs:
         for entry in sorted(year_dir.iterdir()):
             match = TIMESTAMP_FILENAME_RE.match(entry.name)
             if match:
