@@ -68,7 +68,7 @@ def test_generate_dashboard_data_shape(tmp_path):
 
     payload = generate_dashboard_data(tmp_path)
 
-    assert payload["source"]["data_dir"] == str(tmp_path)
+    assert set(payload.keys()) == {"maps", "diffs"}
 
     assert [m["name"] for m in payload["maps"]] == [
         "2024/1700000000_asmap.dat",

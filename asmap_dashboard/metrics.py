@@ -35,7 +35,6 @@ def generate_dashboard_data(data_dir: PathLike) -> dict:
     Returns a dict shaped like::
 
         {
-          "source": {"data_dir": "..."},
           "maps":  [{name, released_at, entries_count, ...}, ...],
           "diffs": [{from, to, total_changes, ...}, ...],
         }
@@ -44,6 +43,11 @@ def generate_dashboard_data(data_dir: PathLike) -> dict:
     unordered pair (C(N, 2) entries), with ``from`` always older than
     ``to``, so the frontend can offer arbitrary Map A vs Map B selection
     without any client-side computation.
+
+    The payload is intentionally free of machine-local context (input
+    directory, generation timestamp): it must stay byte-stable across
+    runs whenever the underlying .dat files are unchanged, so the daily
+    CI refresh only commits when the dashboard data actually shifted.
     """
     discovered = discover_maps(data_dir)
     data_dir = Path(data_dir)
@@ -65,7 +69,6 @@ def generate_dashboard_data(data_dir: PathLike) -> dict:
         diffs.append(diff)
 
     return {
-        "source": {"data_dir": str(data_dir)},
         "maps": maps,
         "diffs": diffs,
     }
