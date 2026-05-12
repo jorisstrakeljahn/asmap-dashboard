@@ -4,19 +4,15 @@ Dashboard for exploring ASmap binary files used by Bitcoin Core for peer diversi
 
 Live: <https://jorisstrakeljahn.github.io/asmap-dashboard/>
 
-## What it does
+## How it works
 
-Two parts that talk to each other through a single JSON payload.
+A Python pipeline (`asmap_dashboard/`) reads every `.dat` file in [bitcoin-core/asmap-data](https://github.com/bitcoin-core/asmap-data), profiles each build, diffs every distinct pair, and emits a single `metrics.json`. The static site under `web/` consumes that payload: overview cards, time-series charts, and a diff explorer with match-rate banner, change classification, and top-movers table.
 
-The Python package `asmap_dashboard` reads the `.dat` files published in [bitcoin-core/asmap-data](https://github.com/bitcoin-core/asmap-data), profiles each build, diffs every pair of distinct maps, and emits a `metrics.json` payload describing the entire history.
+A GitHub Actions workflow regenerates `metrics.json` daily; a separate workflow deploys `web/` to GitHub Pages on push.
 
-The static site under `web/` consumes `metrics.json` and renders the Maps tab: per-build overview cards, file-size and entry-count delta charts over the published history, and a diff explorer with match-rate banner, change classification, and top-mover table for any pair of distinct builds.
+## Setup
 
-A scheduled GitHub Actions workflow regenerates `metrics.json` from the upstream asmap-data repo once a day, and a separate workflow redeploys the site to GitHub Pages whenever `web/` changes. Both run without manual intervention.
-
-## Requirements
-
-Python 3.10 or later. The runtime uses only the standard library; the test suite needs `pytest`.
+Requires Python 3.10+. The runtime uses only the standard library; tests need `pytest`.
 
 ```
 python3 -m venv .venv
@@ -24,40 +20,39 @@ source .venv/bin/activate
 pip install -r requirements-dev.txt
 ```
 
-## Running the analysis
-
-Profile a single map:
-
-```
-python -m asmap_dashboard analyze /path/to/asmap.dat
-```
-
-Diff two maps. Pass `--addrs` with a text file of one IP per line to also report how many of those nodes would resolve to a different ASN under the new map:
-
-```
-python -m asmap_dashboard diff /path/to/old.dat /path/to/new.dat
-python -m asmap_dashboard diff /path/to/old.dat /path/to/new.dat --addrs nodes.txt
-```
-
-Generate the full dashboard payload over a checkout of asmap-data:
+## Regenerate dashboard data
 
 ```
 git clone https://github.com/bitcoin-core/asmap-data.git
 python -m asmap_dashboard metrics --data-dir asmap-data --out web/assets/data/metrics.json
+python -m asmap_dashboard refresh-asn-names --metrics web/assets/data/metrics.json --out web/assets/data/asn-names.json
 ```
 
-## Running the dashboard
+The first command builds the full metrics payload from a checkout of asmap-data. The second pulls operator labels (`AS7018 (AT&T Services, Inc.)`) from [bgp.tools/asns.csv](https://bgp.tools/asns.csv) and filters them down to the ASNs actually used. Both commands also run daily in CI; the ASN-names step is non-fatal — if bgp.tools is unreachable the previous file is kept and the dashboard falls back to bare `AS<num>` labels.
 
-The frontend is plain HTML, CSS, and ES modules, so any static file server will do. The standard library's built-in server is enough:
+## Run the dashboard
+
+The frontend is plain HTML + ES modules. Any static file server works:
 
 ```
 cd web
 python3 -m http.server 8000
 ```
 
-Open <http://localhost:8000> in a browser. The page reads `web/assets/data/metrics.json`, which is committed to the repo, so the dashboard works on a fresh clone without running the analysis pipeline first.
+Open <http://localhost:8000>. `metrics.json` is committed, so a fresh clone works without running the pipeline first.
 
-## Testing
+## Other commands
+
+Profile a single map, or diff two of them directly:
+
+```
+python -m asmap_dashboard analyze /path/to/asmap.dat
+python -m asmap_dashboard diff /path/to/old.dat /path/to/new.dat
+```
+
+Pass `--addrs nodes.txt` (one IP per line) to `diff` to also report how many of those nodes resolve to a different ASN under the new map.
+
+## Tests
 
 ```
 python -m pytest tests
