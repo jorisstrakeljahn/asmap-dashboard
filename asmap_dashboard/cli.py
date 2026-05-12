@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Optional, Sequence
 
 from asmap_dashboard.analyze import analyze_map
+from asmap_dashboard.asn_names import BGP_TOOLS_URL, refresh as refresh_asn_names
 from asmap_dashboard.diff import diff_maps
 from asmap_dashboard.metrics import generate_dashboard_data
 
@@ -46,6 +47,28 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         help="Write JSON to this path instead of stdout.",
     )
 
+    p_refresh = sub.add_parser(
+        "refresh-asn-names",
+        help="Rebuild the frontend ASN \u2192 operator-name JSON from bgp.tools.",
+    )
+    p_refresh.add_argument(
+        "--metrics",
+        type=Path,
+        required=True,
+        help="Path to metrics.json the labels should be scoped to.",
+    )
+    p_refresh.add_argument(
+        "--out",
+        type=Path,
+        required=True,
+        help="Where to write the subset asn-names.json (frontend asset).",
+    )
+    p_refresh.add_argument(
+        "--source-url",
+        default=BGP_TOOLS_URL,
+        help="Override the bgp.tools CSV URL (mainly for tests).",
+    )
+
     args = parser.parse_args(argv)
 
     if args.command == "analyze":
@@ -54,6 +77,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         result = diff_maps(args.map_a, args.map_b, addrs_file=args.addrs)
     elif args.command == "metrics":
         result = generate_dashboard_data(args.data_dir)
+    elif args.command == "refresh-asn-names":
+        count = refresh_asn_names(
+            args.metrics, args.out, source_url=args.source_url
+        )
+        sys.stderr.write(f"Wrote {count} ASN names to {args.out}\n")
+        return 0
     else:
         parser.error(f"unknown command {args.command}")
         return 2
