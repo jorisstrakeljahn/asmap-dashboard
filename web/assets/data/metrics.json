@@ -5237,7 +5237,6 @@
       "unmapped": 94
     }
   ],
-  "generated_at": "2026-05-08T06:02:49+00:00",
   "maps": [
     {
       "entries_count": 377653,
@@ -5967,8 +5966,5 @@
       ],
       "unique_asns": 90691
     }
-  ],
-  "source": {
-    "data_dir": "/tmp/asmap-data"
-  }
+  ]
 }
