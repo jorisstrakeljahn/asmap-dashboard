@@ -153,31 +153,37 @@ def _top_mover_row(
 
 
 def _node_impact(asmap_a: ASMap, asmap_b: ASMap, addrs_file: PathLike) -> dict:
-    """Replay lookup() on each IP in addrs_file against both maps."""
+    """Replay lookup() on each IP in addrs_file against both maps.
+
+    Streams the address file line by line so this stays flat in memory
+    even when the same file is replayed across many (map_a, map_b)
+    pairs in the all-pairs Coverage pipeline.
+    """
     reassigned = 0
     newly_mapped = 0
     unmapped = 0
     total_nodes = 0
-    for line in Path(addrs_file).read_text().splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        try:
-            ip = ipaddress.ip_address(line)
-        except ValueError:
-            continue
-        total_nodes += 1
-        prefix = _ip_to_prefix(ip)
-        asn_a = asmap_a.lookup(prefix) or 0
-        asn_b = asmap_b.lookup(prefix) or 0
-        if asn_a == asn_b:
-            continue
-        if asn_a == 0:
-            newly_mapped += 1
-        elif asn_b == 0:
-            unmapped += 1
-        else:
-            reassigned += 1
+    with Path(addrs_file).open(encoding="utf-8") as fh:
+        for raw in fh:
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            try:
+                ip = ipaddress.ip_address(line)
+            except ValueError:
+                continue
+            total_nodes += 1
+            prefix = _ip_to_prefix(ip)
+            asn_a = asmap_a.lookup(prefix) or 0
+            asn_b = asmap_b.lookup(prefix) or 0
+            if asn_a == asn_b:
+                continue
+            if asn_a == 0:
+                newly_mapped += 1
+            elif asn_b == 0:
+                unmapped += 1
+            else:
+                reassigned += 1
     return {
         "total_nodes": total_nodes,
         "reassigned": reassigned,
