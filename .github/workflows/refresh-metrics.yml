@@ -1,8 +1,10 @@
 name: refresh-metrics
 
 on:
+  # Midnight UTC. GitHub schedules around the top of the hour can be
+  # delayed during queue spikes; for a daily data refresh that is fine.
   schedule:
-    - cron: "17 3 * * *"
+    - cron: "0 0 * * *"
   workflow_dispatch:
 
 jobs:
@@ -10,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
@@ -24,33 +25,26 @@ jobs:
       - name: Generate metrics.json
         run: python -m asmap_dashboard metrics --data-dir /tmp/asmap-data --out web/assets/data/metrics.json
 
-      - name: Open and merge pull request if changed
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Refresh ASN names from bgp.tools
+        # Non-fatal: if bgp.tools is unreachable we keep the previous
+        # asn-names.json and still ship the refreshed metrics.json.
+        continue-on-error: true
+        run: |
+          python -m asmap_dashboard refresh-asn-names \
+            --metrics web/assets/data/metrics.json \
+            --out web/assets/data/asn-names.json
+
+      - name: Commit and push if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          if git diff --quiet web/assets/data/metrics.json; then
-            echo "metrics.json unchanged, nothing to do"
+          PAYLOAD_FILES="web/assets/data/metrics.json web/assets/data/asn-names.json"
+          if git diff --quiet -- $PAYLOAD_FILES; then
+            echo "dashboard payloads unchanged, nothing to do"
             exit 0
           fi
 
-          DATE=$(date -u +%Y-%m-%d)
-          BRANCH="bot/refresh-metrics-${DATE}-${{ github.run_number }}"
-          MAPS=$(python3 -c "import json; d=json.load(open('web/assets/data/metrics.json')); print(len(d['maps']))")
-          DIFFS=$(python3 -c "import json; d=json.load(open('web/assets/data/metrics.json')); print(len(d['diffs']))")
-          LATEST=$(python3 -c "import json; d=json.load(open('web/assets/data/metrics.json')); print(d['maps'][-1]['released_at'])")
-
-          git checkout -b "$BRANCH"
-          git add web/assets/data/metrics.json
-          git commit -m "data: Refresh metrics.json"
-          git push origin "$BRANCH"
-
-          gh pr create \
-            --title "data: Refresh metrics.json (${DATE})" \
-            --body "Daily refresh from bitcoin-core/asmap-data. The regenerated payload covers ${MAPS} maps and ${DIFFS} all-pairs diffs, with the latest map released on ${LATEST}." \
-            --base main \
-            --head "$BRANCH"
-
-          gh pr merge "$BRANCH" --rebase --delete-branch
+          git add $PAYLOAD_FILES
+          git commit -m "data: Refresh dashboard payloads"
+          git push
