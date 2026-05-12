@@ -6,60 +6,69 @@ import {
     formatSignedPercent,
 } from "../format.js";
 
-export function mount(parent, maps) {
-    if (!maps.length) {
+// Pure render: build the three overview cards for ``current`` and the
+// chronologically preceding build ``previous`` (may be null for the
+// oldest map). The caller decides which map is current; this module
+// only knows how to draw cards from the pair, so it can be re-invoked
+// on every selector change without owning any state.
+export function mount(parent, current, previous) {
+    if (!current) {
         parent.replaceChildren(emptyState());
         return;
     }
-    const latest = maps[maps.length - 1];
-    const previous = maps.length > 1 ? maps[maps.length - 2] : null;
-
     const row = document.createElement("div");
     row.className = "card-row";
     row.append(
-        mapSizeCard(latest, previous),
-        uniqueAsesCard(latest, previous),
-        stalenessCard(latest),
+        mapSizeCard(current, previous),
+        uniqueAsesCard(current, previous),
+        stalenessCard(current),
     );
     parent.replaceChildren(row);
 }
 
-function mapSizeCard(latest, previous) {
+function mapSizeCard(current, previous) {
     const card = createCard("Map Size");
-    card.append(metricNumber(formatNumber(latest.file_size_bytes)));
+    card.append(metricNumber(formatNumber(current.file_size_bytes)));
     card.append(metricUnit("bytes"));
     if (previous) {
         const ratio =
-            (latest.file_size_bytes - previous.file_size_bytes) /
+            (current.file_size_bytes - previous.file_size_bytes) /
             previous.file_size_bytes;
         card.append(deltaLine(`${formatSignedPercent(ratio)} vs previous`));
     }
     return card;
 }
 
-function uniqueAsesCard(latest, previous) {
+function uniqueAsesCard(current, previous) {
     const card = createCard("Unique ASes");
-    card.append(metricNumber(formatNumber(latest.unique_asns)));
+    card.append(metricNumber(formatNumber(current.unique_asns)));
     card.append(metricUnit("autonomous systems"));
+
+    // Auxiliary IPv4/IPv6 split sits between the headline and the
+    // "vs previous" line, so the delta is always the last node on
+    // every overview card. Combined with margin-top:auto on
+    // .card__delta this keeps the delta visually flush against the
+    // bottom edge regardless of how much extra content the card
+    // carries.
+    const total = current.ipv4_count + current.ipv6_count;
+    const ipv4Ratio = total ? current.ipv4_count / total : 0;
+    const ipv6Ratio = total ? current.ipv6_count / total : 0;
+    card.append(splitBar(ipv4Ratio, ipv6Ratio));
+    card.append(splitLegend(ipv4Ratio, ipv6Ratio));
+
     if (previous) {
-        const delta = latest.unique_asns - previous.unique_asns;
+        const delta = current.unique_asns - previous.unique_asns;
         card.append(deltaLine(`${formatSignedNumber(delta)} vs previous`));
     }
-
-    const total = latest.ipv4_count + latest.ipv6_count;
-    const ipv4Ratio = total ? latest.ipv4_count / total : 0;
-    const ipv6Ratio = total ? latest.ipv6_count / total : 0;
-    card.append(splitBar(ipv4Ratio));
-    card.append(splitLegend(ipv4Ratio, ipv6Ratio));
 
     return card;
 }
 
-function stalenessCard(latest) {
+function stalenessCard(current) {
     const card = createCard("Staleness");
-    const days = daysBetween(latest.released_at);
+    const days = daysBetween(current.released_at);
     card.append(metricNumber(`${formatNumber(days)} days`));
-    card.append(metricUnit("since latest build"));
+    card.append(metricUnit("since this build"));
     return card;
 }
 
@@ -94,24 +103,54 @@ function deltaLine(text) {
     return node;
 }
 
-function splitBar(ipv4Ratio) {
-    const track = document.createElement("div");
-    track.className = "split-bar";
-    const fill = document.createElement("div");
-    fill.className = "split-bar__fill";
-    fill.style.width = `${ipv4Ratio * 100}%`;
-    track.append(fill);
-    return track;
+// Two-segment bar: IPv4 in accent, IPv6 in soft violet. Each
+// segment is rounded individually so it reads as "two categories"
+// rather than a single progress bar that could be misread as "IPv6
+// is less / worse than IPv4".
+function splitBar(ipv4Ratio, ipv6Ratio) {
+    const bar = document.createElement("div");
+    bar.className = "split-bar";
+    bar.setAttribute("role", "img");
+    bar.setAttribute(
+        "aria-label",
+        `IPv4 ${formatPercent(ipv4Ratio, 0)}, IPv6 ${formatPercent(ipv6Ratio, 0)}`,
+    );
+
+    const v4 = document.createElement("div");
+    v4.className = "split-bar__segment split-bar__segment--ipv4";
+    v4.style.flex = `${ipv4Ratio * 100} 0 0%`;
+
+    const v6 = document.createElement("div");
+    v6.className = "split-bar__segment split-bar__segment--ipv6";
+    v6.style.flex = `${ipv6Ratio * 100} 0 0%`;
+
+    bar.append(v4, v6);
+    return bar;
 }
 
 function splitLegend(ipv4Ratio, ipv6Ratio) {
     const legend = document.createElement("div");
     legend.className = "split-legend";
-    legend.innerHTML = `
-        <span>IPv4 ${formatPercent(ipv4Ratio, 0)}</span>
-        <span>IPv6 ${formatPercent(ipv6Ratio, 0)}</span>
-    `;
+    legend.append(
+        legendItem("ipv4", `IPv4 ${formatPercent(ipv4Ratio, 0)}`),
+        legendItem("ipv6", `IPv6 ${formatPercent(ipv6Ratio, 0)}`),
+    );
     return legend;
+}
+
+function legendItem(modifier, label) {
+    const item = document.createElement("span");
+    item.className = "split-legend__item";
+
+    const dot = document.createElement("span");
+    dot.className = `split-legend__dot split-legend__dot--${modifier}`;
+    dot.setAttribute("aria-hidden", "true");
+
+    const text = document.createElement("span");
+    text.textContent = label;
+
+    item.append(dot, text);
+    return item;
 }
 
 function emptyState() {
