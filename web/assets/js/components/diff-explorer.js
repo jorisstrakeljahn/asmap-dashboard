@@ -1,5 +1,25 @@
 import { formatDate, formatNumber, formatPercent } from "../format.js";
+import { uniqueId } from "../utils/dom.js";
+import { createDropdown } from "./dropdown.js";
 import * as topMoversTable from "./top-movers-table.js";
+
+// Single source of truth for the three diff classifications.
+// Same order, labels and CSS modifiers feed both the headline
+// row (classificationRow) and the stacked bar (stackedBar) so
+// they can never drift apart.
+//
+//   field    – key in the diff payload
+//   label    – human-readable name
+//   modifier – BEM modifier used on .classification-cell__share
+//              and .stacked-bar__segment
+const DIFF_CATEGORIES = [
+    { field: "reassigned", label: "Reassigned", modifier: "reassigned" },
+    { field: "newly_mapped", label: "Newly Mapped", modifier: "new" },
+    { field: "unmapped", label: "Unmapped", modifier: "unmapped" },
+];
+
+const DIRECTION_ARROW = "\u2192";
+const EM_DASH = "\u2014";
 
 export function mount(parent, payload) {
     if (!payload.maps.length || !payload.diffs.length) {
@@ -28,54 +48,65 @@ export function mount(parent, payload) {
 }
 
 function createSelectors(maps, onChange) {
-    const elem = document.createElement("article");
-    elem.className = "card diff-selectors";
+    const elem = document.createElement("div");
+    elem.className = "diff-selectors";
 
     const row = document.createElement("div");
     row.className = "diff-selectors__row";
 
-    const fieldA = createField("Map A", maps);
-    const fieldB = createField("Map B", maps);
-    const vs = document.createElement("span");
-    vs.className = "diff-selectors__vs";
-    vs.textContent = "vs";
+    const options = maps.map((map) => ({
+        value: map.name,
+        label: formatDate(map.released_at),
+    }));
 
-    row.append(fieldA.elem, vs, fieldB.elem);
+    const fire = () =>
+        onChange(fieldA.dropdown.getValue(), fieldB.dropdown.getValue());
+
+    const fieldA = createField("Map A", options, fire);
+    const fieldB = createField("Map B", options, fire);
+
+    // The arrow signals reading direction (A -> B). The previous
+    // "vs" looked symmetric and hid which side the diff was
+    // computed from, which mattered once "newly mapped" and
+    // "unmapped" became asymmetric counts that flip when the user
+    // swaps A and B.
+    const arrow = document.createElement("span");
+    arrow.className = "diff-selectors__arrow";
+    arrow.setAttribute("aria-hidden", "true");
+    arrow.textContent = DIRECTION_ARROW;
+
+    row.append(fieldA.elem, arrow, fieldB.elem);
     elem.append(row);
-
-    const fire = () => onChange(fieldA.select.value, fieldB.select.value);
-    fieldA.select.addEventListener("change", fire);
-    fieldB.select.addEventListener("change", fire);
 
     return {
         elem,
         setSelection(a, b) {
-            fieldA.select.value = a;
-            fieldB.select.value = b;
+            fieldA.dropdown.setValue(a);
+            fieldB.dropdown.setValue(b);
             fire();
         },
     };
 }
 
-function createField(labelText, maps) {
-    const elem = document.createElement("label");
+function createField(labelText, options, onValueChange) {
+    const elem = document.createElement("div");
     elem.className = "diff-selectors__field";
 
+    const labelId = uniqueId("diff-selector-label");
     const label = document.createElement("span");
     label.className = "diff-selectors__label";
+    label.id = labelId;
     label.textContent = labelText;
 
-    const select = document.createElement("select");
-    select.className = "diff-selectors__select";
-    for (const map of maps) {
-        const option = document.createElement("option");
-        option.value = map.name;
-        option.textContent = formatDate(map.released_at);
-        select.append(option);
-    }
+    const dropdown = createDropdown({
+        options,
+        value: options[0].value,
+        ariaLabelledBy: labelId,
+        onChange: onValueChange,
+    });
 
-    elem.append(label, select);
-    return { elem, select };
+    elem.append(label, dropdown);
+    return { elem, dropdown };
 }
 
 function renderResults(parent, diffs, fromName, toName) {
@@ -149,7 +180,9 @@ function matchBanner(diff) {
 
     const detail = document.createElement("span");
     detail.className = "match-banner__detail";
-    detail.textContent = `match \u2014 ${formatNumber(diff.total_changes)} of ${formatNumber(denom)} entries differ`;
+    detail.textContent =
+        `match ${EM_DASH} ${formatNumber(diff.total_changes)} of ` +
+        `${formatNumber(denom)} entries differ`;
 
     wrap.append(headline, detail);
     return wrap;
@@ -157,54 +190,53 @@ function matchBanner(diff) {
 
 function classificationRow(diff) {
     const total = diff.total_changes || 1;
-    const cells = [
-        { label: "Reassigned", value: diff.reassigned, modifier: "reassigned" },
-        { label: "Newly Mapped", value: diff.newly_mapped, modifier: "new" },
-        { label: "Unmapped", value: diff.unmapped, modifier: "unmapped" },
-    ];
-
     const row = document.createElement("div");
     row.className = "classification-row";
-    for (const cell of cells) {
-        const node = document.createElement("div");
-        node.className = "classification-cell";
-
-        const value = document.createElement("p");
-        value.className = "classification-cell__value";
-        value.textContent = formatNumber(cell.value);
-
-        const share = document.createElement("p");
-        share.className = `classification-cell__share classification-cell__share--${cell.modifier}`;
-        share.textContent = formatPercent(cell.value / total, 1);
-
-        const label = document.createElement("p");
-        label.className = "classification-cell__label muted";
-        label.textContent = cell.label;
-
-        node.append(value, share, label);
-        row.append(node);
+    for (const category of DIFF_CATEGORIES) {
+        row.append(classificationCell(category, diff[category.field], total));
     }
     return row;
+}
+
+function classificationCell({ label, modifier }, value, total) {
+    const node = document.createElement("div");
+    node.className = "classification-cell";
+
+    const valueEl = document.createElement("p");
+    valueEl.className = "classification-cell__value";
+    valueEl.textContent = formatNumber(value);
+
+    const shareEl = document.createElement("p");
+    shareEl.className =
+        `classification-cell__share classification-cell__share--${modifier}`;
+    shareEl.textContent = formatPercent(value / total, 1);
+
+    const labelEl = document.createElement("p");
+    labelEl.className = "classification-cell__label muted";
+    labelEl.textContent = label;
+
+    node.append(valueEl, shareEl, labelEl);
+    return node;
 }
 
 function stackedBar(diff) {
     const total = diff.total_changes || 1;
     const wrap = document.createElement("div");
     wrap.className = "stacked-bar";
-    const segments = [
-        { value: diff.reassigned, modifier: "reassigned" },
-        { value: diff.newly_mapped, modifier: "new" },
-        { value: diff.unmapped, modifier: "unmapped" },
-    ];
-    for (const seg of segments) {
-        if (seg.value === 0) continue;
-        const fill = document.createElement("div");
-        fill.className = `stacked-bar__segment stacked-bar__segment--${seg.modifier}`;
-        fill.style.flexGrow = String(seg.value / total);
-        fill.textContent = formatPercent(seg.value / total, 1);
-        wrap.append(fill);
+    for (const { field, modifier } of DIFF_CATEGORIES) {
+        const value = diff[field];
+        if (value === 0) continue;
+        wrap.append(stackedSegment(value / total, modifier));
     }
     return wrap;
+}
+
+function stackedSegment(share, modifier) {
+    const fill = document.createElement("div");
+    fill.className = `stacked-bar__segment stacked-bar__segment--${modifier}`;
+    fill.style.flexGrow = String(share);
+    fill.textContent = formatPercent(share, 1);
+    return fill;
 }
 
 function samePairMessage() {
