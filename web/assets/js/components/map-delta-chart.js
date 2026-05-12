@@ -1,128 +1,162 @@
+// Vertical bar chart of entry-count delta between consecutive
+// builds. Positive deltas grow up from the baseline, negative
+// down. Hover a bar for the exact "prev -> this" entries and
+// signed delta.
+
 import { linearScale, niceTicks, svg } from "../charts/svg.js";
+import {
+    labelDensityForWidth,
+    mountResponsiveChart,
+    pickAxisLabelIndices,
+    plotBounds,
+    renderXAxis,
+    renderYAxis,
+} from "../charts/chart-base.js";
+import {
+    createChartShell,
+    hideTooltip,
+    isTooltipVisible,
+    placeTooltipNextFrame,
+    positionTooltip,
+    showTooltip,
+} from "../charts/chart-interaction.js";
+import { buildTooltipBody } from "../charts/chart-tooltip.js";
 import { formatDate, formatNumber, shortDate } from "../format.js";
 
-const WIDTH = 920;
-const HEIGHT = 220;
-const PADDING_LEFT = 50;
-const PADDING_RIGHT = 15;
-const PADDING_TOP = 20;
-const PADDING_BOTTOM = 28;
 const BAR_GAP = 12;
+const MIN_BAR_WIDTH = 8;
+const BAR_CORNER_RADIUS = 2;
 
 export function mount(parent, maps) {
+    if (!parent) return;
     if (maps.length < 2) {
         parent.replaceChildren();
         return;
     }
-    parent.replaceChildren(card(maps));
+    mountResponsiveChart(parent, {
+        title: "Size Delta Between Consecutive Maps",
+        draw: ({ width, height, layout }) =>
+            buildChart(deltasBetween(maps), width, height, layout),
+    });
 }
 
-function card(maps) {
-    const card = document.createElement("article");
-    card.className = "card chart-card";
-
-    const title = document.createElement("span");
-    title.className = "card__label uppercase-label";
-    title.textContent = "Size Delta Between Consecutive Maps".toUpperCase();
-    card.append(title);
-
-    card.append(chart(deltas(maps)));
-    return card;
+// Pre-compute everything each bar will need so the render path
+// never has to re-derive values from the raw map list.
+function deltasBetween(maps) {
+    return maps.slice(1).map((current, i) => {
+        const previous = maps[i];
+        return {
+            released_at: current.released_at,
+            name: current.name,
+            entries: current.entries_count,
+            prev_entries: previous.entries_count,
+            delta: current.entries_count - previous.entries_count,
+        };
+    });
 }
 
-function deltas(maps) {
-    return maps.slice(1).map((m, i) => ({
-        released_at: m.released_at,
-        delta: m.entries_count - maps[i].entries_count,
-    }));
-}
+function buildChart(rows, width, height, layout) {
+    const plot = plotBounds(width, height, layout);
 
-function chart(rows) {
     const values = rows.map((r) => r.delta);
-    const yMin = Math.min(0, ...values);
-    const yMax = Math.max(0, ...values);
-    const yTicks = niceTicks(yMin, yMax);
-    const yScale = linearScale(
-        [yTicks[0], yTicks.at(-1)],
-        [HEIGHT - PADDING_BOTTOM, PADDING_TOP],
-    );
+    const yTicks = niceTicks(Math.min(0, ...values), Math.max(0, ...values));
+    const yScale = linearScale([yTicks[0], yTicks.at(-1)], [plot.bottom, plot.top]);
 
-    const plotW = WIDTH - PADDING_LEFT - PADDING_RIGHT;
-    const slot = plotW / rows.length;
-    const barW = Math.max(8, slot - BAR_GAP);
+    const slotWidth = (plot.right - plot.left) / rows.length;
+    const barWidth = Math.max(MIN_BAR_WIDTH, slotWidth - BAR_GAP);
+    const xAt = (i) => plot.left + slotWidth * (i + 0.5);
 
     const root = svg("svg", {
-        viewBox: `0 0 ${WIDTH} ${HEIGHT}`,
+        viewBox: `0 0 ${width} ${height}`,
         class: "chart",
-        role: "img",
-        "aria-label": "Entry-count delta between consecutive ASmap builds",
+        role: "presentation",
+    });
+    root.setAttribute(
+        "aria-label",
+        "Entry-count delta between consecutive ASmap builds; hover each bar for details",
+    );
+
+    renderYAxis(root, yTicks, yScale, {
+        plotLeft: plot.left,
+        plotRight: plot.right,
+        format: formatTick,
     });
 
-    for (const tick of yTicks) {
-        const y = yScale(tick);
+    // Zero baseline goes in before the bars so positive bars
+    // cover it where they sit above zero, but it stays visible
+    // where bars dip negative.
+    const crossesZero = yTicks[0] < 0 && yTicks.at(-1) > 0;
+    if (crossesZero) {
+        const zeroY = yScale(0);
         root.append(
             svg("line", {
-                x1: PADDING_LEFT,
-                x2: WIDTH - PADDING_RIGHT,
-                y1: y,
-                y2: y,
-                class: "chart__grid",
-            }),
-            svg("text", {
-                x: PADDING_LEFT - 8,
-                y: y + 4,
-                class: "chart__y-label",
-                "text-anchor": "end",
-            }),
-        );
-        root.lastChild.textContent = formatTick(tick);
-    }
-
-    const baselineY = yScale(0);
-    rows.forEach((row, i) => {
-        const cx = PADDING_LEFT + slot * (i + 0.5);
-        const top = yScale(Math.max(0, row.delta));
-        const bottom = yScale(Math.min(0, row.delta));
-        const bar = svg("rect", {
-            x: cx - barW / 2,
-            y: top,
-            width: barW,
-            height: Math.max(1, bottom - top),
-            rx: 2,
-            class: "chart__bar",
-        });
-        const titleNode = svg("title");
-        titleNode.textContent = `${formatDate(row.released_at)}: ${formatNumber(row.delta)} entries`;
-        bar.append(titleNode);
-        root.append(bar);
-
-        const label = svg("text", {
-            x: cx,
-            y: HEIGHT - PADDING_BOTTOM + 16,
-            class: "chart__x-label",
-            "text-anchor": "middle",
-        });
-        label.textContent = shortDate(row.released_at);
-        root.append(label);
-    });
-
-    if (yMin < 0 && yMax > 0) {
-        root.append(
-            svg("line", {
-                x1: PADDING_LEFT,
-                x2: WIDTH - PADDING_RIGHT,
-                y1: baselineY,
-                y2: baselineY,
+                x1: plot.left,
+                x2: plot.right,
+                y1: zeroY,
+                y2: zeroY,
                 class: "chart__zero",
             }),
         );
     }
 
-    return root;
+    const { shell, tip } = createChartShell(root);
+    const hide = () => hideTooltip(tip);
+
+    rows.forEach((row, i) => {
+        const top = yScale(Math.max(0, row.delta));
+        const bottom = yScale(Math.min(0, row.delta));
+        const bar = svg("rect", {
+            x: xAt(i) - barWidth / 2,
+            y: top,
+            width: barWidth,
+            height: Math.max(1, bottom - top),
+            rx: BAR_CORNER_RADIUS,
+            class: "chart__bar",
+        });
+        root.append(bar);
+
+        bar.addEventListener("mouseenter", (ev) => {
+            showTooltip(
+                tip,
+                buildTooltipBody({
+                    title: formatDate(row.released_at),
+                    rows: [
+                        ["Delta", `${formatSignedDelta(row.delta)} entries`],
+                        [
+                            "Entries (prev \u2192 this)",
+                            `${formatNumber(row.prev_entries)} \u2192 ${formatNumber(row.entries)}`,
+                        ],
+                    ],
+                    footer: row.name,
+                }),
+            );
+            placeTooltipNextFrame(shell, tip, ev.clientX, ev.clientY);
+        });
+        bar.addEventListener("mousemove", (ev) => {
+            if (isTooltipVisible(tip)) {
+                positionTooltip(shell, tip, ev.clientX, ev.clientY);
+            }
+        });
+        bar.addEventListener("mouseleave", hide);
+    });
+    shell.addEventListener("mouseleave", hide);
+
+    renderXAxis(
+        root,
+        pickAxisLabelIndices(rows.length, labelDensityForWidth(width)),
+        xAt,
+        plot.bottom,
+        (i) => shortDate(rows[i].released_at),
+    );
+
+    return shell;
+}
+
+function formatSignedDelta(value) {
+    return value > 0 ? `+${formatNumber(value)}` : formatNumber(value);
 }
 
 function formatTick(value) {
     const abs = Math.abs(value);
-    if (abs >= 1000) return `${Math.round(value / 1000)}k`;
-    return String(value);
+    return abs >= 1000 ? `${Math.round(value / 1000)}k` : String(value);
 }
