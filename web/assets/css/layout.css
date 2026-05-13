@@ -1,0 +1,226 @@
+/* Site chrome: header, main content frame, section rhythm, footer.
+   Tab-agnostic styles - everything below the body element until a
+   tab-specific stylesheet takes over for its own components. */
+
+.site-header {
+    display: flex;
+    align-items: center;
+    height: var(--header-height);
+    padding: 0 var(--page-gutter);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg);
+}
+
+.site-header__logo {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-strong);
+}
+
+.site-header__logo:hover {
+    text-decoration: none;
+}
+
+.site-header__nav {
+    display: flex;
+    gap: var(--space-8);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.site-header__nav-link {
+    position: relative;
+    padding-bottom: var(--space-1);
+    color: var(--color-text-base);
+}
+
+.site-header__nav-link:hover {
+    text-decoration: none;
+    color: var(--color-text-strong);
+}
+
+.site-header__nav-link.is-active {
+    color: var(--color-text-strong);
+    font-weight: var(--font-weight-medium);
+}
+
+.site-header__nav-link.is-active::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -3px;
+    height: 2px;
+    background: var(--color-text-strong);
+}
+
+.site-header__meta {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+.content {
+    max-width: var(--content-max);
+    margin: 0 auto;
+    padding: var(--space-8) var(--page-gutter) var(--space-12);
+}
+
+.section + .section {
+    margin-top: var(--space-12);
+    padding-top: var(--space-12);
+    border-top: 1px solid var(--color-border);
+}
+
+.section__title {
+    font-size: var(--font-size-lg);
+}
+
+.section__lede {
+    margin-top: var(--space-1);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+.section__body {
+    margin-top: var(--space-5);
+}
+
+.section__header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+}
+
+.section__heading {
+    min-width: 0;
+}
+
+.section__aside {
+    flex-shrink: 0;
+}
+
+/* Footer sits below the main content with a thin top rule so it
+   detaches from the last section without competing with it. Two
+   stacked lines (sources + project meta) center-aligned so the
+   footer feels like a stable anchor regardless of page length. */
+.site-footer {
+    margin-top: var(--space-12);
+    padding: var(--space-6) var(--page-gutter) var(--space-8);
+    border-top: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.site-footer__inner {
+    max-width: var(--content-max);
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    text-align: center;
+}
+
+.site-footer p {
+    margin: 0;
+}
+
+.site-footer a {
+    color: var(--color-text-base);
+    text-decoration: underline;
+    text-decoration-color: var(--color-border-strong);
+    text-underline-offset: 3px;
+    transition: color var(--motion-base) var(--motion-ease);
+}
+
+.site-footer a:hover {
+    color: var(--color-text-strong);
+    text-decoration-color: var(--color-text-subtle);
+}
+
+@media (max-width: 1024px) {
+    .site-header {
+        padding: 0 var(--space-5);
+    }
+    .content {
+        padding-left: var(--space-5);
+        padding-right: var(--space-5);
+    }
+}
+
+@media (max-width: 900px) {
+    .section__aside {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+    .section + .section {
+        margin-top: var(--space-6);
+        padding-top: var(--space-6);
+    }
+    .section__body {
+        margin-top: var(--space-4);
+    }
+}
+
+@media (max-width: 720px) {
+    .content {
+        padding-top: var(--space-6);
+        padding-bottom: var(--space-8);
+    }
+    .section__header {
+        gap: var(--space-3);
+    }
+}
+
+@media (max-width: 540px) {
+    .site-header {
+        flex-wrap: wrap;
+        height: auto;
+        row-gap: var(--space-2);
+        padding-top: var(--space-3);
+        padding-bottom: var(--space-3);
+        align-items: center;
+    }
+    .site-header__nav {
+        order: 3;
+        width: 100%;
+        margin: 0;
+        gap: var(--space-4);
+        flex-wrap: wrap;
+    }
+    .site-header__meta {
+        margin-left: auto;
+        text-align: right;
+        max-width: min(100%, 12rem);
+        word-break: break-word;
+    }
+    .content {
+        padding: var(--space-5) var(--space-4) var(--space-6);
+    }
+    .section + .section {
+        margin-top: var(--space-5);
+        padding-top: var(--space-5);
+    }
+    .section__body {
+        margin-top: var(--space-3);
+    }
+    .section__header {
+        gap: var(--space-2);
+    }
+    .section__lede {
+        margin-top: 2px;
+    }
+    .site-footer {
+        margin-top: var(--space-8);
+        padding: var(--space-5) var(--space-4) var(--space-6);
+    }
+}
+
+@media (max-width: 380px) {
+    .site-header__logo {
+        font-size: var(--font-size-base);
+    }
+}

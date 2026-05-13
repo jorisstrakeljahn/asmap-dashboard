@@ -1,0 +1,138 @@
+/* Custom combobox-style dropdown that replaces every native
+   <select> across the dashboard. The native popover is browser-
+   and OS-controlled and breaks the visual language on mobile
+   (iOS / Android show their own picker sheet); our own popover
+   matches the card / shadow / border tokens consistently.
+
+   JS lives in components/dropdown.js. Layout: trigger button
+   (chevron right) plus an absolutely-positioned listbox panel
+   beneath it; the panel flips above the trigger automatically
+   when the viewport edge would clip it. */
+
+.dropdown {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.dropdown__trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    width: 100%;
+    height: var(--control-height);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius);
+    background: var(--color-bg);
+    color: var(--color-text-base);
+    font: inherit;
+    font-size: var(--font-size-base);
+    text-align: left;
+    cursor: pointer;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+        border-color var(--motion-base) var(--motion-ease),
+        box-shadow var(--motion-base) var(--motion-ease);
+}
+
+.dropdown__trigger:hover,
+.dropdown.is-open .dropdown__trigger {
+    border-color: var(--color-text-muted);
+}
+
+.dropdown__trigger:focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-accent);
+    outline-offset: var(--focus-ring-offset);
+}
+
+.dropdown__value {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dropdown__chevron {
+    flex: 0 0 var(--control-icon-size);
+    color: var(--color-text-subtle);
+    transition: transform var(--motion-slow) var(--motion-ease);
+}
+
+.dropdown.is-open .dropdown__chevron {
+    transform: rotate(180deg);
+    color: var(--color-text-muted);
+}
+
+.dropdown__panel {
+    position: absolute;
+    top: calc(100% + var(--control-panel-gap));
+    left: 0;
+    right: 0;
+    z-index: var(--z-popover);
+    margin: 0;
+    padding: var(--space-1) 0;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius);
+    background: var(--color-bg);
+    box-shadow: var(--shadow-popover);
+    list-style: none;
+    max-height: min(var(--control-panel-max-height), 60vh);
+    overflow-y: auto;
+}
+
+.dropdown__panel[hidden] {
+    display: none;
+}
+
+.dropdown__option {
+    padding: var(--space-2) var(--space-3);
+    color: var(--color-text-base);
+    cursor: pointer;
+    line-height: var(--line-snug);
+    user-select: none;
+    transition: background var(--motion-fast) var(--motion-ease);
+}
+
+.dropdown__option.is-highlighted {
+    background: var(--color-divider);
+}
+
+.dropdown__option[aria-selected="true"] {
+    color: var(--color-text-strong);
+    font-weight: var(--font-weight-medium);
+}
+
+/* Small variant, used for the Top Movers page-size picker so it
+   sits comfortably inside the table header. min-width keeps two-
+   digit values ("10") from sitting flush against the chevron. */
+.dropdown--small .dropdown__trigger {
+    height: var(--control-height-sm);
+    min-width: 64px;
+    padding: 0 var(--space-3);
+    font-size: var(--font-size-sm);
+    border-radius: var(--radius-sm);
+}
+
+.dropdown--small .dropdown__option {
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--font-size-sm);
+}
+
+/* Per-usage tweaks: only width / min-width belongs here, the
+   look is driven by the dropdown classes themselves. */
+.build-selector {
+    min-width: 200px;
+}
+
+@media (max-width: 900px) {
+    .build-selector {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+}

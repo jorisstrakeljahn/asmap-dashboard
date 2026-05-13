@@ -1,0 +1,123 @@
+/* Overview cards: three-column metric row at the top of the Maps
+   tab. Each card carries a label, a headline number, optional
+   auxiliary content (split bar / legend), and a "vs previous"
+   delta line pinned to the bottom edge. */
+
+.card-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-3);
+}
+
+/* All cards share the same padding rhythm. The grid in .card-row
+   stretches every cell to the height of the tallest sibling, so
+   we don't need a min-height floor to keep them aligned. */
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-5);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+}
+
+.card__metric {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-strong);
+    line-height: var(--line-tight);
+    margin-top: var(--space-1);
+}
+
+.card__unit {
+    font-size: var(--font-size-base);
+    color: var(--color-text-muted);
+}
+
+/* "vs previous" sits at the bottom edge of the card and gets
+   pushed there by margin-top: auto so the cards still feel
+   balanced when the body content is short (e.g. Map Size has no
+   split bar). */
+.card__delta {
+    margin-top: auto;
+    padding-top: var(--space-3);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+/* Two-color rounded split bar so IPv4 and IPv6 read as distinct
+   categories (not "more vs less"). A small gap separates the
+   segments; each segment is fully pill-rounded for a clear "two
+   different things" reading. */
+.split-bar {
+    display: flex;
+    gap: 3px;
+    margin-top: var(--space-3);
+    height: 8px;
+}
+
+.split-bar__segment {
+    height: 100%;
+    border-radius: var(--radius-pill);
+    min-width: 0;
+}
+
+.split-bar__segment--ipv4 {
+    background: var(--color-accent);
+}
+
+.split-bar__segment--ipv6 {
+    background: var(--color-accent-soft);
+}
+
+.split-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+.split-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.split-legend__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-pill);
+    flex-shrink: 0;
+}
+
+.split-legend__dot--ipv4 {
+    background: var(--color-accent);
+}
+
+.split-legend__dot--ipv6 {
+    background: var(--color-accent-soft);
+}
+
+@media (max-width: 900px) {
+    .card-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .card {
+        padding: var(--space-3) var(--space-4);
+    }
+}
+
+@media (max-width: 380px) {
+    .card {
+        padding: var(--space-3);
+    }
+    .card__metric {
+        font-size: var(--font-size-xl);
+    }
+}
