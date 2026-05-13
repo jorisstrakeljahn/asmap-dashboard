@@ -3,7 +3,7 @@
 // charts, and the diff explorer, and wires the build selector
 // that scopes the overview to a single published map.
 
-import { formatDate } from "./format.js";
+import { daysBetween, formatDate, formatNumber } from "./format.js";
 import * as asnNames from "./asn-names.js";
 import * as overviewCards from "./components/overview-cards.js";
 import * as buildSelector from "./components/build-selector.js";
@@ -36,6 +36,22 @@ function renderLastBuild(maps) {
     if (!slot || !maps.length) return;
     const latest = maps[maps.length - 1];
     slot.textContent = `Last build ${formatDate(latest.released_at)}`;
+}
+
+// Inline staleness next to the build selector. Shown as plain text
+// so the build picker remains the dominant control - the age is a
+// subordinate detail, not a metric in its own right.
+function renderBuildStaleness(map) {
+    const slot = document.querySelector("[data-build-staleness]");
+    if (!slot) return;
+    if (!map) {
+        slot.textContent = "";
+        return;
+    }
+    const days = daysBetween(map.released_at);
+    slot.textContent = days === 1
+        ? "1 day old"
+        : `${formatNumber(days)} days old`;
 }
 
 // Render the footer's "Last update <UTC timestamp>" line. The line
@@ -96,6 +112,7 @@ async function init() {
     const renderOverview = (name) => {
         const current = maps.find((m) => m.name === name);
         overviewCards.mount(overviewParent, current, previousMap(maps, name));
+        renderBuildStaleness(current);
     };
 
     const defaultName = maps.length ? maps[maps.length - 1].name : null;

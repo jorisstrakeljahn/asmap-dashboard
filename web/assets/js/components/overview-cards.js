@@ -1,17 +1,18 @@
-// Overview row at the top of the Maps tab: three cards showing
-// the selected build's map size, unique-AS count (with IPv4 / IPv6
-// split), and staleness, each carrying a "vs previous" delta when
-// a chronologically preceding build is available.
+// Overview row at the top of the Maps tab: cards showing the
+// selected build's entry count and unique-AS count (with IPv4 /
+// IPv6 split), each carrying a "vs previous" delta when a
+// chronologically preceding build is available. Build age sits
+// inline on the section header; raw file size is in the History
+// charts below. Both belong to the build identity, not the metric
+// surface.
 
 import {
-    daysBetween,
     formatNumber,
     formatPercent,
     formatSignedNumber,
-    formatSignedPercent,
 } from "../format.js";
 
-// Pure render: build the three overview cards for ``current`` and the
+// Pure render: build the overview cards for ``current`` and the
 // chronologically preceding build ``previous`` (may be null for the
 // oldest map). The caller decides which map is current; this module
 // only knows how to draw cards from the pair, so it can be re-invoked
@@ -24,22 +25,24 @@ export function mount(parent, current, previous) {
     const row = document.createElement("div");
     row.className = "card-row";
     row.append(
-        mapSizeCard(current, previous),
+        entriesCountCard(current, previous),
         uniqueAsesCard(current, previous),
-        stalenessCard(current),
     );
     parent.replaceChildren(row);
 }
 
-function mapSizeCard(current, previous) {
-    const card = createCard("Map Size");
-    card.append(metricNumber(formatNumber(current.file_size_bytes)));
-    card.append(metricUnit("bytes"));
+// Entries are the (prefix, ASN) tuples the binary trie resolves to
+// at lookup time - the substantive size of a map. File size in
+// bytes is an encoding artefact and lives in the History charts;
+// reviewers asking "how much did this map gain or lose?" want this
+// number, not kilobytes of compressed trie data.
+function entriesCountCard(current, previous) {
+    const card = createCard("Entries");
+    card.append(metricNumber(formatNumber(current.entries_count)));
+    card.append(metricUnit("prefix \u2192 ASN mappings"));
     if (previous) {
-        const ratio =
-            (current.file_size_bytes - previous.file_size_bytes) /
-            previous.file_size_bytes;
-        card.append(deltaLine(`${formatSignedPercent(ratio)} vs previous`));
+        const delta = current.entries_count - previous.entries_count;
+        card.append(deltaLine(`${formatSignedNumber(delta)} vs previous`));
     }
     return card;
 }
@@ -66,14 +69,6 @@ function uniqueAsesCard(current, previous) {
         card.append(deltaLine(`${formatSignedNumber(delta)} vs previous`));
     }
 
-    return card;
-}
-
-function stalenessCard(current) {
-    const card = createCard("Staleness");
-    const days = daysBetween(current.released_at);
-    card.append(metricNumber(`${formatNumber(days)} days`));
-    card.append(metricUnit("since this build"));
     return card;
 }
 

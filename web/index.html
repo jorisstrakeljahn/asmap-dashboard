@@ -32,17 +32,25 @@
                             Key metrics for the selected ASmap build
                         </p>
                     </div>
-                    <div class="section__aside" data-build-selector></div>
                 </header>
+                <div class="section__toolbar">
+                    <div class="section__toolbar-control" data-build-selector></div>
+                    <p class="section__toolbar-meta" data-build-staleness></p>
+                </div>
                 <div class="section__body" data-overview></div>
-                <div class="section__body" data-map-size-chart></div>
-                <div class="section__body" data-map-delta-chart></div>
             </section>
 
             <section class="section" aria-labelledby="diff-title">
                 <h2 id="diff-title" class="section__title">Diff Explorer</h2>
                 <p class="section__lede">Compare any two ASmap builds</p>
                 <div class="section__body" data-diff></div>
+            </section>
+
+            <section class="section" aria-labelledby="history-title">
+                <h2 id="history-title" class="section__title">History</h2>
+                <p class="section__lede">How the binary trie has grown over time</p>
+                <div class="section__body" data-map-size-chart></div>
+                <div class="section__body" data-map-delta-chart></div>
             </section>
         </main>
 
