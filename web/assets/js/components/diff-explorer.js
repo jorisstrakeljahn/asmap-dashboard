@@ -8,6 +8,7 @@
 import { formatDate, formatNumber, formatPercent } from "../format.js";
 import { uniqueId } from "../utils/dom.js";
 import { createDropdown } from "./dropdown.js";
+import { createInfoTooltip } from "./info-tooltip.js";
 import * as topMoversTable from "./top-movers-table.js";
 
 // Single source of truth for the three diff classifications.
@@ -23,6 +24,26 @@ const DIFF_CATEGORIES = [
     { field: "reassigned", label: "Reassigned", modifier: "reassigned" },
     { field: "newly_mapped", label: "Newly Mapped", modifier: "new" },
     { field: "unmapped", label: "Unmapped", modifier: "unmapped" },
+];
+
+// Combined explainer for the three classification buckets,
+// rendered as a single card-corner tooltip on .diff-results.
+// One labelled paragraph per bucket reads as a glossary while
+// keeping the visual surface free of three separate icons.
+const DIFF_RESULTS_INFO = [
+    "Each entry-level change between Map A and Map B falls into exactly one of three buckets.",
+    {
+        lead: "Reassigned.",
+        text: "A prefix kept its mapping but changed which autonomous system it points to. This is where most ASmap edits land.",
+    },
+    {
+        lead: "Newly Mapped.",
+        text: "A prefix had no autonomous system in Map A and now resolves to one in Map B.",
+    },
+    {
+        lead: "Unmapped.",
+        text: "A prefix that resolved to an autonomous system in Map A no longer resolves to one in Map B.",
+    },
 ];
 
 const DIRECTION_ARROW = "\u2192";
@@ -128,7 +149,17 @@ function renderResults(parent, diffs, fromName, toName) {
     }
     const card = document.createElement("article");
     card.className = "card diff-results";
-    card.append(matchBanner(diff), classificationRow(diff), stackedBar(diff));
+    const explainer = createInfoTooltip({
+        body: DIFF_RESULTS_INFO,
+        ariaLabel: "About the diff classification",
+    });
+    explainer.classList.add("info-tooltip--card-corner");
+    card.append(
+        explainer,
+        matchBanner(diff),
+        classificationRow(diff),
+        stackedBar(diff),
+    );
 
     const topMoversSlot = document.createElement("div");
     topMoversTable.mount(topMoversSlot, diff);

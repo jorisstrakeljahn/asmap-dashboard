@@ -18,6 +18,21 @@
     flex-wrap: wrap;
 }
 
+/* Mode switch and the help affordance share the upper-right of
+   the card. Keeping them in a single flex group avoids the
+   "label / mode / info" three-way split that space-between would
+   produce on the bare header. */
+.drift-chart__controls {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.drift-chart__info {
+    display: inline-flex;
+    align-items: center;
+}
+
 .drift-chart__plot {
     display: flex;
     flex-direction: column;
