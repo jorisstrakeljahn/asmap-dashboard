@@ -87,11 +87,44 @@ function createSelectors(maps, onChange) {
         label: formatDate(map.released_at),
     }));
 
+    // ``maps`` is in chronological order (oldest first), so the
+    // selector stays valid by index and we can clamp without
+    // re-sorting per change. Map B must be strictly newer than
+    // Map A; whoever the user just edited is the side we keep,
+    // and the counterpart bumps forward / backward to satisfy
+    // the constraint.
+    const indexOf = (name) => maps.findIndex((m) => m.name === name);
+
     const fire = () =>
         onChange(fieldA.dropdown.getValue(), fieldB.dropdown.getValue());
 
-    const fieldA = createField("Map A", options, fire);
-    const fieldB = createField("Map B", options, fire);
+    const onAChange = (newA) => {
+        const aIdx = indexOf(newA);
+        const bIdx = indexOf(fieldB.dropdown.getValue());
+        if (bIdx <= aIdx) {
+            // Bump B forward; if A is the newest map, fall back to
+            // pinning B to the same map so the UI shows the
+            // "pick two different maps" notice instead of silently
+            // keeping a backward pair.
+            const nextB = aIdx + 1 < maps.length ? maps[aIdx + 1].name : newA;
+            fieldB.dropdown.setValue(nextB);
+        }
+        fire();
+    };
+    const onBChange = (newB) => {
+        const bIdx = indexOf(newB);
+        const aIdx = indexOf(fieldA.dropdown.getValue());
+        if (aIdx >= bIdx) {
+            // Bump A backward; if B is the oldest map, pin A to
+            // the same map for the same reason as above.
+            const nextA = bIdx - 1 >= 0 ? maps[bIdx - 1].name : newB;
+            fieldA.dropdown.setValue(nextA);
+        }
+        fire();
+    };
+
+    const fieldA = createField("Map A", options, onAChange);
+    const fieldB = createField("Map B", options, onBChange);
 
     // The arrow signals reading direction (A -> B). The previous
     // "vs" looked symmetric and hid which side the diff was
