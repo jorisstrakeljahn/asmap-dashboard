@@ -97,8 +97,30 @@
     min-width: 0;
 }
 
-.section__aside {
-    flex-shrink: 0;
+/* Section toolbar: sits between the heading and the body when a
+   section needs a control surface (e.g. the build picker that
+   scopes the Overview cards). The control sits on the left so the
+   eye lands on it after reading the heading; the meta note (e.g.
+   build age) trails next to it, anchored to the control's bottom
+   edge so it reads as a footnote on the picker rather than a
+   second equally-weighted control. */
+.section__toolbar {
+    margin-top: var(--space-4);
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
+.section__toolbar-control {
+    flex: 0 0 auto;
+}
+
+.section__toolbar-meta {
+    margin: 0;
+    padding-bottom: 6px;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
 }
 
 /* Footer sits below the main content with a thin top rule so it
@@ -151,10 +173,8 @@
 }
 
 @media (max-width: 900px) {
-    .section__aside {
+    .section__toolbar-control {
         width: 100%;
-        max-width: 100%;
-        min-width: 0;
     }
     .section + .section {
         margin-top: var(--space-6);
