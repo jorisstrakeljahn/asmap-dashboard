@@ -35,6 +35,7 @@ import { formatDate, formatNumber, formatPercent, shortDate } from "../format.js
 import { findDiff } from "../utils/diffs.js";
 import { uniqueId } from "../utils/dom.js";
 import { createDropdown } from "./dropdown.js";
+import { createInfoTooltip } from "./info-tooltip.js";
 import { createModeSwitch } from "./mode-switch.js";
 
 const DOT_RADIUS = 3;
@@ -99,7 +100,32 @@ export function mount(parent, maps, diffs) {
         },
         ariaLabel: "Drift comparison mode",
     });
-    header.append(modeSwitch);
+
+    // The info trigger sits at the right end of the header,
+    // matching the corner-pinned affordance on the cards that
+    // have no controls. Keeping it inside the header keeps the
+    // layout clean even when the mode switch is present.
+    const explainer = createInfoTooltip({
+        body: [
+            "How far each published build has wandered from a reference, expressed as the share of mapping entries that differ.",
+            {
+                lead: "vs previous.",
+                text: "Drift between every consecutive pair of builds. Spikes mark releases that moved the map a lot.",
+            },
+            {
+                lead: "vs baseline.",
+                text: "Pick one or more reference builds and watch how far every later build has drifted from them. Useful for measuring decay from a known good state.",
+            },
+            "Drift uses the same denominator as the match rate in the diff explorer, so 8 % drift here matches a 92 % match banner there.",
+        ],
+        ariaLabel: "About the drift chart",
+    });
+    explainer.classList.add("drift-chart__info");
+
+    const controls = document.createElement("div");
+    controls.className = "drift-chart__controls";
+    controls.append(modeSwitch, explainer);
+    header.append(controls);
 
     const baselinePicker = createBaselinePicker(
         sortedMaps,

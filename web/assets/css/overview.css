@@ -11,8 +11,11 @@
 
 /* All cards share the same padding rhythm. The grid in .card-row
    stretches every cell to the height of the tallest sibling, so
-   we don't need a min-height floor to keep them aligned. */
+   we don't need a min-height floor to keep them aligned. The
+   right padding leaves room for the corner-pinned info tooltip
+   so it never overlaps the label. */
 .card {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: var(--space-2);

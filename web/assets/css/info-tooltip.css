@@ -1,0 +1,111 @@
+/* Small "i" affordance with a click-/hover-revealed popover.
+   JS lives in components/info-tooltip.js; the placement logic
+   mirrors dropdown.css (panel flips above when the viewport
+   edge would clip it, see placePopover in JS).
+
+   Drop one of these next to any label that needs more context
+   than fits in the label itself — overview cards, table column
+   headers, chart titles. Keep the popover text short. */
+
+.info-tooltip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    line-height: 0;
+}
+
+.info-tooltip__trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-text-subtle);
+    cursor: pointer;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+        color var(--motion-fast) var(--motion-ease),
+        background var(--motion-fast) var(--motion-ease);
+}
+
+.info-tooltip__trigger:hover,
+.info-tooltip.is-open .info-tooltip__trigger,
+.info-tooltip__trigger:focus-visible {
+    color: var(--color-text-muted);
+    background: var(--color-divider);
+}
+
+.info-tooltip__trigger:focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-accent);
+    outline-offset: var(--focus-ring-offset);
+}
+
+.info-tooltip__icon {
+    width: 14px;
+    height: 14px;
+}
+
+/* Card-corner modifier pins the trigger to the upper-right of
+   its containing card. The host card needs `position: relative`
+   for the absolute anchor to land in the right coordinate
+   system. Gap from the edge matches the card padding rhythm so
+   the icon reads as part of the card chrome rather than as
+   floating chrome. */
+.info-tooltip--card-corner {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+    z-index: 1;
+}
+
+/* Fixed-position so any overflow:auto ancestor (e.g. the
+   horizontally-scrolling Top Movers table) cannot clip the
+   popover. JS in info-tooltip.js writes top / left in viewport
+   coordinates each time the popover opens. */
+.info-tooltip__popover {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: var(--z-popover);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius);
+    background: var(--color-bg);
+    color: var(--color-text-base);
+    box-shadow: var(--shadow-popover);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-normal);
+    text-align: left;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: var(--font-weight-regular);
+    white-space: normal;
+    width: max-content;
+    max-width: 320px;
+}
+
+.info-tooltip__popover[hidden] {
+    display: none;
+}
+
+/* Paragraphs read as a stacked explainer; first paragraph hugs
+   the top edge, subsequent paragraphs pick up vertical rhythm.
+   The bold lead is the labelled prefix used by multi-bucket
+   tooltips ("Reassigned. ..."). */
+.info-tooltip__paragraph {
+    margin: 0;
+}
+
+.info-tooltip__paragraph + .info-tooltip__paragraph {
+    margin-top: var(--space-2);
+}
+
+.info-tooltip__lead {
+    color: var(--color-text-strong);
+    font-weight: var(--font-weight-semibold);
+}

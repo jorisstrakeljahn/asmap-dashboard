@@ -54,6 +54,15 @@
     white-space: nowrap;
 }
 
+/* The "About the top movers table" affordance hangs at the right
+   end of the controls strip so it lines up with the corner-pinned
+   info icons used on cards without controls. */
+.top-movers__info {
+    display: inline-flex;
+    align-items: center;
+    margin-left: var(--space-1);
+}
+
 /* Numeric columns right-align so the digit places line up across
    rows; the rank column rides along so "1 / 2 / 3" sit under the
    "#" header instead of floating in the gutter to its left. */

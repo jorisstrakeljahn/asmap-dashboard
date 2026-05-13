@@ -12,6 +12,7 @@ import {
     formatSignedNumber,
 } from "../format.js";
 import { pairDriftRatio } from "../utils/diffs.js";
+import { createInfoTooltip } from "./info-tooltip.js";
 
 // Pure render: build the overview cards for ``current`` and the
 // chronologically preceding build ``previous`` (may be null for the
@@ -38,7 +39,12 @@ export function mount(parent, current, previous, diffs) {
 // reviewers asking "how much did this map gain or lose?" want this
 // number, not kilobytes of compressed trie data.
 function entriesCountCard(current, previous) {
-    const card = createCard("Entries");
+    const card = createCard("Entries", {
+        info: [
+            "Each entry maps an IP prefix to the autonomous system that announces it.",
+            "This is the substantive size of the map. The on-disk file size is an encoding artefact and lives in the History charts.",
+        ],
+    });
     card.append(metricNumber(formatNumber(current.entries_count)));
     card.append(metricUnit("prefix \u2192 ASN mappings"));
     if (previous) {
@@ -57,7 +63,12 @@ function entriesCountCard(current, previous) {
 // back to a quiet placeholder for the oldest build (no predecessor
 // to diff against).
 function driftCard(current, previous, diffs) {
-    const card = createCard("Drift vs previous");
+    const card = createCard("Drift vs previous", {
+        info: [
+            "Share of mapping entries that differ between this build and the chronologically previous one.",
+            "A 5 % drift means roughly 1 in 20 lookups would now resolve to a different autonomous system.",
+        ],
+    });
     if (!previous) {
         card.append(metricNumber("\u2014"));
         card.append(metricUnit("oldest published build"));
@@ -75,7 +86,12 @@ function driftCard(current, previous, diffs) {
 }
 
 function uniqueAsesCard(current, previous) {
-    const card = createCard("Unique ASes");
+    const card = createCard("Unique ASes", {
+        info: [
+            "Number of distinct autonomous systems referenced anywhere in the map.",
+            "The bar below shows the share of mapping entries, not ASes, that target IPv4 vs IPv6 prefixes.",
+        ],
+    });
     card.append(metricNumber(formatNumber(current.unique_asns)));
     card.append(metricUnit("autonomous systems"));
 
@@ -99,9 +115,14 @@ function uniqueAsesCard(current, previous) {
     return card;
 }
 
-function createCard(label) {
+function createCard(label, { info } = {}) {
     const card = document.createElement("article");
     card.className = "card";
+    if (info) {
+        const tip = createInfoTooltip({ body: info, ariaLabel: `About ${label}` });
+        tip.classList.add("info-tooltip--card-corner");
+        card.append(tip);
+    }
     const title = document.createElement("span");
     title.className = "card__label uppercase-label";
     title.textContent = label.toUpperCase();

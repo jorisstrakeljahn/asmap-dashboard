@@ -9,6 +9,7 @@ import { formatNumber, formatPercent } from "../format.js";
 import { asnCell } from "../asn-names.js";
 import { uniqueId } from "../utils/dom.js";
 import { createDropdown } from "./dropdown.js";
+import { createInfoTooltip } from "./info-tooltip.js";
 import { createModeSwitch } from "./mode-switch.js";
 
 const PAGE_SIZES = [10, 25, 50];
@@ -27,6 +28,25 @@ const TABLE_COLUMNS = [
     { label: "Changes", className: "top-movers__num" },
     { label: "% of all", className: "top-movers__num" },
     { label: "Direction", className: "top-movers__direction" },
+];
+
+// Single tooltip describing every column the table exposes.
+// One bullet per column reads as a glossary so the user does
+// not have to scan three separate icons in the header strip.
+const TOP_MOVERS_INFO = [
+    "Autonomous systems most affected by the selected diff, ranked by entry-level change count.",
+    {
+        lead: "Changes.",
+        text: "Number of prefix to ASN entries in the binary trie that name this AS on either side of the diff. Each entry is counted once.",
+    },
+    {
+        lead: "% of all.",
+        text: "This AS's share of the total entry-level changes between the two builds.",
+    },
+    {
+        lead: "Direction.",
+        text: "↗ gained from the counterpart, ↘ lost to it, ↔ prefixes moved both ways, → unmapped means the prefixes lost their ASN entirely.",
+    },
 ];
 
 // Arrow glyphs used to summarise the relationship between a
@@ -59,11 +79,23 @@ export function mount(parent, diff) {
     title.className = "card__label uppercase-label";
     title.textContent = "Top Movers";
 
+    const explainer = createInfoTooltip({
+        body: TOP_MOVERS_INFO,
+        ariaLabel: "About the top movers table",
+    });
+    explainer.classList.add("top-movers__info");
+
+    // The card already pins controls to the upper-right
+    // (Compact / Detailed switch + page size). The info trigger
+    // joins them as the rightmost item so the help affordance
+    // sits in the same corner as on cards without controls,
+    // without overlapping the active controls.
     const controls = document.createElement("div");
     controls.className = "top-movers__controls";
     controls.append(
         viewModeSwitch(state, () => render()),
         pageSizeControl(state, () => render()),
+        explainer,
     );
     header.append(title, controls);
 
