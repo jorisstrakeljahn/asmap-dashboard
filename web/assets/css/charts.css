@@ -1,0 +1,129 @@
+/* Time-series charts: shared SVG primitives plus the floating
+   tooltip that follows the cursor. Charts are self-rendered, so
+   the styles here only theme the SVG geometry; layout sizing is
+   driven by the chart-slot wrapper. */
+
+.chart-card {
+    min-height: auto;
+}
+
+/* Stable resize anchor: the inner chart is re-rendered whenever
+   this slot's width changes, so the ResizeObserver needs an
+   element that lives across renders. The chart-shell inside
+   provides the tooltip's positioning context. */
+.chart-slot {
+    position: relative;
+    width: 100%;
+    min-height: var(--chart-min-height);
+}
+
+.chart-shell {
+    position: relative;
+}
+
+.chart-shell .chart {
+    margin-top: 0;
+}
+
+.chart-tooltip {
+    position: absolute;
+    z-index: var(--z-tooltip);
+    min-width: 200px;
+    max-width: min(320px, 92vw);
+    padding: var(--space-3);
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    box-shadow: var(--shadow-tooltip);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-normal);
+    pointer-events: none;
+    text-align: left;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+        opacity var(--motion-fast) var(--motion-ease),
+        visibility var(--motion-fast) var(--motion-ease);
+}
+
+.chart-tooltip.is-visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.chart-tooltip__title {
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-strong);
+}
+
+.chart-tooltip__kv {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-top: var(--space-2);
+}
+
+.chart-tooltip__muted {
+    margin-top: var(--space-2);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    word-break: break-word;
+}
+
+.chart {
+    width: 100%;
+    height: auto;
+    margin-top: var(--space-2);
+}
+
+.chart__grid,
+.chart__zero {
+    stroke: var(--color-divider);
+    stroke-width: 1;
+    fill: none;
+}
+
+.chart__zero {
+    stroke: var(--color-border);
+}
+
+.chart__y-label,
+.chart__x-label {
+    font-family: var(--font-sans);
+    font-size: var(--font-size-xs);
+    fill: var(--color-text-subtle);
+}
+
+.chart__line {
+    fill: none;
+    stroke: var(--color-accent);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+/* Tinted fill between the line and the bottom of the plot area.
+   currentColor lets the area inherit --color-accent through the
+   .chart__area selector below, so theming stays driven by tokens. */
+.chart__area {
+    fill: var(--color-accent);
+    fill-opacity: 0.08;
+    stroke: none;
+}
+
+.chart__dot {
+    fill: var(--color-accent);
+    stroke: var(--color-bg);
+    stroke-width: 2;
+}
+
+.chart__cursor-line {
+    stroke: var(--color-accent);
+    stroke-opacity: 0.35;
+    stroke-width: 1;
+    pointer-events: none;
+}
+
+.chart__bar {
+    fill: var(--color-accent);
+}

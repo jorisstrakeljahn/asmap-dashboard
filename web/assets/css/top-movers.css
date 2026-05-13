@@ -1,0 +1,186 @@
+/* Top Movers table: paginated list of the AS numbers most
+   affected by the selected diff. Header carries the operator-name
+   toggle and the page-size dropdown; body rows render the AS
+   number, change counts, and a direction column linking to the
+   primary counterpart. */
+
+.top-movers__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
+.top-movers__controls {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+}
+
+.top-movers__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    user-select: none;
+}
+
+.top-movers__toggle input {
+    cursor: pointer;
+    accent-color: var(--color-text-strong);
+}
+
+.top-movers__page-size {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+.top-movers__table {
+    overflow-x: auto;
+}
+
+.top-movers__grid {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.top-movers__grid th,
+.top-movers__grid td {
+    text-align: left;
+    padding: var(--space-3) var(--space-3);
+    border-bottom: 1px solid var(--color-divider);
+    font-size: var(--font-size-sm);
+    vertical-align: middle;
+}
+
+.top-movers__grid th {
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-uppercase);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-uppercase-tight);
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+}
+
+/* Numeric columns right-align so the digit places line up across
+   rows; the rank column rides along so "1 / 2 / 3" sit under the
+   "#" header instead of floating in the gutter to its left. */
+.top-movers__grid th.top-movers__rank,
+.top-movers__grid td.top-movers__rank,
+.top-movers__grid th.top-movers__num,
+.top-movers__grid td.top-movers__num {
+    text-align: right;
+}
+
+.top-movers__rank {
+    color: var(--color-text-subtle);
+    font-variant-numeric: tabular-nums;
+    width: 36px;
+}
+
+.top-movers__num {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* Two-line ASN cell: AS<num> on top, operator name muted below.
+   When the toggle hides names the cell collapses naturally to a
+   single line via the --no-names variant. */
+.asn-cell {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    line-height: var(--line-snug);
+}
+
+.asn-cell__num {
+    color: var(--color-text-strong);
+    font-weight: var(--font-weight-medium);
+    font-variant-numeric: tabular-nums;
+}
+
+.asn-cell__name {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    overflow-wrap: anywhere;
+}
+
+.top-movers__grid--no-names .asn-cell__name {
+    display: none;
+}
+
+.top-movers__asn {
+    min-width: 140px;
+}
+
+.top-movers__direction {
+    min-width: 180px;
+}
+
+/* Flex sits on the inner span so the <td> stays a regular table
+   cell - browsers ignore table layout sizing on cells with
+   `display: flex`, which was making the column collapse to
+   content width instead of filling the allocated 180 px. */
+.top-movers__direction-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.top-movers__arrow {
+    color: var(--color-text-subtle);
+    font-size: var(--font-size-base);
+    line-height: 1;
+    flex-shrink: 0;
+    cursor: help;
+}
+
+.top-movers__pagination {
+    display: flex;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+}
+
+.top-movers__page {
+    height: var(--control-height-sm);
+    min-width: var(--control-height-sm);
+    padding: 0 var(--space-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg);
+    color: var(--color-text-base);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+}
+
+.top-movers__page.is-active {
+    background: var(--color-text-strong);
+    color: var(--color-bg);
+    border-color: var(--color-text-strong);
+}
+
+@media (max-width: 720px) {
+    .top-movers__header {
+        align-items: flex-start;
+    }
+    .top-movers__controls {
+        width: 100%;
+        justify-content: space-between;
+        gap: var(--space-2);
+    }
+    .top-movers__direction {
+        min-width: 0;
+    }
+    .top-movers__grid th,
+    .top-movers__grid td {
+        padding: var(--space-2);
+    }
+}

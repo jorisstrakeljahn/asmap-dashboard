@@ -1,0 +1,179 @@
+/* Diff Explorer: Map A vs Map B picker, headline match-rate
+   banner, three-column classification breakdown, and a stacked
+   bar that visualises the same numbers as proportions. */
+
+.diff-explorer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+/* Map A / Map B row: no surrounding card chrome so the Diff
+   Explorer is not a box inside a box. Selects share the global
+   trigger style. */
+.diff-selectors {
+    min-height: auto;
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+}
+
+.diff-selectors__row {
+    display: flex;
+    align-items: end;
+    gap: var(--space-3);
+    width: 100%;
+}
+
+.diff-selectors__field {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: var(--space-2);
+}
+
+.diff-selectors__label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-uppercase);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-uppercase);
+    font-weight: var(--font-weight-medium);
+}
+
+.diff-selectors__arrow {
+    padding-bottom: var(--space-2);
+    color: var(--color-text-subtle);
+    font-size: var(--font-size-lg);
+    line-height: 1;
+}
+
+.diff-results {
+    gap: var(--space-5);
+}
+
+.match-banner {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.match-banner__headline {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-strong);
+}
+
+.match-banner__detail {
+    font-size: var(--font-size-base);
+    color: var(--color-text-muted);
+}
+
+.classification-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--color-divider);
+}
+
+.classification-cell__value {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-strong);
+}
+
+.classification-cell__share {
+    margin-top: var(--space-1);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+}
+
+.classification-cell__share--reassigned {
+    color: var(--color-accent);
+}
+
+.classification-cell__share--new {
+    color: var(--color-success);
+}
+
+.classification-cell__share--unmapped {
+    color: var(--color-neutral);
+}
+
+.classification-cell__label {
+    margin-top: var(--space-1);
+    font-size: var(--font-size-sm);
+}
+
+.stacked-bar {
+    display: flex;
+    height: var(--space-8);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--color-track);
+}
+
+.stacked-bar__segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-on-fill);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.stacked-bar__segment--reassigned {
+    background: var(--color-accent);
+}
+
+.stacked-bar__segment--new {
+    background: var(--color-success);
+}
+
+.stacked-bar__segment--unmapped {
+    background: var(--color-neutral);
+}
+
+.diff-explorer__notice {
+    padding: var(--space-5);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius);
+    text-align: center;
+}
+
+.diff-explorer__results {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+@media (max-width: 720px) {
+    .diff-selectors__row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-3);
+    }
+    .diff-selectors__arrow {
+        padding: 0;
+        align-self: center;
+        transform: rotate(90deg);
+    }
+    .classification-row {
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+    }
+    .stacked-bar__segment {
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 380px) {
+    .match-banner__headline {
+        font-size: var(--font-size-xl);
+    }
+}
