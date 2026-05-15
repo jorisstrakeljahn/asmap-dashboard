@@ -189,9 +189,27 @@
     fill: none;
 }
 
+/* Total drift overlay. Drawn last in the SVG so the dashed line
+   sits visually above the categories without occluding them.
+   Neutral muted colour and a dashed stroke so the eye reads it
+   as an aggregate rather than another category. */
+.chart__line--total,
+.chart__dot--total {
+    stroke: var(--color-text-muted);
+    fill: var(--color-text-muted);
+}
+
+.chart__line--total {
+    fill: none;
+    stroke-dasharray: 6 3;
+}
+
 /* Inline legend above the chart slot. Two or more swatches plus
    their labels read as a single line on wide screens and wrap on
-   narrow ones. */
+   narrow ones. Items can either be plain spans (single-mode
+   legends) or buttons (multi-series legends with a click toggle).
+   The button styling lives on a button.chart-legend__item
+   selector so the span variant keeps zero chrome. */
 .chart-legend {
     display: flex;
     flex-wrap: wrap;
@@ -232,4 +250,51 @@
 
 .chart-legend__swatch--unmapped {
     background: var(--color-warning);
+}
+
+/* The total swatch mirrors the line: a hollow pill with a dashed
+   border carrying the same neutral colour. */
+.chart-legend__swatch--total {
+    background: transparent;
+    border: 1.5px dashed var(--color-text-muted);
+}
+
+/* Button variant of the legend item used when entries are
+   clickable. Strip native button chrome so it matches the span
+   variant visually, then add a hover affordance and an off
+   modifier the JS toggles when a series is hidden. */
+button.chart-legend__item {
+    border: 0;
+    background: transparent;
+    padding: 2px 4px;
+    margin: 0;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition:
+        background var(--motion-fast) var(--motion-ease),
+        opacity var(--motion-fast) var(--motion-ease);
+}
+
+button.chart-legend__item:hover {
+    background: var(--color-divider);
+}
+
+button.chart-legend__item:focus-visible {
+    background: var(--color-divider);
+    outline: var(--focus-ring-width) solid var(--color-accent);
+    outline-offset: var(--focus-ring-offset);
+}
+
+.chart-legend__item--off {
+    opacity: 0.45;
+}
+
+.chart-legend__item--off .chart-legend__swatch {
+    opacity: 0.55;
+}
+
+.chart-legend__item--off > span:last-child {
+    text-decoration: line-through;
 }

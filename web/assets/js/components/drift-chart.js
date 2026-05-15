@@ -8,6 +8,10 @@
 // growth (Newly Mapped), or from upstream data dropping prefixes
 // (Unmapped).
 //
+// A fourth dashed Total drift line traces the sum of the three
+// categories, so the headline "how big is the change" number
+// stays one glance away even after the composition split.
+//
 // Two modes share the same plot:
 //
 //   - Cumulative (default). For each build, the diff against the
@@ -18,10 +22,14 @@
 //     asmap-data updates and answers "what kind of change was
 //     this release?".
 //
+// Legend entries are clickable. Toggling one off hides its line
+// and rescales the y axis to whatever stays on, so the reader can
+// zoom into a single category without leaving the chart.
+//
 // All ratios use total / max(entries_a, entries_b) so they share
-// a denominator with the diff explorer's match-rate banner. Sum
-// of the three series at any point equals the "total drift" the
-// overview card shows for the same pair.
+// a denominator with the diff explorer's match-rate banner. The
+// Total line equals the "drift vs previous" the overview card
+// shows whenever Step mode is selected.
 
 import {
     labelDensityForWidth,
@@ -43,6 +51,7 @@ import { buildTooltipBody } from "../charts/chart-tooltip.js";
 import { linearScale, niceTicks, smoothPath, svg } from "../charts/svg.js";
 import { formatDate, formatNumber, formatPercent, shortDate } from "../format.js";
 import { unfilledProfile } from "../utils/variants.js";
+import { createChartLegend } from "./chart-legend.js";
 import { createInfoTooltip } from "./info-tooltip.js";
 import { createModeSwitch } from "./mode-switch.js";
 
@@ -52,10 +61,10 @@ const DOT_RADIUS = 3;
 // flickering off when the mouse grazes the gutter.
 const HOVER_BLEED = 12;
 
-// Single source of truth for every per-category rendering choice.
-// The legend, the SVG line and dot classes, and the hover tooltip
-// rows all read from this list. Adding a fourth category later is
-// a one-entry change.
+// Single source of truth for every per-series rendering choice.
+// SERIES is in render order: the three composition categories
+// first, then Total. Drawing Total last keeps its dashed line
+// visually on top without occluding the categories underneath.
 const SERIES = [
     {
         key: "reassigned",
@@ -84,10 +93,27 @@ const SERIES = [
         dotClass: "chart__dot--unmapped",
         swatchClass: "chart-legend__swatch--unmapped",
     },
+    {
+        key: "total",
+        label: "Total drift",
+        accessor: (point) => point.total_ratio,
+        countAccessor: (point) => point.total_changes,
+        lineClass: "chart__line--total",
+        dotClass: "chart__dot--total",
+        swatchClass: "chart-legend__swatch--total",
+    },
 ];
 
+// Reading order for the legend and the hover tooltip: aggregate
+// first, then the categories that compose it. Decoupled from the
+// SERIES render order so we can place Total visually on top while
+// still surfacing it as the headline reading in the legend.
+const READING_ORDER = ["total", "reassigned", "newly_mapped", "unmapped"];
+const SERIES_BY_KEY = Object.fromEntries(SERIES.map((s) => [s.key, s]));
+const SERIES_IN_READING_ORDER = READING_ORDER.map((k) => SERIES_BY_KEY[k]);
+
 const DRIFT_INFO = [
-    "Composition of drift between asmap-data builds, broken into the three change categories the diff pipeline emits.",
+    "Composition of drift between asmap-data builds, broken into the three change categories the diff pipeline emits plus a total line that traces their sum.",
     {
         lead: "Cumulative.",
         text: "How far each build has wandered from the oldest published build with an unfilled variant. Lines grow over time and tell you how outdated an embedded asmap becomes.",
@@ -108,7 +134,11 @@ const DRIFT_INFO = [
         lead: "Unmapped.",
         text: "Prefix that resolved in the reference no longer resolves.",
     },
-    "Computed from the unfilled (source data) variant of every build. Builds that did not publish an unfilled variant appear as gaps. The three lines sum to the total drift the overview card shows for the same pair.",
+    {
+        lead: "Total drift.",
+        text: "Sum of the three categories. In Step mode this matches the drift figure the overview card shows for the same pair.",
+    },
+    "Click any legend entry to hide that line and rescale the chart to whatever stays on. Computed from the unfilled (source data) variant of every build. Builds that did not publish an unfilled variant appear as gaps.",
 ];
 
 // Public mount: render the drift card under ``parent``. The card
@@ -137,7 +167,7 @@ export function mount(parent, maps, diffs) {
         return;
     }
 
-    const state = { mode: "cumulative" };
+    const state = { mode: "cumulative", hidden: new Set() };
 
     const card = document.createElement("article");
     card.className = "card chart-card drift-chart";
@@ -146,25 +176,40 @@ export function mount(parent, maps, diffs) {
         modeValue: state.mode,
         onModeChange: (next) => {
             state.mode = next;
-            rerender();
+            ctrl?.rerender();
         },
     });
-    const legend = buildLegend();
+    const legend = createChartLegend({
+        entries: SERIES_IN_READING_ORDER,
+        hidden: state.hidden,
+        onToggle: (key) => {
+            if (state.hidden.has(key)) state.hidden.delete(key);
+            else state.hidden.add(key);
+            ctrl?.rerender();
+        },
+    });
     const chartSlot = document.createElement("div");
     chartSlot.className = "drift-chart__plot";
 
     card.append(header, legend, chartSlot);
     parent.replaceChildren(card);
 
-    const rerender = () => {
-        const points = computePoints(sortedMaps, diffs, state.mode);
-        mountResponsiveChart(chartSlot, {
-            title: null,
-            draw: ({ width, height, layout }) =>
-                buildChart(sortedMaps, points, state.mode, width, height, layout),
-        });
-    };
-    rerender();
+    // mountResponsiveChart sets up the ResizeObserver once and
+    // returns a rerender handle the toggle and mode callbacks
+    // call to redraw the SVG without rebuilding the slot.
+    const ctrl = mountResponsiveChart(chartSlot, {
+        title: null,
+        draw: ({ width, height, layout }) =>
+            buildChart(
+                sortedMaps,
+                computePoints(sortedMaps, diffs, state.mode),
+                state.mode,
+                state.hidden,
+                width,
+                height,
+                layout,
+            ),
+    });
 }
 
 // ---- Card header (label, controls) ------------------------------
@@ -317,23 +362,31 @@ function gapPoint(map, index) {
 // ---- Chart assembly ---------------------------------------------
 
 // Top-level chart pass. Returns the chart shell, or an empty state
-// node when the picked mode produced no plottable point. Each
-// sub-pass (axes, series, hover) lives in its own helper so this
-// function reads as the storyboard.
-function buildChart(sortedMaps, points, mode, width, height, layout) {
-    const allRatios = points
+// node when the picked mode produced no plottable point or when
+// the user has hidden every series via the legend. Each sub-pass
+// (axes, series, hover) lives in its own helper so this function
+// reads as the storyboard.
+function buildChart(sortedMaps, points, mode, hidden, width, height, layout) {
+    const visibleSeries = SERIES.filter((s) => !hidden.has(s.key));
+    if (visibleSeries.length === 0) {
+        return emptyState("All series hidden. Click a legend entry to bring one back.");
+    }
+    // Y axis tracks only the visible series so toggling a tall
+    // line off zooms the remaining ones in. Hidden series stay in
+    // hover tooltips because the data point still exists.
+    const visibleRatios = points
         .filter((p) => p.present)
-        .flatMap((p) => SERIES.map((s) => s.accessor(p)));
-    if (allRatios.length === 0) {
+        .flatMap((p) => visibleSeries.map((s) => s.accessor(p)));
+    if (visibleRatios.length === 0) {
         return emptyState("No drift data for the picked mode.");
     }
 
-    const geometry = computeGeometry(sortedMaps, allRatios, width, height, layout);
+    const geometry = computeGeometry(sortedMaps, visibleRatios, width, height, layout);
     const root = createSvgRoot(width, height, mode);
 
     drawAxes(root, sortedMaps, geometry, width);
-    drawSeriesLines(root, points, geometry);
-    drawSeriesDots(root, points, geometry);
+    drawSeriesLines(root, points, geometry, visibleSeries);
+    drawSeriesDots(root, points, geometry, visibleSeries);
 
     return attachHover(root, sortedMaps, points, geometry, mode);
 }
@@ -367,9 +420,9 @@ function createSvgRoot(width, height, mode) {
 
 function ariaLabelFor(mode) {
     if (mode === "cumulative") {
-        return "Cumulative drift composition since the oldest published build. Three series for reassigned, newly mapped, and unmapped entries.";
+        return "Cumulative drift composition since the oldest published build. Reassigned, newly mapped, unmapped, and total drift series.";
     }
-    return "Step drift composition between consecutive builds. Three series for reassigned, newly mapped, and unmapped entries.";
+    return "Step drift composition between consecutive builds. Reassigned, newly mapped, unmapped, and total drift series.";
 }
 
 function drawAxes(root, sortedMaps, { plot, yTicks, yScale, xAt }, width) {
@@ -390,8 +443,8 @@ function drawAxes(root, sortedMaps, { plot, yTicks, yScale, xAt }, width) {
 // One smooth path per series, broken into sub-segments wherever a
 // build sits in a gap. This keeps the curve from ramping toward a
 // phantom zero across the missing diff.
-function drawSeriesLines(root, points, { xAt, yScale }) {
-    for (const series of SERIES) {
+function drawSeriesLines(root, points, { xAt, yScale }, visibleSeries) {
+    for (const series of visibleSeries) {
         for (const segment of contiguousSegments(points, series, xAt, yScale)) {
             root.append(
                 svg("path", {
@@ -403,8 +456,8 @@ function drawSeriesLines(root, points, { xAt, yScale }) {
     }
 }
 
-function drawSeriesDots(root, points, { xAt, yScale }) {
-    for (const series of SERIES) {
+function drawSeriesDots(root, points, { xAt, yScale }, visibleSeries) {
+    for (const series of visibleSeries) {
         for (const point of points) {
             if (!point.present) continue;
             root.append(
@@ -493,23 +546,23 @@ function attachHover(root, sortedMaps, points, { plot, xAt }, mode) {
     return shell;
 }
 
-// Tooltip rows: a Total summary on top, then one row per series.
-// Gap points get a single row stating no diff is available, so
-// the user understands why the lines break.
+// Tooltip rows in reading order, so Total drift sits at the top
+// just like in the legend. Every series is included regardless
+// of whether the user hid the matching line, because the data
+// point still exists and the tooltip is the inspection surface.
+// The Total row carries the absolute change count too, since the
+// percentage alone hides the magnitude.
 function hoverRows(point) {
     if (!point.present) {
         return [["Drift", "no diff for this build"]];
     }
-    const rows = [
-        [
-            "Total drift",
-            `${formatPercent(point.total_ratio, 1)} (${formatNumber(point.total_changes)})`,
-        ],
-    ];
-    for (const series of SERIES) {
-        rows.push([series.label, formatPercent(series.accessor(point), 1)]);
-    }
-    return rows;
+    return SERIES_IN_READING_ORDER.map((series) => {
+        const pct = formatPercent(series.accessor(point), 1);
+        if (series.key === "total") {
+            return [series.label, `${pct} (${formatNumber(point.total_changes)})`];
+        }
+        return [series.label, pct];
+    });
 }
 
 function footerFor(point, mode) {
@@ -519,22 +572,6 @@ function footerFor(point, mode) {
 }
 
 // ---- Static UI ---------------------------------------------------
-
-function buildLegend() {
-    const legend = document.createElement("div");
-    legend.className = "chart-legend";
-    for (const series of SERIES) {
-        const item = document.createElement("span");
-        item.className = "chart-legend__item";
-        const swatch = document.createElement("span");
-        swatch.className = `chart-legend__swatch ${series.swatchClass}`;
-        const label = document.createElement("span");
-        label.textContent = series.label;
-        item.append(swatch, label);
-        legend.append(item);
-    }
-    return legend;
-}
 
 function emptyState(text = "Need at least two builds and one diff to plot drift.") {
     const note = document.createElement("p");

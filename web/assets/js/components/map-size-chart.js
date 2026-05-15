@@ -37,6 +37,7 @@ import {
 import { buildTooltipBody } from "../charts/chart-tooltip.js";
 import { formatDate, formatNumber, formatPercent, shortDate } from "../format.js";
 import { filledProfile, unfilledProfile } from "../utils/variants.js";
+import { createChartLegend } from "./chart-legend.js";
 import { createInfoTooltip } from "./info-tooltip.js";
 
 const DOT_RADIUS = 3;
@@ -49,15 +50,14 @@ const HOVER_BLEED = 12;
 // per-variant rendering decision. The legend, the SVG line and
 // dot classes, and the hover tooltip rows all read from this
 // list, so adding a third series later is a one-entry change.
+//
+// Source data leads because it is the upstream truth a build
+// rests on. Embedded follows as the compressed shape Bitcoin
+// Core actually ships. The two lines never overlap (filled is
+// always smaller than unfilled), so the render order this list
+// dictates has no visual effect and the same ordering is free
+// to drive both the legend and the tooltip rows.
 const SERIES = [
-    {
-        key: "filled",
-        label: "Embedded (filled)",
-        lineClass: "chart__line--filled",
-        dotClass: "chart__dot--filled",
-        swatchClass: "chart-legend__swatch--filled",
-        profile: filledProfile,
-    },
     {
         key: "unfilled",
         label: "Source data (unfilled)",
@@ -66,17 +66,25 @@ const SERIES = [
         swatchClass: "chart-legend__swatch--unfilled",
         profile: unfilledProfile,
     },
+    {
+        key: "filled",
+        label: "Embedded (filled)",
+        lineClass: "chart__line--filled",
+        dotClass: "chart__dot--filled",
+        swatchClass: "chart-legend__swatch--filled",
+        profile: filledProfile,
+    },
 ];
 
 const MAP_SIZE_INFO = [
     "On-disk size of every published ASmap build, plotted as two series so the fill-heuristic effect is visible at a glance.",
     {
-        lead: "Embedded (filled).",
-        text: "Bytes of the binary Bitcoin Core actually ships. Adjacent same-AS prefixes are collapsed so the file stays small.",
-    },
-    {
         lead: "Source data (unfilled).",
         text: "Bytes of the raw upstream prefix data the build was produced from. Heavier than the embedded form because nothing has been compressed.",
+    },
+    {
+        lead: "Embedded (filled).",
+        text: "Bytes of the binary Bitcoin Core actually ships. Adjacent same-AS prefixes are collapsed so the file stays small.",
     },
     "Hover any build for the two raw sizes plus the fill-compression ratio between them. Builds that did not publish a variant show a gap rather than bridging the line toward zero.",
 ];
@@ -87,37 +95,62 @@ export function mount(parent, maps) {
         parent.replaceChildren();
         return;
     }
-    mountResponsiveChart(parent, {
+    // Local toggle state lives in this closure. The legend
+    // callback below mutates it and asks the chart for a redraw
+    // through the rerender handle mountResponsiveChart returns.
+    // The handle is captured lazily (read at click time) so the
+    // legend factory can reference it before assignment.
+    const state = { hidden: new Set() };
+    let ctrl;
+    ctrl = mountResponsiveChart(parent, {
         title: "Map Size Over Time",
         info: createInfoTooltip({
             body: MAP_SIZE_INFO,
             ariaLabel: "About the map size chart",
         }),
-        legend: buildLegend,
+        legend: () =>
+            createChartLegend({
+                entries: SERIES,
+                hidden: state.hidden,
+                onToggle: (key) => {
+                    if (state.hidden.has(key)) state.hidden.delete(key);
+                    else state.hidden.add(key);
+                    ctrl?.rerender();
+                },
+            }),
         draw: ({ width, height, layout }) =>
-            buildChart(maps, width, height, layout),
+            buildChart(maps, state.hidden, width, height, layout),
     });
 }
 
 // Top-level chart assembly. Returns the chart shell, or an empty
 // state node when no published variant could yield a single
-// data point. Each sub-pass (axes, series, hover) lives in its
-// own helper so this function reads as the storyboard.
-function buildChart(maps, width, height, layout) {
+// data point or every series has been toggled off in the legend.
+// Each sub-pass (axes, series, hover) lives in its own helper so
+// this function reads as the storyboard.
+function buildChart(maps, hidden, width, height, layout) {
     const samples = sampleSeries(maps);
-    const allSizes = samples
+    const visible = samples.filter((s) => !hidden.has(s.key));
+    if (visible.length === 0) {
+        return emptyState("All series hidden. Click a legend entry to bring one back.");
+    }
+    // Y axis tracks only the visible series so toggling the
+    // unfilled line off zooms the filled line in (and the other
+    // way round). Hidden series stay in the hover tooltip
+    // because the data point still exists.
+    const visibleSizes = visible
         .flatMap((s) => s.values)
         .filter((v) => v != null);
-    if (allSizes.length === 0) {
+    if (visibleSizes.length === 0) {
         return emptyState();
     }
 
-    const geometry = computeGeometry(maps, allSizes, width, height, layout);
+    const geometry = computeGeometry(maps, visibleSizes, width, height, layout);
     const root = createSvgRoot(width, height);
 
     drawAxes(root, maps, geometry, width);
-    drawSeriesLines(root, samples, geometry);
-    drawSeriesDots(root, samples, geometry);
+    drawSeriesLines(root, visible, geometry);
+    drawSeriesDots(root, visible, geometry);
 
     return attachHover(root, maps, geometry);
 }
@@ -139,10 +172,11 @@ function sampleSeries(maps) {
 // Single computation of plot bounds, axis ticks, and the two
 // scales every sub-pass needs. Centralised here so the y ticks
 // the axis renders are guaranteed to match the y scale the lines
-// and dots are positioned with.
-function computeGeometry(maps, allSizes, width, height, layout) {
+// and dots are positioned with. ``sizes`` carries only the
+// values of the visible series so toggles rescale the y axis.
+function computeGeometry(maps, sizes, width, height, layout) {
     const plot = plotBounds(width, height, layout);
-    const yTicks = niceTicks(Math.min(...allSizes), Math.max(...allSizes));
+    const yTicks = niceTicks(Math.min(...sizes), Math.max(...sizes));
     const yScale = linearScale(
         [yTicks[0], yTicks.at(-1)],
         [plot.bottom, plot.top],
@@ -320,25 +354,9 @@ function hoverRows(map) {
 
 // ---- Static UI -------------------------------------------------
 
-function buildLegend() {
-    const legend = document.createElement("div");
-    legend.className = "chart-legend";
-    for (const series of SERIES) {
-        const item = document.createElement("span");
-        item.className = "chart-legend__item";
-        const swatch = document.createElement("span");
-        swatch.className = `chart-legend__swatch ${series.swatchClass}`;
-        const label = document.createElement("span");
-        label.textContent = series.label;
-        item.append(swatch, label);
-        legend.append(item);
-    }
-    return legend;
-}
-
-function emptyState() {
+function emptyState(text = "No published variants for the loaded builds.") {
     const note = document.createElement("p");
     note.className = "muted";
-    note.textContent = "No published variants for the loaded builds.";
+    note.textContent = text;
     return note;
 }
