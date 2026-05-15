@@ -1,3 +1,8 @@
+// Overview row at the top of the Maps tab: three cards showing
+// the selected build's map size, unique-AS count (with IPv4 / IPv6
+// split), and staleness, each carrying a "vs previous" delta when
+// a chronologically preceding build is available.
+
 import {
     daysBetween,
     formatNumber,

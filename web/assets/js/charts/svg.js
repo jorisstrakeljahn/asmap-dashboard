@@ -1,3 +1,8 @@
+// Low-level SVG primitives: namespaced element factory, linear
+// scales, "nice" tick generation, and Catmull-Rom-based smooth
+// path / area helpers. Shared by every chart so axis math and
+// curve geometry stay consistent across visualisations.
+
 export const SVG_NS = "http://www.w3.org/2000/svg";
 
 export function svg(name, attrs = {}) {

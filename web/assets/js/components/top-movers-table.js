@@ -1,3 +1,9 @@
+// Top Movers table inside the Diff Explorer card: paginated list
+// of the AS numbers most affected by a diff, with operator-name
+// toggle, page-size dropdown, and a direction column summarising
+// which counterpart prefixes flowed to or from. The toggle state
+// is persisted across visits via localStorage.
+
 import { formatNumber, formatPercent } from "../format.js";
 import { asnCell } from "../asn-names.js";
 import { uniqueId } from "../utils/dom.js";
