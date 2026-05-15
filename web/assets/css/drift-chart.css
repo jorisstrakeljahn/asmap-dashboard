@@ -1,0 +1,145 @@
+/* Drift over time: stacked card with a mode switch in the
+   header and (when "vs baseline" is selected) a baseline picker
+   row of coloured pills above the chart. The plot itself reuses
+   the shared chart shell from charts.css; everything below is
+   the controls on top of it. */
+
+.drift-chart {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.drift-chart__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
+.drift-chart__plot {
+    display: flex;
+    flex-direction: column;
+}
+
+/* The plot slot reuses the standard chart card internals, but
+   our wrapper already paints the card chrome - strip the inner
+   one so the chart doesn't look double-bordered. */
+.drift-chart__plot .chart-card {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+}
+
+.drift-chart__plot .card__label {
+    display: none;
+}
+
+/* Per-series stroke / fill is set inline via style="stroke: var(--color-series-N)"
+   so the SVG stays printable and we don't have to maintain a
+   per-index class. The dot uses the same colour for fill so a
+   single CSS variable controls both stroke and node colour. */
+.drift-chart__line {
+    fill: none;
+    stroke-width: 2;
+}
+
+.drift-chart__dot {
+    stroke-width: 1;
+}
+
+/* Baseline picker: label, pills, and the "+ Add baseline" dropdown
+   share a single flex row that wraps onto multiple lines on narrow
+   viewports. Pills carry a coloured swatch matching their series
+   colour so the legend is implicit. */
+.baseline-picker {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
+.baseline-picker[hidden] {
+    display: none;
+}
+
+.baseline-picker__label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-uppercase);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-uppercase);
+}
+
+.baseline-picker__pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.baseline-picker__add-dropdown {
+    min-width: 180px;
+}
+
+.baseline-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 4px var(--space-2) 4px var(--space-2);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-pill);
+    background: var(--color-bg);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-base);
+}
+
+.baseline-pill__swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--pill-color, var(--color-accent));
+    flex-shrink: 0;
+}
+
+.baseline-pill__label {
+    white-space: nowrap;
+}
+
+.baseline-pill__remove {
+    width: 18px;
+    height: 18px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--color-text-subtle);
+    cursor: pointer;
+    line-height: 1;
+    font-size: 14px;
+    padding: 0;
+    transition:
+        background var(--motion-fast) var(--motion-ease),
+        color var(--motion-fast) var(--motion-ease);
+}
+
+.baseline-pill__remove:hover {
+    background: var(--color-divider);
+    color: var(--color-text-base);
+}
+
+.baseline-pill__remove:focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-accent);
+    outline-offset: var(--focus-ring-offset);
+}
+
+@media (max-width: 600px) {
+    .drift-chart__header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .baseline-picker__add-dropdown {
+        width: 100%;
+    }
+}

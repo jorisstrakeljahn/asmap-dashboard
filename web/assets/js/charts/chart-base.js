@@ -62,18 +62,24 @@ export function mountResponsiveChart(parent, { title, draw, layout = {} }) {
     }
 }
 
+// ``title`` is optional: callers that wrap the chart in their own
+// custom card chrome (drift chart, future composite charts) pass
+// null to get just the slot, while the standard card label is
+// rendered when a title string is supplied.
 function createChartCard(title) {
     const root = document.createElement("article");
     root.className = "card chart-card";
 
-    const label = document.createElement("span");
-    label.className = "card__label uppercase-label";
-    label.textContent = title.toUpperCase();
-
     const slot = document.createElement("div");
     slot.className = "chart-slot";
 
-    root.append(label, slot);
+    if (title) {
+        const label = document.createElement("span");
+        label.className = "card__label uppercase-label";
+        label.textContent = title.toUpperCase();
+        root.append(label);
+    }
+    root.append(slot);
     return { root, slot };
 }
 

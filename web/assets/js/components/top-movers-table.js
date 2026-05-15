@@ -1,13 +1,15 @@
 // Top Movers table inside the Diff Explorer card: paginated list
-// of the AS numbers most affected by a diff, with operator-name
-// toggle, page-size dropdown, and a direction column summarising
-// which counterpart prefixes flowed to or from. The toggle state
-// is persisted across visits via localStorage.
+// of the AS numbers most affected by a diff, with a Compact /
+// Detailed view switch, page-size dropdown, and a direction
+// column summarising which counterpart prefixes flowed to or
+// from. The view-mode preference is persisted across visits via
+// localStorage.
 
 import { formatNumber, formatPercent } from "../format.js";
 import { asnCell } from "../asn-names.js";
 import { uniqueId } from "../utils/dom.js";
 import { createDropdown } from "./dropdown.js";
+import { createModeSwitch } from "./mode-switch.js";
 
 const PAGE_SIZES = [10, 25, 50];
 const DEFAULT_PAGE_SIZE = 10;
@@ -60,7 +62,7 @@ export function mount(parent, diff) {
     const controls = document.createElement("div");
     controls.className = "top-movers__controls";
     controls.append(
-        showNamesToggle(state, () => render()),
+        viewModeSwitch(state, () => render()),
         pageSizeControl(state, () => render()),
     );
     header.append(title, controls);
@@ -228,28 +230,24 @@ function pageSizeControl(state, onChange) {
     return wrap;
 }
 
-function showNamesToggle(state, onChange) {
-    const wrap = document.createElement("label");
-    wrap.className = "top-movers__toggle";
-
-    const text = document.createElement("span");
-    text.className = "muted";
-    text.textContent = "Operator names";
-
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.checked = state.showNames;
-    input.addEventListener("change", () => {
-        state.showNames = input.checked;
-        saveShowNames(state.showNames);
-        onChange();
+// Compact / Detailed switch shares the pill-style mode-switch
+// component with the drift chart, so the table header speaks the
+// same control language as the drift card. Compact hides the
+// operator name under each AS number; Detailed shows it.
+function viewModeSwitch(state, onChange) {
+    return createModeSwitch({
+        options: [
+            { value: "compact", label: "Compact" },
+            { value: "detailed", label: "Detailed" },
+        ],
+        value: state.showNames ? "detailed" : "compact",
+        onChange: (next) => {
+            state.showNames = next === "detailed";
+            saveShowNames(state.showNames);
+            onChange();
+        },
+        ariaLabel: "Top movers view mode",
     });
-
-    // Label first, control second - mirrors the Page size field next
-    // to it so the header reads as one consistent "label: control"
-    // group from left to right.
-    wrap.append(text, input);
-    return wrap;
 }
 
 // Persist the toggle across visits. Storage may be unavailable in

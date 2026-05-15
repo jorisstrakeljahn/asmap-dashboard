@@ -57,6 +57,10 @@
     white-space: nowrap;
 }
 
+.dropdown__value--placeholder {
+    color: var(--color-text-subtle);
+}
+
 .dropdown__chevron {
     flex: 0 0 var(--control-icon-size);
     color: var(--color-text-subtle);

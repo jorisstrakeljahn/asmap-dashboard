@@ -1,0 +1,44 @@
+/* Mode switch: pill-style segmented control (drift-chart "vs
+   previous / vs baseline", top-movers compact / detailed, etc.).
+   The outer pill carries a hairline border so it sits in the same
+   visual language as dropdown triggers; the inner active button
+   fills with the accent colour so the picked mode reads as a
+   committed selection, not a hover highlight. */
+
+.mode-switch {
+    display: inline-flex;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-pill);
+    padding: 2px;
+    background: var(--color-bg);
+}
+
+.mode-switch__btn {
+    padding: 0 var(--space-3);
+    height: calc(var(--control-height-sm) - 4px);
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-text-muted);
+    font: inherit;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition:
+        background var(--motion-fast) var(--motion-ease),
+        color var(--motion-fast) var(--motion-ease);
+}
+
+.mode-switch__btn:hover {
+    color: var(--color-text-base);
+}
+
+.mode-switch__btn.is-active {
+    background: var(--color-accent);
+    color: var(--color-on-fill);
+}
+
+.mode-switch__btn:focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-accent);
+    outline-offset: var(--focus-ring-offset);
+}

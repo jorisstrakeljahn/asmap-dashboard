@@ -1,23 +1,23 @@
-// Overview row at the top of the Maps tab: cards showing the
-// selected build's entry count and unique-AS count (with IPv4 /
-// IPv6 split), each carrying a "vs previous" delta when a
-// chronologically preceding build is available. Build age sits
-// inline on the section header; raw file size is in the History
-// charts below. Both belong to the build identity, not the metric
-// surface.
+// Overview row at the top of the Maps tab: three cards giving a
+// snapshot of the selected build - how many mappings it carries,
+// how many unique ASes those mappings cover (with IPv4 / IPv6
+// split), and how far it drifted from the previous build. Each
+// card carries a "vs previous" delta when a chronologically
+// preceding build is available. Build age sits inline on the
+// section toolbar; raw file size lives in the History charts.
 
 import {
     formatNumber,
     formatPercent,
     formatSignedNumber,
 } from "../format.js";
+import { pairDriftRatio } from "../utils/diffs.js";
 
 // Pure render: build the overview cards for ``current`` and the
 // chronologically preceding build ``previous`` (may be null for the
-// oldest map). The caller decides which map is current; this module
-// only knows how to draw cards from the pair, so it can be re-invoked
-// on every selector change without owning any state.
-export function mount(parent, current, previous) {
+// oldest map). ``diffs`` is the pair-diff array from metrics.json,
+// used by the drift card; the other cards never need it.
+export function mount(parent, current, previous, diffs) {
     if (!current) {
         parent.replaceChildren(emptyState());
         return;
@@ -27,6 +27,7 @@ export function mount(parent, current, previous) {
     row.append(
         entriesCountCard(current, previous),
         uniqueAsesCard(current, previous),
+        driftCard(current, previous, diffs),
     );
     parent.replaceChildren(row);
 }
@@ -44,6 +45,32 @@ function entriesCountCard(current, previous) {
         const delta = current.entries_count - previous.entries_count;
         card.append(deltaLine(`${formatSignedNumber(delta)} vs previous`));
     }
+    return card;
+}
+
+// Drift-vs-previous: how much of the trie shifted since the last
+// build, expressed both as a share (headline) and as the absolute
+// number of changed entries (subtitle). This is the same number the
+// drift chart plots over time; the card is the snapshot for the
+// currently selected build so the reader can answer "did this
+// release change a lot?" without scrolling to the chart. Falls
+// back to a quiet placeholder for the oldest build (no predecessor
+// to diff against).
+function driftCard(current, previous, diffs) {
+    const card = createCard("Drift vs previous");
+    if (!previous) {
+        card.append(metricNumber("\u2014"));
+        card.append(metricUnit("oldest published build"));
+        return card;
+    }
+    const result = pairDriftRatio(diffs, previous.name, current.name);
+    if (!result) {
+        card.append(metricNumber("\u2014"));
+        card.append(metricUnit("no precomputed diff"));
+        return card;
+    }
+    card.append(metricNumber(formatPercent(result.ratio, 1)));
+    card.append(metricUnit(`${formatNumber(result.total_changes)} entries changed`));
     return card;
 }
 
