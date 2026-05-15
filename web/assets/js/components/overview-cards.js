@@ -166,7 +166,7 @@ function fallbackBadge() {
     badge.className = "card__fallback uppercase-label muted";
     badge.textContent = "Filled fallback";
     badge.title =
-        "This build did not publish an unfilled variant; numbers are read from the filled (embedded) file instead.";
+        "This build did not publish an unfilled variant. Numbers are read from the filled (embedded) file instead.";
     return badge;
 }
 
