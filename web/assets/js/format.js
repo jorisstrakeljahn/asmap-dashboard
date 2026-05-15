@@ -1,3 +1,8 @@
+// Number, percent, and date formatting helpers shared across the
+// dashboard. Centralised so locale, fraction-digit defaults, and
+// signed-value conventions stay consistent between cards, charts,
+// and tables.
+
 const numberFormatter = new Intl.NumberFormat("en-US");
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
     year: "numeric",

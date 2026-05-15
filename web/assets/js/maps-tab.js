@@ -1,3 +1,8 @@
+// Entry point for the Maps tab: loads metrics.json plus the ASN
+// names lookup, mounts the overview cards, the size and delta
+// charts, and the diff explorer, and wires the build selector
+// that scopes the overview to a single published map.
+
 import { formatDate } from "./format.js";
 import * as asnNames from "./asn-names.js";
 import * as overviewCards from "./components/overview-cards.js";

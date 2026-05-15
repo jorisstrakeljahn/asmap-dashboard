@@ -1,3 +1,10 @@
+// Diff Explorer section: Map A / Map B selectors plus the
+// rendered comparison (match-rate banner, three-way classification
+// breakdown, stacked bar, and the Top Movers table). Reverse pairs
+// are resolved by inverting the stored diff so the user can pick
+// any combination without forcing the pipeline to materialise both
+// directions.
+
 import { formatDate, formatNumber, formatPercent } from "../format.js";
 import { uniqueId } from "../utils/dom.js";
 import { createDropdown } from "./dropdown.js";

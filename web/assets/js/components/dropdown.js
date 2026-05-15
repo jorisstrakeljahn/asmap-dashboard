@@ -1,38 +1,16 @@
-// Custom combobox-style dropdown that replaces every native
-// <select> across the dashboard. The native popover is browser-
-// and OS-controlled and breaks the visual language on mobile
-// (iOS / Android show their own picker sheet); our own popover
-// can match the card / shadow / border tokens consistently.
+// Custom combobox dropdown that replaces every native <select>
+// across the dashboard. Native popovers are browser- and OS-
+// controlled and break the visual language on mobile (iOS /
+// Android show their own picker sheet); the custom panel here
+// matches the card / shadow / border tokens consistently.
 //
-// Wires the WAI-ARIA 1.2 "collapsible combobox" pattern:
+// Wires the WAI-ARIA 1.2 collapsible combobox pattern:
 // https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
 //
-//   <div class="dropdown">
-//     <button role="combobox" aria-haspopup="listbox" ...>
-//       <span class="dropdown__value">Mar 5, 2026</span>
-//       <svg class="dropdown__chevron" />
-//     </button>
-//     <ul role="listbox" id="..." hidden>
-//       <li role="option" aria-selected="true">Mar 5, 2026</li>
-//       ...
-//     </ul>
-//   </div>
-//
-// Usage:
-//
-//   const dropdown = createDropdown({
-//       options: [{ value, label }, ...],
-//       value: currentValue,
-//       ariaLabel: "…" OR ariaLabelledBy: "<id>",
-//       onChange: (value) => { ... },
-//       size: "base" | "small",
-//   });
-//   parent.append(dropdown);
-//
-//   dropdown.getValue();
-//   dropdown.setValue(v); // does NOT fire onChange (matches the
-//                         //   "<select>.value = x" semantic that
-//                         //   does not emit a change event).
+// createDropdown({ options, value, onChange, ariaLabel |
+// ariaLabelledBy, size }) returns an element exposing getValue()
+// and setValue(v); setValue does NOT fire onChange (mirrors the
+// native <select>.value = x semantic).
 
 import { uniqueId } from "../utils/dom.js";
 
