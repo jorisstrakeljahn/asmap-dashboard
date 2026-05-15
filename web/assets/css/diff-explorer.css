@@ -99,7 +99,7 @@
 }
 
 .classification-cell__share--unmapped {
-    color: var(--color-neutral);
+    color: var(--color-warning);
 }
 
 .classification-cell__label {
@@ -136,7 +136,7 @@
 }
 
 .stacked-bar__segment--unmapped {
-    background: var(--color-neutral);
+    background: var(--color-warning);
 }
 
 .diff-explorer__notice {
