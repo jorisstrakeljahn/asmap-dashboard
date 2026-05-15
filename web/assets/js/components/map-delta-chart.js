@@ -1,12 +1,12 @@
 // Vertical bar chart of entry-count delta between consecutive
-// builds, computed from the unfilled (source data) variant. A bar
-// is the gain or loss in real source-data prefixes; positive
+// builds, computed from the unfilled (source data) variant. Each
+// bar is the gain or loss in real source-data prefixes. Positive
 // deltas grow up from the baseline, negative down. Hover a bar
-// for the exact "prev -> this" entries and signed delta.
+// for the exact "prev to this" entries and signed delta.
 //
 // Builds without an unfilled variant cannot contribute a bar
 // because the corresponding entry count is missing on either
-// side; the chart silently skips them, matching the behaviour of
+// side. The chart silently skips them, matching the behaviour of
 // the drift chart and pair-diff loop.
 
 import { linearScale, niceTicks, svg } from "../charts/svg.js";
@@ -62,7 +62,7 @@ export function mount(parent, maps) {
 // Pre-compute everything each bar will need so the render path
 // never has to re-derive values from the raw map list. Walks
 // every (previous, current) pair and emits one row when both
-// sides expose an unfilled variant; pairs missing either side
+// sides expose an unfilled variant. Pairs missing either side
 // are dropped silently rather than rendered as a misleading bar.
 function deltasBetween(maps) {
     const rows = [];
@@ -99,7 +99,7 @@ function buildChart(rows, width, height, layout) {
     });
     root.setAttribute(
         "aria-label",
-        "Source-data entry count delta between consecutive ASmap builds; hover each bar for details",
+        "Source-data entry count delta between consecutive ASmap builds. Hover each bar for details.",
     );
 
     renderYAxis(root, yTicks, yScale, {

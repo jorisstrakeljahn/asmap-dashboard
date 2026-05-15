@@ -1,17 +1,20 @@
 // Shared variant-picking rules for the new metrics.json schema.
 //
 // Each maps[] entry carries two sub-objects, ``unfilled`` and
-// ``filled``, with a ``present`` flag. ``unfilled`` is the canonical
-// source of truth (filled can be derived from it deterministically;
-// the reverse is not possible), so most surfaces should default to
-// it and fall back to filled only when unfilled was not published.
-// A handful of surfaces - file size, anything that asks "what does
-// Bitcoin Core actually embed?" - prefer filled instead. Both
-// orientations live here so the rule is named once and reused.
+// ``filled``, with a ``present`` flag. ``unfilled`` is the
+// canonical source of truth. Filled can be derived from it
+// deterministically, the reverse is not possible. So most surfaces
+// should default to unfilled and fall back to filled only when
+// unfilled was not published.
 //
-// All getters return ``null`` when no usable variant exists, which
-// the caller can map to a "data unavailable" placeholder rather
-// than rendering misleading zeros.
+// A handful of surfaces ask "what does Bitcoin Core actually
+// embed?" instead. File size and anything in the same family
+// prefer filled. Both orientations live in this module so the
+// rule is named once and reused.
+//
+// All getters return ``null`` when no usable variant exists, so
+// the caller can map that to a "data unavailable" placeholder
+// rather than rendering misleading zeros.
 
 const UNFILLED = "unfilled";
 const FILLED = "filled";
