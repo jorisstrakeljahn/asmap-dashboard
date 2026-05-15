@@ -41,6 +41,7 @@ import {
 import { buildTooltipBody } from "../charts/chart-tooltip.js";
 import { formatDate, formatNumber, formatPercent, shortDate } from "../format.js";
 import { filledProfile, unfilledProfile } from "../utils/variants.js";
+import { createInfoTooltip } from "./info-tooltip.js";
 
 const DOT_RADIUS = 3;
 // Hover tolerance: how far past the plot bounds we still treat
@@ -57,7 +58,7 @@ const SERIES = [
     {
         key: "filled",
         label: "Embedded (filled)",
-        description: "What Bitcoin Core nodes ship",
+        description: "the binary every Bitcoin Core node ships",
         className: "chart__line--filled",
         dotClassName: "chart__dot--filled",
         legendClassName: "chart-legend__swatch--filled",
@@ -66,12 +67,25 @@ const SERIES = [
     {
         key: "unfilled",
         label: "Source data (unfilled)",
-        description: "Upstream prefix data",
+        description: "the upstream prefix data the build was produced from",
         className: "chart__line--unfilled",
         dotClassName: "chart__dot--unfilled",
         legendClassName: "chart-legend__swatch--unfilled",
         profile: unfilledProfile,
     },
+];
+
+const MAP_SIZE_INFO = [
+    "On-disk size of every published ASmap build, plotted as two series so the fill-heuristic effect is visible at a glance.",
+    {
+        lead: "Embedded (filled).",
+        text: "Bytes of the binary Bitcoin Core actually ships. Adjacent same-AS prefixes are collapsed so the file stays small.",
+    },
+    {
+        lead: "Source data (unfilled).",
+        text: "Bytes of the raw upstream prefix data the build was produced from. Heavier than the embedded form because nothing has been compressed.",
+    },
+    "Hover any build for the two raw sizes plus the fill-compression ratio between them. Builds that did not publish a variant show a gap rather than bridging the line toward zero.",
 ];
 
 export function mount(parent, maps) {
@@ -82,6 +96,10 @@ export function mount(parent, maps) {
     }
     mountResponsiveChart(parent, {
         title: "Map Size Over Time",
+        info: createInfoTooltip({
+            body: MAP_SIZE_INFO,
+            ariaLabel: "About the map size chart",
+        }),
         legend: () => buildLegend(),
         draw: ({ width, height, layout }) =>
             buildChart(maps, width, height, layout),

@@ -29,10 +29,17 @@ import {
 import { buildTooltipBody } from "../charts/chart-tooltip.js";
 import { formatDate, formatNumber, shortDate } from "../format.js";
 import { unfilledProfile } from "../utils/variants.js";
+import { createInfoTooltip } from "./info-tooltip.js";
 
 const BAR_GAP = 12;
 const MIN_BAR_WIDTH = 8;
 const BAR_CORNER_RADIUS = 2;
+
+const MAP_DELTA_INFO = [
+    "Gain or loss in source-data prefix entries between every pair of consecutive builds.",
+    "A positive bar means the next build added that many real (prefix to ASN) entries on top of the previous one. A negative bar means entries fell out of the upstream data, typically because RPKI / IRR coverage retracted for some prefix.",
+    "Computed from the unfilled (source data) variant of both sides. Pairs missing the unfilled variant on either side are skipped silently rather than rendered as a misleading bar.",
+];
 
 export function mount(parent, maps) {
     if (!parent) return;
@@ -43,6 +50,10 @@ export function mount(parent, maps) {
     }
     mountResponsiveChart(parent, {
         title: "Source Data Entries Delta Between Consecutive Maps",
+        info: createInfoTooltip({
+            body: MAP_DELTA_INFO,
+            ariaLabel: "About the entries delta chart",
+        }),
         draw: ({ width, height, layout }) =>
             buildChart(rows, width, height, layout),
     });
