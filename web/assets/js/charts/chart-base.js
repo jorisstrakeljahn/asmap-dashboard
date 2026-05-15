@@ -30,14 +30,22 @@ const DEFAULT_LAYOUT = {
 // re-renders whenever the chart's container width changes.
 //
 //   draw({ width, height, layout }) -> Element
+//   legend?: () -> Element
 //
 // ``draw`` is called once synchronously (so the chart is on
 // screen before paint) and then on every observed width change.
-export function mountResponsiveChart(parent, { title, draw, layout = {} }) {
+// ``legend`` is optional and built once at mount time; it sits
+// between the title and the chart slot for multi-series charts
+// that need to label their lines.
+export function mountResponsiveChart(parent, { title, draw, legend, layout = {} }) {
     if (!parent) return;
     const settings = { ...DEFAULT_LAYOUT, ...layout };
 
     const card = createChartCard(title);
+    if (legend) {
+        const node = legend();
+        if (node) card.root.insertBefore(node, card.slot);
+    }
     parent.replaceChildren(card.root);
 
     let lastWidth = 0;

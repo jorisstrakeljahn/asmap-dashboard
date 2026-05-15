@@ -127,3 +127,61 @@
 .chart__bar {
     fill: var(--color-accent);
 }
+
+/* Map-size dual-line series. Filled (embedded) keeps the standard
+   accent so the "what Bitcoin Core ships" line reads as the
+   primary metric. Unfilled (source) uses the soft accent token
+   already in use for IPv6 in the overview split bar, so the
+   palette stays internally consistent. */
+.chart__line--filled,
+.chart__dot--filled {
+    stroke: var(--color-accent);
+    fill: var(--color-accent);
+}
+
+.chart__line--filled {
+    fill: none;
+}
+
+.chart__line--unfilled,
+.chart__dot--unfilled {
+    stroke: var(--color-accent-soft);
+    fill: var(--color-accent-soft);
+}
+
+.chart__line--unfilled {
+    fill: none;
+}
+
+/* Inline legend above the chart slot. Two swatches plus their
+   labels read as a single line on wide screens and wrap on
+   narrow ones. */
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-strong);
+}
+
+.chart-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chart-legend__swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: var(--radius-pill);
+    flex-shrink: 0;
+}
+
+.chart-legend__swatch--filled {
+    background: var(--color-accent);
+}
+
+.chart-legend__swatch--unfilled {
+    background: var(--color-accent-soft);
+}

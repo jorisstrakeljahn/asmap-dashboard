@@ -5,6 +5,12 @@
 // card carries a "vs previous" delta when a chronologically
 // preceding build is available. Build age sits inline on the
 // section toolbar; raw file size lives in the History charts.
+//
+// All cards read the unfilled variant by default and fall back to
+// filled when unfilled was not published for a build (see
+// utils/variants.js for the rule). When the fallback fires, a small
+// "filled fallback" badge appears on the card so the reader knows
+// the number is not from source data.
 
 import {
     formatNumber,
@@ -12,6 +18,7 @@ import {
     formatSignedNumber,
 } from "../format.js";
 import { pairDriftRatio } from "../utils/diffs.js";
+import { pickPreferUnfilled } from "../utils/variants.js";
 import { createInfoTooltip } from "./info-tooltip.js";
 
 // Pure render: build the overview cards for ``current`` and the
@@ -23,11 +30,17 @@ export function mount(parent, current, previous, diffs) {
         parent.replaceChildren(emptyState());
         return;
     }
+    const currentPick = pickPreferUnfilled(current);
+    if (!currentPick) {
+        parent.replaceChildren(missingVariantsState(current));
+        return;
+    }
+    const previousPick = pickPreferUnfilled(previous);
     const row = document.createElement("div");
     row.className = "card-row";
     row.append(
-        entriesCountCard(current, previous),
-        uniqueAsesCard(current, previous),
+        entriesCountCard(currentPick, previousPick),
+        uniqueAsesCard(currentPick, previousPick),
         driftCard(current, previous, diffs),
     );
     parent.replaceChildren(row);
@@ -38,34 +51,38 @@ export function mount(parent, current, previous, diffs) {
 // bytes is an encoding artefact and lives in the History charts;
 // reviewers asking "how much did this map gain or lose?" want this
 // number, not kilobytes of compressed trie data.
-function entriesCountCard(current, previous) {
+function entriesCountCard(currentPick, previousPick) {
     const card = createCard("Entries", {
         info: [
             "Each entry maps an IP prefix to the autonomous system that announces it.",
-            "This is the substantive size of the map. The on-disk file size is an encoding artefact and lives in the History charts.",
+            "Read from the unfilled (source data) variant when published, falling back to the filled variant otherwise.",
+            "On-disk file size is an encoding artefact and lives in the History charts.",
         ],
+        source: currentPick.source,
     });
-    card.append(metricNumber(formatNumber(current.entries_count)));
+    card.append(metricNumber(formatNumber(currentPick.profile.entries_count)));
     card.append(metricUnit("prefix \u2192 ASN mappings"));
-    if (previous) {
-        const delta = current.entries_count - previous.entries_count;
+    if (previousPick) {
+        const delta =
+            currentPick.profile.entries_count -
+            previousPick.profile.entries_count;
         card.append(deltaLine(`${formatSignedNumber(delta)} vs previous`));
     }
     return card;
 }
 
-// Drift-vs-previous: how much of the trie shifted since the last
-// build, expressed both as a share (headline) and as the absolute
-// number of changed entries (subtitle). This is the same number the
-// drift chart plots over time; the card is the snapshot for the
-// currently selected build so the reader can answer "did this
-// release change a lot?" without scrolling to the chart. Falls
-// back to a quiet placeholder for the oldest build (no predecessor
-// to diff against).
+// Drift-vs-previous reads from the precomputed diff list rather
+// than from the per-build profiles, so it inherits the variant
+// choice the pipeline made when computing diffs (currently
+// unfilled-vs-unfilled, see metrics.py). When the previous or
+// current build has no unfilled variant the precomputed diff is
+// missing and the card shows a quiet placeholder instead of an
+// unfounded number.
 function driftCard(current, previous, diffs) {
     const card = createCard("Drift vs previous", {
         info: [
             "Share of mapping entries that differ between this build and the chronologically previous one.",
+            "Computed from unfilled-vs-unfilled diffs to isolate real source-data drift from fill-heuristic shifts.",
             "A 5 % drift means roughly 1 in 20 lookups would now resolve to a different autonomous system.",
         ],
     });
@@ -85,14 +102,17 @@ function driftCard(current, previous, diffs) {
     return card;
 }
 
-function uniqueAsesCard(current, previous) {
+function uniqueAsesCard(currentPick, previousPick) {
+    const profile = currentPick.profile;
     const card = createCard("Unique ASes", {
         info: [
             "Number of distinct autonomous systems referenced anywhere in the map.",
-            "The bar below shows the share of mapping entries, not ASes, that target IPv4 vs IPv6 prefixes.",
+            "Filled and unfilled both reference the same ASes (filled adds prefixes, never new ASes), so the number is variant-independent.",
+            "The bar below shows the share of mapping entries that target IPv4 vs IPv6 prefixes.",
         ],
+        source: currentPick.source,
     });
-    card.append(metricNumber(formatNumber(current.unique_asns)));
+    card.append(metricNumber(formatNumber(profile.unique_asns)));
     card.append(metricUnit("autonomous systems"));
 
     // Auxiliary IPv4/IPv6 split sits between the headline and the
@@ -101,21 +121,21 @@ function uniqueAsesCard(current, previous) {
     // .card__delta this keeps the delta visually flush against the
     // bottom edge regardless of how much extra content the card
     // carries.
-    const total = current.ipv4_count + current.ipv6_count;
-    const ipv4Ratio = total ? current.ipv4_count / total : 0;
-    const ipv6Ratio = total ? current.ipv6_count / total : 0;
+    const total = profile.ipv4_count + profile.ipv6_count;
+    const ipv4Ratio = total ? profile.ipv4_count / total : 0;
+    const ipv6Ratio = total ? profile.ipv6_count / total : 0;
     card.append(splitBar(ipv4Ratio, ipv6Ratio));
     card.append(splitLegend(ipv4Ratio, ipv6Ratio));
 
-    if (previous) {
-        const delta = current.unique_asns - previous.unique_asns;
+    if (previousPick) {
+        const delta = profile.unique_asns - previousPick.profile.unique_asns;
         card.append(deltaLine(`${formatSignedNumber(delta)} vs previous`));
     }
 
     return card;
 }
 
-function createCard(label, { info } = {}) {
+function createCard(label, { info, source } = {}) {
     const card = document.createElement("article");
     card.className = "card";
     if (info) {
@@ -127,7 +147,27 @@ function createCard(label, { info } = {}) {
     title.className = "card__label uppercase-label";
     title.textContent = label.toUpperCase();
     card.append(title);
+    // Show a small marker only when the card had to fall back to
+    // the filled variant. Unfilled is the default and needs no
+    // annotation; muddying every card with "source data" would just
+    // be noise.
+    if (source === "filled") {
+        card.append(fallbackBadge());
+    }
     return card;
+}
+
+// Subtle annotation for the rare build that only published filled.
+// Reads as a status, not as a warning - we are still showing real
+// numbers, they just come from the encoded form rather than from
+// the source-data form.
+function fallbackBadge() {
+    const badge = document.createElement("span");
+    badge.className = "card__fallback uppercase-label muted";
+    badge.textContent = "Filled fallback";
+    badge.title =
+        "This build did not publish an unfilled variant; numbers are read from the filled (embedded) file instead.";
+    return badge;
 }
 
 function metricNumber(text) {
@@ -205,5 +245,16 @@ function emptyState() {
     const note = document.createElement("p");
     note.className = "muted";
     note.textContent = "No published maps found in metrics.json.";
+    return note;
+}
+
+// Defensive: a build entry exists but neither variant is marked
+// present. Should never happen in practice (discover_maps would
+// not have surfaced the build), but the frontend stays honest by
+// telling the reader instead of rendering hollow cards.
+function missingVariantsState(build) {
+    const note = document.createElement("p");
+    note.className = "muted";
+    note.textContent = `Build ${build.name} has no published variant data.`;
     return note;
 }

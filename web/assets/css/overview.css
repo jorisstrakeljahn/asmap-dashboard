@@ -49,6 +49,18 @@
     color: var(--color-text-muted);
 }
 
+/* "Filled fallback" badge sits to the left of the corner-pinned
+   info tooltip, matching its baseline. Uses the existing muted
+   uppercase-label colour so it reads as a status, not a warning. */
+.card__fallback {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-8);
+    font-size: var(--font-size-xs);
+    letter-spacing: var(--letter-uppercase);
+    text-transform: uppercase;
+}
+
 /* Two-color rounded split bar so IPv4 and IPv6 read as distinct
    categories (not "more vs less"). A small gap separates the
    segments; each segment is fully pill-rounded for a clear "two
