@@ -2,7 +2,7 @@
 // every chart on the dashboard wears, then re-renders the inner
 // chart whenever the slot's width changes. Concrete pixel
 // dimensions are passed into ``draw`` so the SVG's viewBox can
-// match the on-screen size; that keeps axis labels at a real
+// match the on-screen size. That keeps axis labels at a real
 // pixel size (~11 px) instead of being squashed down to 3-4 px
 // when the chart scales below ~400 px wide.
 
@@ -37,7 +37,7 @@ const DEFAULT_LAYOUT = {
 // screen before paint) and then on every observed width change.
 // ``info`` is optional and pinned to the top-right corner of the
 // card, matching the affordance used on overview cards. ``legend``
-// is optional and built once at mount time; it sits between the
+// is optional and built once at mount time. It sits between the
 // title and the chart slot for multi-series charts that need to
 // label their lines.
 export function mountResponsiveChart(
@@ -169,7 +169,7 @@ export function pickAxisLabelIndices(count, maxLabels = 5) {
 // Pick a comfortable label density based on the chart's pixel
 // width. Roughly one label per ~64 px so "Mar 26" / "Aug 25"
 // labels don't overlap at 11 px font. The minimum of 3 keeps the
-// axis readable even on a 280 px phone; the count is capped only
+// axis readable even on a 280 px phone. The count is capped only
 // by the caller's data length via pickAxisLabelIndices.
 const LABEL_SLOT_PX = 64;
 const MIN_LABELS = 3;

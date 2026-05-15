@@ -44,7 +44,7 @@ const HOVER_BLEED = 12;
 
 // Cap the baseline picker so the legend stays scannable and we
 // don't run out of distinct series colours. Five lines is already
-// dense; beyond that the chart turns into spaghetti.
+// dense. Beyond that the chart turns into spaghetti.
 const SERIES_PALETTE = [
     "var(--color-series-1)",
     "var(--color-series-2)",
@@ -72,7 +72,7 @@ export function mount(parent, maps, diffs) {
         a.released_at.localeCompare(b.released_at),
     );
     // Baselines are only useful for builds that took part in the
-    // unfilled-vs-unfilled diff loop; builds without an unfilled
+    // unfilled-vs-unfilled diff loop. Builds without an unfilled
     // variant cannot anchor a drift series. Pre-compute the eligible
     // subset once so both the picker dropdown and the initial
     // default baseline draw from it.
@@ -317,10 +317,10 @@ function computePreviousSeries(sortedMaps, diffs) {
         if (i === 0) {
             // First build: nothing to diff against. Anchor the line
             // at 0 % drift so the chart starts cleanly. Denominator
-            // is informational; we read it from the unfilled profile
+            // is informational. We read it from the unfilled profile
             // because unfilled is the side the rest of the series
             // is computed from. Builds without an unfilled variant
-            // simply contribute 0 here, which is harmless: the
+            // simply contribute 0 here, which is harmless. The
             // reference point is always 0 % drift regardless.
             points.push({
                 map: sortedMaps[0],
@@ -413,7 +413,7 @@ function buildPlot({ sortedMaps, series, width, height, layout }) {
     });
     root.setAttribute(
         "aria-label",
-        "Drift over time; share of mapping entries that differ from the chosen reference build",
+        "Drift over time. Share of mapping entries that differ from the chosen reference build.",
     );
 
     renderYAxis(root, yTicks, yScale, {

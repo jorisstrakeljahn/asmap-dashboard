@@ -4,17 +4,13 @@
 // and read both sizes plus the fill-compression ratio in the
 // tooltip.
 //
-// The two series tell different stories:
-//
-//   - Filled is what every Bitcoin Core node embeds today. Anyone
-//     asking "how heavy is the upgrade?" wants this number.
-//   - Unfilled is the raw upstream prefix data the build was
-//     produced from. Anyone asking "how much did the source data
-//     grow?" wants this number.
-//
-// Drawing them on the same axis makes the fill-heuristic effect
-// visible at a glance: filled stays roughly flat while unfilled
-// climbs as RPKI / IRR coverage broadens.
+// The two series tell different stories. Filled is what every
+// Bitcoin Core node embeds today, so anyone asking "how heavy is
+// the upgrade?" wants this number. Unfilled is the raw upstream
+// prefix data the build was produced from, so anyone asking "how
+// much did the source data grow?" wants this one. Drawing them on
+// the same axis makes the fill-heuristic effect visible at a
+// glance.
 
 import {
     linearScale,
@@ -49,28 +45,25 @@ const DOT_RADIUS = 3;
 // flickering off when the mouse grazes the gutter.
 const HOVER_BLEED = 12;
 
-// Series definitions live at module scope so the line, dots, and
-// legend all draw from the same source of truth. ``profile`` is
-// the variant accessor; ``className`` drives the SVG palette via
-// charts.css; ``label`` and ``description`` flow into the legend
-// and the tooltip header.
+// Series definitions are the single source of truth for every
+// per-variant rendering decision. The legend, the SVG line and
+// dot classes, and the hover tooltip rows all read from this
+// list, so adding a third series later is a one-entry change.
 const SERIES = [
     {
         key: "filled",
         label: "Embedded (filled)",
-        description: "the binary every Bitcoin Core node ships",
-        className: "chart__line--filled",
-        dotClassName: "chart__dot--filled",
-        legendClassName: "chart-legend__swatch--filled",
+        lineClass: "chart__line--filled",
+        dotClass: "chart__dot--filled",
+        swatchClass: "chart-legend__swatch--filled",
         profile: filledProfile,
     },
     {
         key: "unfilled",
         label: "Source data (unfilled)",
-        description: "the upstream prefix data the build was produced from",
-        className: "chart__line--unfilled",
-        dotClassName: "chart__dot--unfilled",
-        legendClassName: "chart-legend__swatch--unfilled",
+        lineClass: "chart__line--unfilled",
+        dotClass: "chart__dot--unfilled",
+        swatchClass: "chart-legend__swatch--unfilled",
         profile: unfilledProfile,
     },
 ];
@@ -100,35 +93,70 @@ export function mount(parent, maps) {
             body: MAP_SIZE_INFO,
             ariaLabel: "About the map size chart",
         }),
-        legend: () => buildLegend(),
+        legend: buildLegend,
         draw: ({ width, height, layout }) =>
             buildChart(maps, width, height, layout),
     });
 }
 
+// Top-level chart assembly. Returns the chart shell, or an empty
+// state node when no published variant could yield a single
+// data point. Each sub-pass (axes, series, hover) lives in its
+// own helper so this function reads as the storyboard.
 function buildChart(maps, width, height, layout) {
-    const plot = plotBounds(width, height, layout);
-
-    // Per-series sample list: one entry per build with the file
-    // size when present, or null when the variant is missing.
-    // Keeping nulls inline preserves the index alignment with the
-    // x axis so the tooltip's nearestIndex() result indexes both
-    // series consistently.
-    const samples = SERIES.map((s) => ({
-        ...s,
-        values: maps.map((m) => s.profile(m)?.file_size_bytes ?? null),
-    }));
-
-    const allSizes = samples.flatMap((s) => s.values).filter((v) => v != null);
+    const samples = sampleSeries(maps);
+    const allSizes = samples
+        .flatMap((s) => s.values)
+        .filter((v) => v != null);
     if (allSizes.length === 0) {
         return emptyState();
     }
 
-    const yTicks = niceTicks(Math.min(...allSizes), Math.max(...allSizes));
-    const yScale = linearScale([yTicks[0], yTicks.at(-1)], [plot.bottom, plot.top]);
-    const xScale = linearScale([0, maps.length - 1], [plot.left, plot.right]);
-    const xAt = (i) => xScale(i);
+    const geometry = computeGeometry(maps, allSizes, width, height, layout);
+    const root = createSvgRoot(width, height);
 
+    drawAxes(root, maps, geometry, width);
+    drawSeriesLines(root, samples, geometry);
+    drawSeriesDots(root, samples, geometry);
+
+    return attachHover(root, maps, geometry);
+}
+
+// ---- Sample preparation ----------------------------------------
+
+// One row per build, one column per series. Nulls inline preserve
+// index alignment with the x axis so the hover handler's
+// nearestIndex() result indexes both series consistently.
+function sampleSeries(maps) {
+    return SERIES.map((series) => ({
+        ...series,
+        values: maps.map(
+            (m) => series.profile(m)?.file_size_bytes ?? null,
+        ),
+    }));
+}
+
+// Single computation of plot bounds, axis ticks, and the two
+// scales every sub-pass needs. Centralised here so the y ticks
+// the axis renders are guaranteed to match the y scale the lines
+// and dots are positioned with.
+function computeGeometry(maps, allSizes, width, height, layout) {
+    const plot = plotBounds(width, height, layout);
+    const yTicks = niceTicks(Math.min(...allSizes), Math.max(...allSizes));
+    const yScale = linearScale(
+        [yTicks[0], yTicks.at(-1)],
+        [plot.bottom, plot.top],
+    );
+    const xScale = linearScale(
+        [0, maps.length - 1],
+        [plot.left, plot.right],
+    );
+    return { plot, yTicks, yScale, xAt: (i) => xScale(i) };
+}
+
+// ---- Static drawing --------------------------------------------
+
+function createSvgRoot(width, height) {
     const root = svg("svg", {
         viewBox: `0 0 ${width} ${height}`,
         class: "chart",
@@ -136,9 +164,12 @@ function buildChart(maps, width, height, layout) {
     });
     root.setAttribute(
         "aria-label",
-        "ASmap file size over time, embedded vs source data variant; hover the chart for exact values per build",
+        "ASmap file size over time, embedded vs source data variant. Hover the chart for exact values per build.",
     );
+    return root;
+}
 
+function drawAxes(root, maps, { plot, yTicks, yScale, xAt }, width) {
     renderYAxis(root, yTicks, yScale, {
         plotLeft: plot.left,
         plotRight: plot.right,
@@ -151,118 +182,45 @@ function buildChart(maps, width, height, layout) {
         plot.bottom,
         (i) => shortDate(maps[i].released_at),
     );
+}
 
-    // Lines: one per series, broken into smooth sub-paths whenever
-    // a build is missing the variant. This keeps the curve from
-    // ramping toward a phantom zero across the gap.
-    for (const s of samples) {
-        for (const segment of contiguousSegments(s.values, xAt, yScale)) {
+// One smooth path per series, broken into sub-segments wherever a
+// build is missing the variant. This keeps the curve from ramping
+// toward a phantom zero across the gap.
+function drawSeriesLines(root, samples, { xAt, yScale }) {
+    for (const series of samples) {
+        for (const segment of contiguousSegments(series.values, xAt, yScale)) {
             root.append(
                 svg("path", {
                     d: smoothPath(segment),
-                    class: `chart__line ${s.className}`,
+                    class: `chart__line ${series.lineClass}`,
                 }),
             );
         }
     }
+}
 
-    // Dots: one per (series, build) where the variant is present.
-    for (const s of samples) {
-        for (let i = 0; i < s.values.length; i++) {
-            if (s.values[i] == null) continue;
+function drawSeriesDots(root, samples, { xAt, yScale }) {
+    for (const series of samples) {
+        for (let i = 0; i < series.values.length; i++) {
+            const value = series.values[i];
+            if (value == null) continue;
             root.append(
                 svg("circle", {
                     cx: xAt(i),
-                    cy: yScale(s.values[i]),
+                    cy: yScale(value),
                     r: DOT_RADIUS,
-                    class: `chart__dot ${s.dotClassName}`,
+                    class: `chart__dot ${series.dotClass}`,
                 }),
             );
         }
     }
-
-    const cursorLine = svg("line", {
-        x1: plot.left,
-        x2: plot.left,
-        y1: plot.top,
-        y2: plot.bottom,
-        class: "chart__cursor-line",
-        visibility: "hidden",
-    });
-    root.append(cursorLine);
-
-    const { shell, tip } = createChartShell(root);
-
-    function hideHover() {
-        hideTooltip(tip);
-        cursorLine.setAttribute("visibility", "hidden");
-    }
-
-    function showHover(idx, ev) {
-        const m = maps[idx];
-        const x = xAt(idx);
-        cursorLine.setAttribute("x1", String(x));
-        cursorLine.setAttribute("x2", String(x));
-        cursorLine.setAttribute("visibility", "visible");
-
-        const filled = filledProfile(m);
-        const unfilled = unfilledProfile(m);
-        const rows = [];
-        if (filled) {
-            rows.push(["Embedded (filled)", `${formatNumber(filled.file_size_bytes)} bytes`]);
-        } else {
-            rows.push(["Embedded (filled)", "not published"]);
-        }
-        if (unfilled) {
-            rows.push(["Source (unfilled)", `${formatNumber(unfilled.file_size_bytes)} bytes`]);
-        } else {
-            rows.push(["Source (unfilled)", "not published"]);
-        }
-        if (filled && unfilled) {
-            // Compression ratio is the share of bytes the fill
-            // heuristic shaves off the upstream encoding. A value
-            // near 0 % means the build had nothing to compress;
-            // 60 % means filled is 40 % of unfilled. Reads more
-            // naturally as "how much smaller did filling make it"
-            // than the raw ratio would.
-            const saved = 1 - filled.file_size_bytes / unfilled.file_size_bytes;
-            rows.push(["Fill compression", formatPercent(saved, 1)]);
-        }
-
-        showTooltip(
-            tip,
-            buildTooltipBody({
-                title: formatDate(m.released_at),
-                rows,
-                footer: m.name,
-            }),
-        );
-        placeTooltipNextFrame(shell, tip, ev.clientX, ev.clientY);
-    }
-
-    shell.addEventListener("mousemove", (ev) => {
-        const pt = clientToSvg(root, ev.clientX, ev.clientY);
-        if (!pt) return;
-        if (
-            pt.x < plot.left - HOVER_BLEED ||
-            pt.x > plot.right + HOVER_BLEED ||
-            pt.y < plot.top ||
-            pt.y > plot.bottom
-        ) {
-            hideHover();
-            return;
-        }
-        showHover(nearestIndex(pt.x, maps.length, xAt), ev);
-    });
-    shell.addEventListener("mouseleave", hideHover);
-
-    return shell;
 }
 
 // Split a values array (with nulls for missing samples) into
-// contiguous segments of [x, y] pairs. Each segment is later fed
-// to smoothPath() independently so the curve breaks at the gap
-// instead of bridging it.
+// contiguous segments of [x, y] pairs. Each segment is fed to
+// smoothPath() on its own so the curve breaks at the gap instead
+// of bridging it.
 function contiguousSegments(values, xAt, yScale) {
     const segments = [];
     let current = [];
@@ -278,21 +236,101 @@ function contiguousSegments(values, xAt, yScale) {
     return segments;
 }
 
+// ---- Hover -----------------------------------------------------
+
+function attachHover(root, maps, { plot, xAt }) {
+    const cursorLine = svg("line", {
+        x1: plot.left,
+        x2: plot.left,
+        y1: plot.top,
+        y2: plot.bottom,
+        class: "chart__cursor-line",
+        visibility: "hidden",
+    });
+    root.append(cursorLine);
+
+    const { shell, tip } = createChartShell(root);
+
+    const hide = () => {
+        hideTooltip(tip);
+        cursorLine.setAttribute("visibility", "hidden");
+    };
+
+    const show = (idx, ev) => {
+        const map = maps[idx];
+        const x = xAt(idx);
+        cursorLine.setAttribute("x1", String(x));
+        cursorLine.setAttribute("x2", String(x));
+        cursorLine.setAttribute("visibility", "visible");
+        showTooltip(
+            tip,
+            buildTooltipBody({
+                title: formatDate(map.released_at),
+                rows: hoverRows(map),
+                footer: map.name,
+            }),
+        );
+        placeTooltipNextFrame(shell, tip, ev.clientX, ev.clientY);
+    };
+
+    shell.addEventListener("mousemove", (ev) => {
+        const pt = clientToSvg(root, ev.clientX, ev.clientY);
+        if (!pt) return;
+        if (
+            pt.x < plot.left - HOVER_BLEED ||
+            pt.x > plot.right + HOVER_BLEED ||
+            pt.y < plot.top ||
+            pt.y > plot.bottom
+        ) {
+            hide();
+            return;
+        }
+        show(nearestIndex(pt.x, maps.length, xAt), ev);
+    });
+    shell.addEventListener("mouseleave", hide);
+
+    return shell;
+}
+
+// Tooltip rows: one per series with its size or "not published",
+// plus an extra fill-compression row when both sides exist. Rows
+// reuse the same SERIES.label text the legend uses, so renaming
+// a variant only touches the SERIES entry.
+function hoverRows(map) {
+    const rows = SERIES.map((series) => {
+        const profile = series.profile(map);
+        const value = profile
+            ? `${formatNumber(profile.file_size_bytes)} bytes`
+            : "not published";
+        return [series.label, value];
+    });
+
+    const filled = filledProfile(map);
+    const unfilled = unfilledProfile(map);
+    if (filled && unfilled) {
+        // Compression is the share of bytes the fill heuristic
+        // shaves off the upstream encoding. Reads more naturally
+        // as "how much smaller did filling make it" than the raw
+        // size ratio would.
+        const saved = 1 - filled.file_size_bytes / unfilled.file_size_bytes;
+        rows.push(["Fill compression", formatPercent(saved, 1)]);
+    }
+    return rows;
+}
+
+// ---- Static UI -------------------------------------------------
+
 function buildLegend() {
     const legend = document.createElement("div");
     legend.className = "chart-legend";
-    for (const s of SERIES) {
+    for (const series of SERIES) {
         const item = document.createElement("span");
         item.className = "chart-legend__item";
         const swatch = document.createElement("span");
-        swatch.className = `chart-legend__swatch ${s.legendClassName}`;
-        const text = document.createElement("span");
-        text.append(document.createTextNode(`${s.label} `));
-        const muted = document.createElement("span");
-        muted.className = "muted";
-        muted.textContent = `\u00b7 ${s.description}`;
-        text.append(muted);
-        item.append(swatch, text);
+        swatch.className = `chart-legend__swatch ${series.swatchClass}`;
+        const label = document.createElement("span");
+        label.textContent = series.label;
+        item.append(swatch, label);
         legend.append(item);
     }
     return legend;

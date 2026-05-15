@@ -1,10 +1,14 @@
-// Overview row at the top of the Maps tab: three cards giving a
-// snapshot of the selected build - how many mappings it carries,
-// how many unique ASes those mappings cover (with IPv4 / IPv6
-// split), and how far it drifted from the previous build. Each
-// card carries a "vs previous" delta when a chronologically
+// Overview row at the top of the Maps tab. Three cards give a
+// snapshot of the selected build:
+//
+//   - how many mappings it carries
+//   - how many unique ASes those mappings cover, with IPv4 / IPv6
+//     split
+//   - how far it drifted from the previous build
+//
+// Each card carries a "vs previous" delta when a chronologically
 // preceding build is available. Build age sits inline on the
-// section toolbar; raw file size lives in the History charts.
+// section toolbar. Raw file size lives in the History charts.
 //
 // All cards read the unfilled variant by default and fall back to
 // filled when unfilled was not published for a build (see
@@ -23,8 +27,8 @@ import { createInfoTooltip } from "./info-tooltip.js";
 
 // Pure render: build the overview cards for ``current`` and the
 // chronologically preceding build ``previous`` (may be null for the
-// oldest map). ``diffs`` is the pair-diff array from metrics.json,
-// used by the drift card; the other cards never need it.
+// oldest map). ``diffs`` is the pair-diff array from metrics.json.
+// Only the drift card reads it. The other cards never need it.
 export function mount(parent, current, previous, diffs) {
     if (!current) {
         parent.replaceChildren(emptyState());
@@ -46,11 +50,12 @@ export function mount(parent, current, previous, diffs) {
     parent.replaceChildren(row);
 }
 
-// Entries are the (prefix, ASN) tuples the binary trie resolves to
-// at lookup time - the substantive size of a map. File size in
-// bytes is an encoding artefact and lives in the History charts;
-// reviewers asking "how much did this map gain or lose?" want this
-// number, not kilobytes of compressed trie data.
+// Entries are the (prefix, ASN) tuples the binary trie resolves
+// to at lookup time. They are the substantive size of a map.
+// File size in bytes is an encoding artefact and lives in the
+// History charts. Reviewers asking "how much did this map gain
+// or lose?" want this number, not kilobytes of compressed trie
+// data.
 function entriesCountCard(currentPick, previousPick) {
     const card = createCard("Entries", {
         info: [
@@ -149,8 +154,8 @@ function createCard(label, { info, source } = {}) {
     card.append(title);
     // Show a small marker only when the card had to fall back to
     // the filled variant. Unfilled is the default and needs no
-    // annotation; muddying every card with "source data" would just
-    // be noise.
+    // annotation. Tagging every card with "source data" would
+    // just be noise.
     if (source === "filled") {
         card.append(fallbackBadge());
     }
@@ -158,9 +163,9 @@ function createCard(label, { info, source } = {}) {
 }
 
 // Subtle annotation for the rare build that only published filled.
-// Reads as a status, not as a warning - we are still showing real
-// numbers, they just come from the encoded form rather than from
-// the source-data form.
+// Reads as a status, not as a warning. The numbers are still real,
+// they just come from the encoded form rather than from the
+// source-data form.
 function fallbackBadge() {
     const badge = document.createElement("span");
     badge.className = "card__fallback uppercase-label muted";

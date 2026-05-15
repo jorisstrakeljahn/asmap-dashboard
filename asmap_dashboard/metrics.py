@@ -100,7 +100,7 @@ def discover_maps(data_dir: PathLike) -> List[DiscoveredBuild]:
         unfilled = slot["unfilled"]
         filled = slot["filled"]
         # ``name`` is the variant-agnostic id. We pick whichever side
-        # exists to derive it; both variants live in the same year
+        # exists to derive it. Both variants live in the same year
         # folder under the same numeric stem, so the identifier is
         # well-defined regardless of which file we inspect.
         sample = unfilled or filled
