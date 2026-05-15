@@ -36,6 +36,12 @@
     --color-accent-soft: #c4b5fd;
     --color-success: #10b981;
     --color-neutral: #94a3b8;
+    /* Warning hue used by the drift composition chart for the
+       Unmapped series. Picked so that Reassigned (accent indigo),
+       Newly Mapped (success green), and Unmapped (warning amber)
+       read as three distinct semantic categories rather than a
+       ranked palette. */
+    --color-warning: #d97706;
 
     /* Categorical palette for multi-series charts. Series 1 reuses
        the accent so single-line charts stay tonally consistent with

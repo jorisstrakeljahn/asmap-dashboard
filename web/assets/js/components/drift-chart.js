@@ -1,17 +1,27 @@
-// Drift chart: how far each published map has wandered from a
-// reference build, expressed as the share of mapping entries that
-// differ. Two modes feed the same plot:
+// Drift composition chart: how an asmap-data build differs from a
+// reference, broken into the three change categories the diff
+// pipeline emits. The single "drift %" line that used to live here
+// answered "how big was this update?" but said nothing about the
+// character of the change. Splitting into Reassigned, Newly
+// Mapped, and Unmapped lines lets the reader see whether a jump
+// came from prefix routing churn (Reassigned), from coverage
+// growth (Newly Mapped), or from upstream data dropping prefixes
+// (Unmapped).
 //
-//   - "previous":  one line, drift(M_(i-1) -> M_i) for every i.
-//                  Answers "how much did each release change?".
-//   - "baseline":  one line per picked baseline, drift(B -> M) for
-//                  every M in the timeline. Answers "how far has the
-//                  map drifted from a chosen reference state?".
+// Two modes share the same plot:
 //
-// Drift ratio is total_changes / max(entries_a, entries_b). Same
-// denominator the diff explorer uses for the headline match-rate,
-// so a drift of 8% here lines up with a 92% match-rate banner over
-// in the diff explorer when the user picks the same pair.
+//   - Cumulative (default). For each build, the diff against the
+//     oldest published build. Lines grow over time and answer
+//     "how outdated is an embedded asmap?".
+//   - Step. For each build, the diff against the immediately
+//     previous build. Highlights the character of individual
+//     asmap-data updates and answers "what kind of change was
+//     this release?".
+//
+// All ratios use total / max(entries_a, entries_b) so they share
+// a denominator with the diff explorer's match-rate banner. Sum
+// of the three series at any point equals the "total drift" the
+// overview card shows for the same pair.
 
 import {
     labelDensityForWidth,
@@ -32,31 +42,78 @@ import {
 import { buildTooltipBody } from "../charts/chart-tooltip.js";
 import { linearScale, niceTicks, smoothPath, svg } from "../charts/svg.js";
 import { formatDate, formatNumber, formatPercent, shortDate } from "../format.js";
-import { findDiff } from "../utils/diffs.js";
-import { uniqueId } from "../utils/dom.js";
 import { unfilledProfile } from "../utils/variants.js";
-import { createDropdown } from "./dropdown.js";
 import { createInfoTooltip } from "./info-tooltip.js";
 import { createModeSwitch } from "./mode-switch.js";
 
 const DOT_RADIUS = 3;
+// Hover tolerance: how far past the plot bounds we still treat
+// the cursor as "over the chart". Keeps the tooltip from
+// flickering off when the mouse grazes the gutter.
 const HOVER_BLEED = 12;
 
-// Cap the baseline picker so the legend stays scannable and we
-// don't run out of distinct series colours. Five lines is already
-// dense. Beyond that the chart turns into spaghetti.
-const SERIES_PALETTE = [
-    "var(--color-series-1)",
-    "var(--color-series-2)",
-    "var(--color-series-3)",
-    "var(--color-series-4)",
-    "var(--color-series-5)",
+// Single source of truth for every per-category rendering choice.
+// The legend, the SVG line and dot classes, and the hover tooltip
+// rows all read from this list. Adding a fourth category later is
+// a one-entry change.
+const SERIES = [
+    {
+        key: "reassigned",
+        label: "Reassigned",
+        accessor: (point) => point.reassigned_ratio,
+        countAccessor: (point) => point.reassigned,
+        lineClass: "chart__line--reassigned",
+        dotClass: "chart__dot--reassigned",
+        swatchClass: "chart-legend__swatch--reassigned",
+    },
+    {
+        key: "newly_mapped",
+        label: "Newly Mapped",
+        accessor: (point) => point.newly_ratio,
+        countAccessor: (point) => point.newly_mapped,
+        lineClass: "chart__line--newly-mapped",
+        dotClass: "chart__dot--newly-mapped",
+        swatchClass: "chart-legend__swatch--newly-mapped",
+    },
+    {
+        key: "unmapped",
+        label: "Unmapped",
+        accessor: (point) => point.unmapped_ratio,
+        countAccessor: (point) => point.unmapped,
+        lineClass: "chart__line--unmapped",
+        dotClass: "chart__dot--unmapped",
+        swatchClass: "chart-legend__swatch--unmapped",
+    },
 ];
-const MAX_BASELINES = SERIES_PALETTE.length;
+
+const DRIFT_INFO = [
+    "Composition of drift between asmap-data builds, broken into the three change categories the diff pipeline emits.",
+    {
+        lead: "Cumulative.",
+        text: "How far each build has wandered from the oldest published build with an unfilled variant. Lines grow over time and tell you how outdated an embedded asmap becomes.",
+    },
+    {
+        lead: "Step.",
+        text: "How much each build changed compared to the previous build with an unfilled variant. Highlights individual asmap-data updates and their character.",
+    },
+    {
+        lead: "Reassigned.",
+        text: "Prefix kept its mapping but now points at a different autonomous system.",
+    },
+    {
+        lead: "Newly Mapped.",
+        text: "Prefix had no autonomous system in the reference and now resolves to one.",
+    },
+    {
+        lead: "Unmapped.",
+        text: "Prefix that resolved in the reference no longer resolves.",
+    },
+    "Computed from the unfilled (source data) variant of every build. Builds that did not publish an unfilled variant appear as gaps. The three lines sum to the total drift the overview card shows for the same pair.",
+];
 
 // Public mount: render the drift card under ``parent``. The card
-// owns its own state (mode + picked baselines) and re-draws the
-// chart on every state change.
+// owns its own state (mode) and re-draws the chart on every
+// state change.
 export function mount(parent, maps, diffs) {
     if (!parent) return;
     if (!Array.isArray(maps) || maps.length < 2) {
@@ -71,27 +128,48 @@ export function mount(parent, maps, diffs) {
     const sortedMaps = [...maps].sort((a, b) =>
         a.released_at.localeCompare(b.released_at),
     );
-    // Baselines are only useful for builds that took part in the
-    // unfilled-vs-unfilled diff loop. Builds without an unfilled
-    // variant cannot anchor a drift series. Pre-compute the eligible
-    // subset once so both the picker dropdown and the initial
-    // default baseline draw from it.
-    const baselineCandidates = sortedMaps.filter(
-        (m) => unfilledProfile(m) !== null,
-    );
-    if (baselineCandidates.length === 0) {
+    // Cumulative needs at least one build with an unfilled variant
+    // to act as the anchor. Without it, neither mode has any data
+    // to plot and we surface the empty state instead of an empty
+    // chart card.
+    if (!sortedMaps.some((m) => unfilledProfile(m) !== null)) {
         parent.replaceChildren(emptyState());
         return;
     }
 
-    const state = {
-        mode: "previous",
-        baselines: [baselineCandidates[0].name],
-    };
+    const state = { mode: "cumulative" };
 
     const card = document.createElement("article");
     card.className = "card chart-card drift-chart";
 
+    const header = buildHeader({
+        modeValue: state.mode,
+        onModeChange: (next) => {
+            state.mode = next;
+            rerender();
+        },
+    });
+    const legend = buildLegend();
+    const chartSlot = document.createElement("div");
+    chartSlot.className = "drift-chart__plot";
+
+    card.append(header, legend, chartSlot);
+    parent.replaceChildren(card);
+
+    const rerender = () => {
+        const points = computePoints(sortedMaps, diffs, state.mode);
+        mountResponsiveChart(chartSlot, {
+            title: null,
+            draw: ({ width, height, layout }) =>
+                buildChart(sortedMaps, points, state.mode, width, height, layout),
+        });
+    };
+    rerender();
+}
+
+// ---- Card header (label, controls) ------------------------------
+
+function buildHeader({ modeValue, onModeChange }) {
     const header = document.createElement("div");
     header.className = "drift-chart__header";
 
@@ -102,300 +180,170 @@ export function mount(parent, maps, diffs) {
 
     const modeSwitch = createModeSwitch({
         options: [
-            { value: "previous", label: "vs previous" },
-            { value: "baseline", label: "vs baseline" },
+            { value: "cumulative", label: "Cumulative" },
+            { value: "step", label: "Step" },
         ],
-        value: state.mode,
-        onChange: (next) => {
-            state.mode = next;
-            baselinePicker.setVisible(next === "baseline");
-            rerender();
-        },
+        value: modeValue,
+        onChange: onModeChange,
         ariaLabel: "Drift comparison mode",
     });
 
-    // The info trigger sits at the right end of the header,
-    // matching the corner-pinned affordance on the cards that
-    // have no controls. Keeping it inside the header keeps the
-    // layout clean even when the mode switch is present.
-    const explainer = createInfoTooltip({
-        body: [
-            "How far each published build has wandered from a reference, expressed as the share of mapping entries that differ.",
-            {
-                lead: "vs previous.",
-                text: "Drift between every consecutive pair of builds. Spikes mark releases that moved the map a lot.",
-            },
-            {
-                lead: "vs baseline.",
-                text: "Pick one or more reference builds and watch how far every later build has drifted from them. Useful for measuring decay from a known good state.",
-            },
-            "Computed from the unfilled (source data) variant of every build, so drift reflects real BGP / RPKI / IRR changes rather than fill-heuristic shifts. Builds that did not publish an unfilled variant appear as gaps.",
-            "Drift uses the same denominator as the match rate in the diff explorer, so 8 % drift here matches a 92 % match banner there.",
-        ],
+    const info = createInfoTooltip({
+        body: DRIFT_INFO,
         ariaLabel: "About the drift chart",
     });
-    explainer.classList.add("drift-chart__info");
+    info.classList.add("drift-chart__info");
 
     const controls = document.createElement("div");
     controls.className = "drift-chart__controls";
-    controls.append(modeSwitch, explainer);
+    controls.append(modeSwitch, info);
     header.append(controls);
 
-    const baselinePicker = createBaselinePicker(
-        baselineCandidates,
-        state.baselines,
-        (next) => {
-            state.baselines = next;
-            rerender();
-        },
-    );
-    baselinePicker.setVisible(state.mode === "baseline");
-
-    const chartSlot = document.createElement("div");
-    chartSlot.className = "drift-chart__plot";
-
-    card.append(header, baselinePicker.elem, chartSlot);
-    parent.replaceChildren(card);
-
-    const rerender = () => {
-        const series = computeSeries(sortedMaps, diffs, state);
-        mountResponsiveChart(chartSlot, {
-            title: null,
-            draw: ({ width, height, layout }) =>
-                buildPlot({ sortedMaps, series, width, height, layout }),
-        });
-    };
-    rerender();
+    return header;
 }
 
-// Baseline picker (pills + add dropdown) -----------------------------------
+// ---- Pure data layer --------------------------------------------
+
+// Build one Point per chronological build slot. Each Point either
+// carries the three category ratios for that slot or is marked as
+// a gap. Gaps are rendered as breaks in the line so the chart
+// never ramps toward a phantom zero across a missing diff.
 //
-// ``candidates`` is the subset of builds eligible to anchor a drift
-// series, i.e. those that published an unfilled variant. The picker
-// never offers a build outside this subset.
-
-function createBaselinePicker(candidates, initial, onChange) {
-    const elem = document.createElement("div");
-    elem.className = "baseline-picker";
-
-    const labelId = uniqueId("baseline-picker-label");
-    const labelEl = document.createElement("span");
-    labelEl.className = "baseline-picker__label";
-    labelEl.id = labelId;
-    labelEl.textContent = "Baselines";
-
-    const pillRow = document.createElement("div");
-    pillRow.className = "baseline-picker__pills";
-    pillRow.setAttribute("role", "list");
-    pillRow.setAttribute("aria-labelledby", labelId);
-
-    const addSlot = document.createElement("div");
-    addSlot.className = "baseline-picker__add";
-
-    elem.append(labelEl, pillRow, addSlot);
-
-    let baselines = [...initial];
-
-    const removeBaseline = (name) => {
-        if (baselines.length <= 1) return;
-        baselines = baselines.filter((b) => b !== name);
-        renderPills();
-        renderAddDropdown();
-        onChange(baselines);
-    };
-
-    const addBaseline = (name) => {
-        if (!name) return;
-        if (baselines.includes(name)) return;
-        if (baselines.length >= MAX_BASELINES) return;
-        baselines = [...baselines, name];
-        renderPills();
-        renderAddDropdown();
-        onChange(baselines);
-    };
-
-    const renderPills = () => {
-        pillRow.replaceChildren();
-        baselines.forEach((name, idx) => {
-            const map = candidates.find((m) => m.name === name);
-            if (!map) return;
-            pillRow.append(
-                createBaselinePill({
-                    label: formatDate(map.released_at),
-                    color: SERIES_PALETTE[idx % SERIES_PALETTE.length],
-                    canRemove: baselines.length > 1,
-                    onRemove: () => removeBaseline(name),
-                }),
-            );
-        });
-    };
-
-    const renderAddDropdown = () => {
-        addSlot.replaceChildren();
-        const remaining = candidates.filter(
-            (m) => !baselines.includes(m.name),
-        );
-        if (baselines.length >= MAX_BASELINES || remaining.length === 0) {
-            return;
-        }
-        const dropdown = createDropdown({
-            options: remaining.map((m) => ({
-                value: m.name,
-                label: formatDate(m.released_at),
-            })),
-            value: null,
-            placeholder: "+ Add baseline",
-            ariaLabel: "Add baseline",
-            onChange: (picked) => addBaseline(picked),
-        });
-        dropdown.classList.add("baseline-picker__add-dropdown");
-        addSlot.append(dropdown);
-    };
-
-    renderPills();
-    renderAddDropdown();
-
-    return {
-        elem,
-        setVisible(visible) {
-            elem.hidden = !visible;
-        },
-    };
+// Returned array is index-aligned with sortedMaps so the hover
+// handler's nearestIndex() result indexes both consistently.
+export function computePoints(sortedMaps, diffs, mode) {
+    if (mode === "cumulative") return cumulativePoints(sortedMaps, diffs);
+    if (mode === "step") return stepPoints(sortedMaps, diffs);
+    return sortedMaps.map((map, index) => gapPoint(map, index));
 }
 
-function createBaselinePill({ label, color, canRemove, onRemove }) {
-    const pill = document.createElement("span");
-    pill.className = "baseline-pill";
-    pill.setAttribute("role", "listitem");
-    pill.style.setProperty("--pill-color", color);
+function cumulativePoints(sortedMaps, diffs) {
+    // Anchor on the oldest build that actually published an unfilled
+    // variant. The single filled-only build (2025-03-21) cannot
+    // contribute a diff and would shift the anchor forward in time
+    // for everything after it, which would silently relabel the
+    // baseline. Filtering keeps the anchor stable and honest.
+    const baseline = sortedMaps.find((m) => unfilledProfile(m) !== null);
+    if (!baseline) return sortedMaps.map((m, i) => gapPoint(m, i));
 
-    const swatch = document.createElement("span");
-    swatch.className = "baseline-pill__swatch";
-    swatch.setAttribute("aria-hidden", "true");
-
-    const text = document.createElement("span");
-    text.className = "baseline-pill__label";
-    text.textContent = label;
-
-    pill.append(swatch, text);
-
-    if (canRemove) {
-        const remove = document.createElement("button");
-        remove.type = "button";
-        remove.className = "baseline-pill__remove";
-        remove.setAttribute("aria-label", `Remove baseline ${label}`);
-        remove.textContent = "\u00d7";
-        remove.addEventListener("click", onRemove);
-        pill.append(remove);
-    }
-
-    return pill;
-}
-
-// Pure data layer ----------------------------------------------------------
-
-// Build the array of {label, color, points[]} the chart consumes,
-// branching on the picked mode. Stays pure so it can be exercised
-// without a DOM.
-function computeSeries(sortedMaps, diffs, state) {
-    if (state.mode === "previous") {
-        const series = computePreviousSeries(sortedMaps, diffs);
-        return series ? [{ ...series, color: SERIES_PALETTE[0] }] : [];
-    }
-    return state.baselines
-        .map((name, idx) => {
-            const series = computeBaselineSeries(sortedMaps, diffs, name);
-            if (!series) return null;
-            return { ...series, color: SERIES_PALETTE[idx % SERIES_PALETTE.length] };
-        })
-        .filter(Boolean);
-}
-
-function computePreviousSeries(sortedMaps, diffs) {
-    const points = [];
-    for (let i = 0; i < sortedMaps.length; i++) {
-        if (i === 0) {
-            // First build: nothing to diff against. Anchor the line
-            // at 0 % drift so the chart starts cleanly. Denominator
-            // is informational. We read it from the unfilled profile
-            // because unfilled is the side the rest of the series
-            // is computed from. Builds without an unfilled variant
-            // simply contribute 0 here, which is harmless. The
-            // reference point is always 0 % drift regardless.
-            points.push({
-                map: sortedMaps[0],
-                index: 0,
-                drift_ratio: 0,
-                total_changes: 0,
-                denominator: unfilledProfile(sortedMaps[0])?.entries_count ?? 0,
-                vs: null,
-            });
-            continue;
-        }
-        const prev = sortedMaps[i - 1];
-        const curr = sortedMaps[i];
-        const diff = findDiff(diffs, prev.name, curr.name);
-        if (!diff) continue;
-        const denom = Math.max(diff.entries_a, diff.entries_b);
-        points.push({
-            map: curr,
-            index: i,
-            drift_ratio: denom ? diff.total_changes / denom : 0,
-            total_changes: diff.total_changes,
-            denominator: denom,
-            vs: prev,
-        });
-    }
-    return { label: "vs previous build", baseline: null, points };
-}
-
-function computeBaselineSeries(sortedMaps, diffs, baselineName) {
-    const baseline = sortedMaps.find((m) => m.name === baselineName);
-    if (!baseline) return null;
-    const points = [];
-    for (let i = 0; i < sortedMaps.length; i++) {
-        const map = sortedMaps[i];
+    return sortedMaps.map((map, index) => {
         if (map.name === baseline.name) {
-            points.push({
-                map,
-                index: i,
-                drift_ratio: 0,
-                total_changes: 0,
-                denominator: unfilledProfile(baseline)?.entries_count ?? 0,
-                vs: baseline,
-            });
-            continue;
+            return zeroPoint(map, index, baseline);
         }
-        const diff = findDiff(diffs, baseline.name, map.name);
-        if (!diff) continue;
-        const denom = Math.max(diff.entries_a, diff.entries_b);
-        points.push({
-            map,
-            index: i,
-            drift_ratio: denom ? diff.total_changes / denom : 0,
-            total_changes: diff.total_changes,
-            denominator: denom,
-            vs: baseline,
-        });
+        const diff = directionalDiff(diffs, baseline.name, map.name);
+        return diff ? toPoint(map, index, diff, baseline) : gapPoint(map, index);
+    });
+}
+
+function stepPoints(sortedMaps, diffs) {
+    // "Previous" means "previous build that can actually be diffed
+    // against", which excludes filled-only builds. If we picked the
+    // raw chronological neighbour, the build immediately after a
+    // filled-only one would always show as a gap because its
+    // neighbour has no unfilled variant. Skipping over filled-only
+    // neighbours produces the step the user expects, with the
+    // tooltip footer naming the actual reference build.
+    return sortedMaps.map((map, index) => {
+        if (!unfilledProfile(map)) return gapPoint(map, index);
+        const previous = lastDiffableBefore(sortedMaps, index);
+        if (!previous) return zeroPoint(map, index, null);
+        const diff = directionalDiff(diffs, previous.name, map.name);
+        return diff ? toPoint(map, index, diff, previous) : gapPoint(map, index);
+    });
+}
+
+function lastDiffableBefore(sortedMaps, index) {
+    for (let i = index - 1; i >= 0; i--) {
+        if (unfilledProfile(sortedMaps[i])) return sortedMaps[i];
     }
+    return null;
+}
+
+// Strict directional lookup. Pipeline emits each pair exactly once
+// with from < to chronologically, so callers passing chronological
+// (older, newer) arguments always hit the canonical direction. We
+// never want the symmetric fallback findDiff() in utils/diffs.js
+// offers, because the asymmetric category fields (reassigned,
+// newly_mapped, unmapped) only make sense in the canonical
+// direction.
+function directionalDiff(diffs, fromName, toName) {
+    return (
+        diffs.find((d) => d.from === fromName && d.to === toName) || null
+    );
+}
+
+function toPoint(map, index, diff, vs) {
+    const denom = Math.max(diff.entries_a, diff.entries_b);
+    const ratio = (n) => (denom ? n / denom : 0);
     return {
-        label: `vs ${formatDate(baseline.released_at)}`,
-        baseline,
-        points,
+        present: true,
+        map,
+        index,
+        vs,
+        denominator: denom,
+        reassigned: diff.reassigned,
+        newly_mapped: diff.newly_mapped,
+        unmapped: diff.unmapped,
+        total_changes: diff.total_changes,
+        reassigned_ratio: ratio(diff.reassigned),
+        newly_ratio: ratio(diff.newly_mapped),
+        unmapped_ratio: ratio(diff.unmapped),
+        total_ratio: ratio(diff.total_changes),
     };
 }
 
-// Plot drawing -------------------------------------------------------------
+function zeroPoint(map, index, vs) {
+    return {
+        present: true,
+        map,
+        index,
+        vs,
+        denominator: 0,
+        reassigned: 0,
+        newly_mapped: 0,
+        unmapped: 0,
+        total_changes: 0,
+        reassigned_ratio: 0,
+        newly_ratio: 0,
+        unmapped_ratio: 0,
+        total_ratio: 0,
+    };
+}
 
-function buildPlot({ sortedMaps, series, width, height, layout }) {
-    if (series.length === 0) {
-        return emptyState("No drift data for the picked selection.");
+function gapPoint(map, index) {
+    return { present: false, map, index };
+}
+
+// ---- Chart assembly ---------------------------------------------
+
+// Top-level chart pass. Returns the chart shell, or an empty state
+// node when the picked mode produced no plottable point. Each
+// sub-pass (axes, series, hover) lives in its own helper so this
+// function reads as the storyboard.
+function buildChart(sortedMaps, points, mode, width, height, layout) {
+    const allRatios = points
+        .filter((p) => p.present)
+        .flatMap((p) => SERIES.map((s) => s.accessor(p)));
+    if (allRatios.length === 0) {
+        return emptyState("No drift data for the picked mode.");
     }
-    const plot = plotBounds(width, height, layout);
 
-    const allRatios = series.flatMap((s) => s.points.map((p) => p.drift_ratio));
-    const maxRatio = Math.max(0.01, ...allRatios);
-    const yTicks = niceTicks(0, maxRatio);
+    const geometry = computeGeometry(sortedMaps, allRatios, width, height, layout);
+    const root = createSvgRoot(width, height, mode);
+
+    drawAxes(root, sortedMaps, geometry, width);
+    drawSeriesLines(root, points, geometry);
+    drawSeriesDots(root, points, geometry);
+
+    return attachHover(root, sortedMaps, points, geometry, mode);
+}
+
+function computeGeometry(sortedMaps, allRatios, width, height, layout) {
+    const plot = plotBounds(width, height, layout);
+    // niceTicks on a flat-zero domain still needs a non-zero upper
+    // bound. 1 % keeps the y axis usable even when every plotted
+    // point happens to be zero.
+    const yTicks = niceTicks(0, Math.max(0.01, ...allRatios));
     const yScale = linearScale(
         [yTicks[0], yTicks.at(-1)],
         [plot.bottom, plot.top],
@@ -404,18 +352,27 @@ function buildPlot({ sortedMaps, series, width, height, layout }) {
         [0, sortedMaps.length - 1],
         [plot.left, plot.right],
     );
-    const xAt = (i) => xScale(i);
+    return { plot, yTicks, yScale, xAt: (i) => xScale(i) };
+}
 
+function createSvgRoot(width, height, mode) {
     const root = svg("svg", {
         viewBox: `0 0 ${width} ${height}`,
         class: "chart",
         role: "presentation",
     });
-    root.setAttribute(
-        "aria-label",
-        "Drift over time. Share of mapping entries that differ from the chosen reference build.",
-    );
+    root.setAttribute("aria-label", ariaLabelFor(mode));
+    return root;
+}
 
+function ariaLabelFor(mode) {
+    if (mode === "cumulative") {
+        return "Cumulative drift composition since the oldest published build. Three series for reassigned, newly mapped, and unmapped entries.";
+    }
+    return "Step drift composition between consecutive builds. Three series for reassigned, newly mapped, and unmapped entries.";
+}
+
+function drawAxes(root, sortedMaps, { plot, yTicks, yScale, xAt }, width) {
     renderYAxis(root, yTicks, yScale, {
         plotLeft: plot.left,
         plotRight: plot.right,
@@ -428,30 +385,62 @@ function buildPlot({ sortedMaps, series, width, height, layout }) {
         plot.bottom,
         (i) => shortDate(sortedMaps[i].released_at),
     );
+}
 
-    for (const s of series) {
-        const points = s.points.map((p) => [xAt(p.index), yScale(p.drift_ratio)]);
-        if (points.length < 2) continue;
-        root.append(
-            svg("path", {
-                d: smoothPath(points),
-                class: "chart__line drift-chart__line",
-                style: `stroke: ${s.color}`,
-            }),
-        );
-        for (const point of s.points) {
+// One smooth path per series, broken into sub-segments wherever a
+// build sits in a gap. This keeps the curve from ramping toward a
+// phantom zero across the missing diff.
+function drawSeriesLines(root, points, { xAt, yScale }) {
+    for (const series of SERIES) {
+        for (const segment of contiguousSegments(points, series, xAt, yScale)) {
             root.append(
-                svg("circle", {
-                    cx: xAt(point.index),
-                    cy: yScale(point.drift_ratio),
-                    r: DOT_RADIUS,
-                    class: "chart__dot drift-chart__dot",
-                    style: `fill: ${s.color}; stroke: ${s.color}`,
+                svg("path", {
+                    d: smoothPath(segment),
+                    class: `chart__line ${series.lineClass}`,
                 }),
             );
         }
     }
+}
 
+function drawSeriesDots(root, points, { xAt, yScale }) {
+    for (const series of SERIES) {
+        for (const point of points) {
+            if (!point.present) continue;
+            root.append(
+                svg("circle", {
+                    cx: xAt(point.index),
+                    cy: yScale(series.accessor(point)),
+                    r: DOT_RADIUS,
+                    class: `chart__dot ${series.dotClass}`,
+                }),
+            );
+        }
+    }
+}
+
+// Split the index-aligned points list into contiguous [x, y]
+// segments per series, breaking at gap points. Each segment is fed
+// to smoothPath() on its own so the curve breaks at the gap
+// instead of bridging it.
+function contiguousSegments(points, series, xAt, yScale) {
+    const segments = [];
+    let current = [];
+    for (const point of points) {
+        if (!point.present) {
+            if (current.length >= 2) segments.push(current);
+            current = [];
+            continue;
+        }
+        current.push([xAt(point.index), yScale(series.accessor(point))]);
+    }
+    if (current.length >= 2) segments.push(current);
+    return segments;
+}
+
+// ---- Hover -------------------------------------------------------
+
+function attachHover(root, sortedMaps, points, { plot, xAt }, mode) {
     const cursorLine = svg("line", {
         x1: plot.left,
         x2: plot.left,
@@ -464,35 +453,26 @@ function buildPlot({ sortedMaps, series, width, height, layout }) {
 
     const { shell, tip } = createChartShell(root);
 
-    function hideHover() {
+    const hide = () => {
         hideTooltip(tip);
         cursorLine.setAttribute("visibility", "hidden");
-    }
+    };
 
-    function showHover(idx, ev) {
-        const map = sortedMaps[idx];
+    const show = (idx, ev) => {
+        const point = points[idx];
         cursorLine.setAttribute("x1", String(xAt(idx)));
         cursorLine.setAttribute("x2", String(xAt(idx)));
         cursorLine.setAttribute("visibility", "visible");
-
-        const rows = [];
-        for (const s of series) {
-            const point = s.points.find((p) => p.index === idx);
-            if (!point) continue;
-            rows.push([
-                s.label,
-                pointTooltipText(point),
-            ]);
-        }
         showTooltip(
             tip,
             buildTooltipBody({
-                title: formatDate(map.released_at),
-                rows,
+                title: formatDate(sortedMaps[idx].released_at),
+                rows: hoverRows(point),
+                footer: footerFor(point, mode),
             }),
         );
         placeTooltipNextFrame(shell, tip, ev.clientX, ev.clientY);
-    }
+    };
 
     shell.addEventListener("mousemove", (ev) => {
         const pt = clientToSvg(root, ev.clientX, ev.clientY);
@@ -503,19 +483,57 @@ function buildPlot({ sortedMaps, series, width, height, layout }) {
             pt.y < plot.top ||
             pt.y > plot.bottom
         ) {
-            hideHover();
+            hide();
             return;
         }
-        showHover(nearestIndex(pt.x, sortedMaps.length, xAt), ev);
+        show(nearestIndex(pt.x, sortedMaps.length, xAt), ev);
     });
-    shell.addEventListener("mouseleave", hideHover);
+    shell.addEventListener("mouseleave", hide);
 
     return shell;
 }
 
-function pointTooltipText(point) {
-    if (point.total_changes === 0) return "0% (reference)";
-    return `${formatPercent(point.drift_ratio, 1)} (${formatNumber(point.total_changes)} changes)`;
+// Tooltip rows: a Total summary on top, then one row per series.
+// Gap points get a single row stating no diff is available, so
+// the user understands why the lines break.
+function hoverRows(point) {
+    if (!point.present) {
+        return [["Drift", "no diff for this build"]];
+    }
+    const rows = [
+        [
+            "Total drift",
+            `${formatPercent(point.total_ratio, 1)} (${formatNumber(point.total_changes)})`,
+        ],
+    ];
+    for (const series of SERIES) {
+        rows.push([series.label, formatPercent(series.accessor(point), 1)]);
+    }
+    return rows;
+}
+
+function footerFor(point, mode) {
+    if (!point.present || !point.vs) return point.map.name;
+    const vsLabel = formatDate(point.vs.released_at);
+    return mode === "cumulative" ? `since ${vsLabel}` : `vs ${vsLabel}`;
+}
+
+// ---- Static UI ---------------------------------------------------
+
+function buildLegend() {
+    const legend = document.createElement("div");
+    legend.className = "chart-legend";
+    for (const series of SERIES) {
+        const item = document.createElement("span");
+        item.className = "chart-legend__item";
+        const swatch = document.createElement("span");
+        swatch.className = `chart-legend__swatch ${series.swatchClass}`;
+        const label = document.createElement("span");
+        label.textContent = series.label;
+        item.append(swatch, label);
+        legend.append(item);
+    }
+    return legend;
 }
 
 function emptyState(text = "Need at least two builds and one diff to plot drift.") {

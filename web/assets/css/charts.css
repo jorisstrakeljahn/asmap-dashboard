@@ -153,8 +153,44 @@
     fill: none;
 }
 
-/* Inline legend above the chart slot. Two swatches plus their
-   labels read as a single line on wide screens and wrap on
+/* Drift composition series. Three semantic categories sharing one
+   axis. Reassigned uses the primary accent because it dominates
+   in real data and reads as "the headline category". Newly Mapped
+   uses the success green so growth feels positive. Unmapped uses
+   the warning amber because lost coverage is the one signal that
+   warrants attention. */
+.chart__line--reassigned,
+.chart__dot--reassigned {
+    stroke: var(--color-accent);
+    fill: var(--color-accent);
+}
+
+.chart__line--reassigned {
+    fill: none;
+}
+
+.chart__line--newly-mapped,
+.chart__dot--newly-mapped {
+    stroke: var(--color-success);
+    fill: var(--color-success);
+}
+
+.chart__line--newly-mapped {
+    fill: none;
+}
+
+.chart__line--unmapped,
+.chart__dot--unmapped {
+    stroke: var(--color-warning);
+    fill: var(--color-warning);
+}
+
+.chart__line--unmapped {
+    fill: none;
+}
+
+/* Inline legend above the chart slot. Two or more swatches plus
+   their labels read as a single line on wide screens and wrap on
    narrow ones. */
 .chart-legend {
     display: flex;
@@ -184,4 +220,16 @@
 
 .chart-legend__swatch--unfilled {
     background: var(--color-accent-soft);
+}
+
+.chart-legend__swatch--reassigned {
+    background: var(--color-accent);
+}
+
+.chart-legend__swatch--newly-mapped {
+    background: var(--color-success);
+}
+
+.chart-legend__swatch--unmapped {
+    background: var(--color-warning);
 }
