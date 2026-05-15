@@ -27,7 +27,9 @@ const DEFAULT_LAYOUT = {
 };
 
 // Public: mount a chart card under ``parent`` whose inner SVG
-// re-renders whenever the chart's container width changes.
+// re-renders whenever the chart's container width changes, or
+// whenever the caller asks for it via the returned ``rerender``
+// handle (used by clickable legends to redraw after a toggle).
 //
 //   draw({ width, height, layout }) -> Element
 //   info?:   Element built by createInfoTooltip()
@@ -44,7 +46,7 @@ export function mountResponsiveChart(
     parent,
     { title, draw, info, legend, layout = {} },
 ) {
-    if (!parent) return;
+    if (!parent) return undefined;
     const settings = { ...DEFAULT_LAYOUT, ...layout };
 
     const card = createChartCard(title);
@@ -59,12 +61,14 @@ export function mountResponsiveChart(
     parent.replaceChildren(card.root);
 
     let lastWidth = 0;
-    const render = () => {
+    // ``force`` lets callers ask for a redraw even when the slot
+    // width has not changed (e.g. legend toggles updating series
+    // visibility). The width-change branch keeps its sub-pixel
+    // skip so scrollbar wobble does not cause repaints.
+    const render = (force = false) => {
         const measured = card.slot.clientWidth || settings.fallbackWidth;
         const width = Math.max(settings.minWidth, measured);
-        // Skip sub-pixel changes — they happen on scrollbar
-        // toggles and would otherwise cause unnecessary repaints.
-        if (Math.abs(width - lastWidth) < 1) return;
+        if (!force && Math.abs(width - lastWidth) < 1) return;
         lastWidth = width;
         card.slot.replaceChildren(
             draw({ width, height: settings.height, layout: settings }),
@@ -74,10 +78,12 @@ export function mountResponsiveChart(
     render();
 
     if (typeof ResizeObserver !== "undefined") {
-        new ResizeObserver(render).observe(card.slot);
+        new ResizeObserver(() => render()).observe(card.slot);
     } else if (typeof window !== "undefined") {
-        window.addEventListener("resize", render);
+        window.addEventListener("resize", () => render());
     }
+
+    return { rerender: () => render(true) };
 }
 
 // ``title`` is optional: callers that wrap the chart in their own
