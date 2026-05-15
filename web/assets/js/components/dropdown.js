@@ -8,9 +8,11 @@
 // https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
 //
 // createDropdown({ options, value, onChange, ariaLabel |
-// ariaLabelledBy, size }) returns an element exposing getValue()
-// and setValue(v); setValue does NOT fire onChange (mirrors the
-// native <select>.value = x semantic).
+// ariaLabelledBy, size, placeholder }) returns an element exposing
+// getValue() and setValue(v); setValue does NOT fire onChange
+// (mirrors the native <select>.value = x semantic). ``placeholder``
+// is the label shown when ``value`` is null / unknown - useful for
+// "tap to pick"-style triggers that have no preselected option.
 
 import { uniqueId } from "../utils/dom.js";
 
@@ -30,6 +32,7 @@ export function createDropdown({
     ariaLabel,
     ariaLabelledBy,
     size = "base",
+    placeholder = "",
 }) {
     const root = document.createElement("div");
     root.className = "dropdown";
@@ -58,7 +61,16 @@ export function createDropdown({
 
     function renderValueLabel() {
         const opt = options.find((o) => o.value === state.value);
-        valueEl.textContent = opt ? opt.label : "";
+        if (opt) {
+            valueEl.textContent = opt.label;
+            valueEl.classList.remove("dropdown__value--placeholder");
+        } else {
+            valueEl.textContent = placeholder;
+            valueEl.classList.toggle(
+                "dropdown__value--placeholder",
+                Boolean(placeholder),
+            );
+        }
     }
 
     function setHighlight(idx) {

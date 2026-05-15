@@ -37,6 +37,17 @@
     --color-success: #10b981;
     --color-neutral: #94a3b8;
 
+    /* Categorical palette for multi-series charts. Series 1 reuses
+       the accent so single-line charts stay tonally consistent with
+       the rest of the dashboard. The remaining hues are spaced
+       around the colour wheel so they read as distinct categories
+       at a glance, not as ordered rankings. */
+    --color-series-1: var(--color-accent);
+    --color-series-2: #db2777;
+    --color-series-3: #d97706;
+    --color-series-4: #0891b2;
+    --color-series-5: #059669;
+
     /* Text drawn on top of a saturated --color-accent /
        --color-success / --color-neutral fill (e.g. the stacked
        diff bar segments). Pulled out so theming or contrast

@@ -7,11 +7,13 @@
         <link rel="stylesheet" href="assets/css/tokens.css" />
         <link rel="stylesheet" href="assets/css/base.css" />
         <link rel="stylesheet" href="assets/css/layout.css" />
-        <link rel="stylesheet" href="assets/css/dropdown.css" />
-        <link rel="stylesheet" href="assets/css/overview.css" />
+    <link rel="stylesheet" href="assets/css/dropdown.css" />
+    <link rel="stylesheet" href="assets/css/mode-switch.css" />
+    <link rel="stylesheet" href="assets/css/overview.css" />
         <link rel="stylesheet" href="assets/css/charts.css" />
-        <link rel="stylesheet" href="assets/css/diff-explorer.css" />
-        <link rel="stylesheet" href="assets/css/top-movers.css" />
+    <link rel="stylesheet" href="assets/css/diff-explorer.css" />
+    <link rel="stylesheet" href="assets/css/top-movers.css" />
+    <link rel="stylesheet" href="assets/css/drift-chart.css" />
         <script type="module" src="assets/js/maps-tab.js"></script>
     </head>
     <body>
@@ -49,6 +51,7 @@
             <section class="section" aria-labelledby="history-title">
                 <h2 id="history-title" class="section__title">History</h2>
                 <p class="section__lede">How the binary trie has grown over time</p>
+                <div class="section__body" data-drift-chart></div>
                 <div class="section__body" data-map-size-chart></div>
                 <div class="section__body" data-map-delta-chart></div>
             </section>

@@ -9,6 +9,7 @@ import * as overviewCards from "./components/overview-cards.js";
 import * as buildSelector from "./components/build-selector.js";
 import * as mapSizeChart from "./components/map-size-chart.js";
 import * as mapDeltaChart from "./components/map-delta-chart.js";
+import * as driftChart from "./components/drift-chart.js";
 import * as diffExplorer from "./components/diff-explorer.js";
 
 const METRICS_URL = "assets/data/metrics.json";
@@ -109,9 +110,15 @@ async function init() {
     renderLastRefreshed(lastModified);
 
     const overviewParent = document.querySelector("[data-overview]");
+    const diffs = payload.diffs || [];
     const renderOverview = (name) => {
         const current = maps.find((m) => m.name === name);
-        overviewCards.mount(overviewParent, current, previousMap(maps, name));
+        overviewCards.mount(
+            overviewParent,
+            current,
+            previousMap(maps, name),
+            diffs,
+        );
         renderBuildStaleness(current);
     };
 
@@ -126,6 +133,11 @@ async function init() {
 
     mapSizeChart.mount(document.querySelector("[data-map-size-chart]"), maps);
     mapDeltaChart.mount(document.querySelector("[data-map-delta-chart]"), maps);
+    driftChart.mount(
+        document.querySelector("[data-drift-chart]"),
+        maps,
+        diffs,
+    );
     diffExplorer.mount(document.querySelector("[data-diff]"), payload);
 }
 
