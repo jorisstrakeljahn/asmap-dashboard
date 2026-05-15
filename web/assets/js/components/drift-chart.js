@@ -34,6 +34,7 @@ import { linearScale, niceTicks, smoothPath, svg } from "../charts/svg.js";
 import { formatDate, formatNumber, formatPercent, shortDate } from "../format.js";
 import { findDiff } from "../utils/diffs.js";
 import { uniqueId } from "../utils/dom.js";
+import { unfilledProfile } from "../utils/variants.js";
 import { createDropdown } from "./dropdown.js";
 import { createInfoTooltip } from "./info-tooltip.js";
 import { createModeSwitch } from "./mode-switch.js";
@@ -70,10 +71,22 @@ export function mount(parent, maps, diffs) {
     const sortedMaps = [...maps].sort((a, b) =>
         a.released_at.localeCompare(b.released_at),
     );
+    // Baselines are only useful for builds that took part in the
+    // unfilled-vs-unfilled diff loop; builds without an unfilled
+    // variant cannot anchor a drift series. Pre-compute the eligible
+    // subset once so both the picker dropdown and the initial
+    // default baseline draw from it.
+    const baselineCandidates = sortedMaps.filter(
+        (m) => unfilledProfile(m) !== null,
+    );
+    if (baselineCandidates.length === 0) {
+        parent.replaceChildren(emptyState());
+        return;
+    }
 
     const state = {
         mode: "previous",
-        baselines: [sortedMaps[0].name],
+        baselines: [baselineCandidates[0].name],
     };
 
     const card = document.createElement("article");
@@ -116,6 +129,7 @@ export function mount(parent, maps, diffs) {
                 lead: "vs baseline.",
                 text: "Pick one or more reference builds and watch how far every later build has drifted from them. Useful for measuring decay from a known good state.",
             },
+            "Computed from the unfilled (source data) variant of every build, so drift reflects real BGP / RPKI / IRR changes rather than fill-heuristic shifts. Builds that did not publish an unfilled variant appear as gaps.",
             "Drift uses the same denominator as the match rate in the diff explorer, so 8 % drift here matches a 92 % match banner there.",
         ],
         ariaLabel: "About the drift chart",
@@ -128,7 +142,7 @@ export function mount(parent, maps, diffs) {
     header.append(controls);
 
     const baselinePicker = createBaselinePicker(
-        sortedMaps,
+        baselineCandidates,
         state.baselines,
         (next) => {
             state.baselines = next;
@@ -155,8 +169,12 @@ export function mount(parent, maps, diffs) {
 }
 
 // Baseline picker (pills + add dropdown) -----------------------------------
+//
+// ``candidates`` is the subset of builds eligible to anchor a drift
+// series, i.e. those that published an unfilled variant. The picker
+// never offers a build outside this subset.
 
-function createBaselinePicker(sortedMaps, initial, onChange) {
+function createBaselinePicker(candidates, initial, onChange) {
     const elem = document.createElement("div");
     elem.className = "baseline-picker";
 
@@ -199,7 +217,7 @@ function createBaselinePicker(sortedMaps, initial, onChange) {
     const renderPills = () => {
         pillRow.replaceChildren();
         baselines.forEach((name, idx) => {
-            const map = sortedMaps.find((m) => m.name === name);
+            const map = candidates.find((m) => m.name === name);
             if (!map) return;
             pillRow.append(
                 createBaselinePill({
@@ -214,7 +232,7 @@ function createBaselinePicker(sortedMaps, initial, onChange) {
 
     const renderAddDropdown = () => {
         addSlot.replaceChildren();
-        const remaining = sortedMaps.filter(
+        const remaining = candidates.filter(
             (m) => !baselines.includes(m.name),
         );
         if (baselines.length >= MAX_BASELINES || remaining.length === 0) {
@@ -297,12 +315,19 @@ function computePreviousSeries(sortedMaps, diffs) {
     const points = [];
     for (let i = 0; i < sortedMaps.length; i++) {
         if (i === 0) {
+            // First build: nothing to diff against. Anchor the line
+            // at 0 % drift so the chart starts cleanly. Denominator
+            // is informational; we read it from the unfilled profile
+            // because unfilled is the side the rest of the series
+            // is computed from. Builds without an unfilled variant
+            // simply contribute 0 here, which is harmless: the
+            // reference point is always 0 % drift regardless.
             points.push({
                 map: sortedMaps[0],
                 index: 0,
                 drift_ratio: 0,
                 total_changes: 0,
-                denominator: sortedMaps[0].entries_count,
+                denominator: unfilledProfile(sortedMaps[0])?.entries_count ?? 0,
                 vs: null,
             });
             continue;
@@ -336,7 +361,7 @@ function computeBaselineSeries(sortedMaps, diffs, baselineName) {
                 index: i,
                 drift_ratio: 0,
                 total_changes: 0,
-                denominator: baseline.entries_count,
+                denominator: unfilledProfile(baseline)?.entries_count ?? 0,
                 vs: baseline,
             });
             continue;

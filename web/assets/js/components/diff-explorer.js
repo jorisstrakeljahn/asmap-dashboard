@@ -44,6 +44,7 @@ const DIFF_RESULTS_INFO = [
         lead: "Unmapped.",
         text: "A prefix that resolved to an autonomous system in Map A no longer resolves to one in Map B.",
     },
+    "Computed from the unfilled (source data) variant of each build, so each change is a real BGP / RPKI / IRR shift rather than a fill-heuristic artefact.",
 ];
 
 const DIRECTION_ARROW = "\u2192";
@@ -320,8 +321,13 @@ function samePairMessage() {
 function unavailableMessage() {
     const node = document.createElement("p");
     node.className = "diff-explorer__notice muted";
+    // The most common cause is one side of the pair not having
+    // published an unfilled variant. Diffs are computed only between
+    // builds that both ship unfilled (see metrics.py), so an
+    // unfilled-only build silently drops out of the diff timeline.
+    // Stating that explicitly avoids the "is this a bug?" question.
     node.textContent =
-        "No precomputed diff for this pair.";
+        "No precomputed diff for this pair. One of the two builds is missing its unfilled (source data) variant.";
     return node;
 }
 

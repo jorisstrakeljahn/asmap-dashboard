@@ -61,6 +61,10 @@ def test_metrics_writes_json_to_file(tmp_path):
         tmp_path / "data" / "2024" / "1700000000_asmap.dat",
         [(ipaddress.IPv4Network("1.0.0.0/8"), 100)],
     )
+    write_asmap(
+        tmp_path / "data" / "2024" / "1700000000_asmap_unfilled.dat",
+        [(ipaddress.IPv4Network("1.0.0.0/8"), 100)],
+    )
     out = tmp_path / "metrics.json"
 
     rc = main(
@@ -70,6 +74,7 @@ def test_metrics_writes_json_to_file(tmp_path):
     assert rc == 0
     payload = json.loads(out.read_text())
     assert len(payload["maps"]) == 1
+    assert payload["maps"][0]["name"] == "2024/1700000000"
     assert payload["maps"][0]["released_at"] == "2023-11-14"
 
 
