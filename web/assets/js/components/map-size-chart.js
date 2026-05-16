@@ -12,46 +12,19 @@
 // the same axis makes the fill-heuristic effect visible at a
 // glance.
 
-import {
-    linearScale,
-    niceTicks,
-    smoothPath,
-    svg,
-} from "../charts/svg.js";
-import {
-    labelDensityForWidth,
-    mountResponsiveChart,
-    pickTimeAxisTicks,
-    plotBounds,
-    renderTimeAxis,
-    renderYAxis,
-    renderYAxisTitle,
-    snapToMonthStart,
-} from "../charts/chart-base.js";
-import {
-    clientToSvg,
-    createChartShell,
-    hideTooltip,
-    nearestIndex,
-    placeTooltipNextFrame,
-    showTooltip,
-} from "../charts/chart-interaction.js";
+import { mountResponsiveChart } from "../charts/chart-base.js";
 import { buildTooltipBody } from "../charts/chart-tooltip.js";
+import { buildLineChart } from "../charts/line-chart.js";
 import {
     formatDate,
     formatMegabytes,
     formatNumber,
     formatPercent,
 } from "../format.js";
+import { mutedNote } from "../utils/dom.js";
 import { filledProfile, unfilledProfile } from "../utils/variants.js";
 import { createChartLegend } from "./chart-legend.js";
 import { createInfoTooltip } from "./info-tooltip.js";
-
-const DOT_RADIUS = 3;
-// Hover tolerance: how far past the plot bounds we still treat
-// the cursor as "over the chart". Keeps the tooltip from
-// flickering off when the mouse grazes the gutter.
-const HOVER_BLEED = 12;
 
 // Series definitions are the single source of truth for every
 // per-variant rendering decision. The legend, the SVG line and
@@ -96,6 +69,9 @@ const MAP_SIZE_INFO = [
     "Hover any build for the two raw sizes plus the fill-compression ratio between them. Builds that did not publish a variant show a gap rather than bridging the line toward zero.",
 ];
 
+const ARIA_LABEL =
+    "ASmap file size over time, embedded vs source data variant. Hover the chart for exact values per build.";
+
 export function mount(parent, maps, options = {}) {
     if (!parent) return;
     if (maps.length < 2) {
@@ -132,235 +108,52 @@ export function mount(parent, maps, options = {}) {
     });
 }
 
-// Top-level chart assembly. Returns the chart shell, or an empty
-// state node when no published variant could yield a single
-// data point or every series has been toggled off in the legend.
-// Each sub-pass (axes, series, hover) lives in its own helper so
-// this function reads as the storyboard.
+// Map-size-specific assembly: bridge between the maps array and
+// the unified line-chart scaffold. Decides what counts as an
+// empty state, then hands a flat spec down for rendering.
 function buildChart(maps, hidden, width, height, layout, options) {
-    const samples = sampleSeries(maps);
-    const visible = samples.filter((s) => !hidden.has(s.key));
-    if (visible.length === 0) {
-        return emptyState("All series hidden. Click a legend entry to bring one back.");
+    const visibleSeries = SERIES.filter((s) => !hidden.has(s.key));
+    if (visibleSeries.length === 0) {
+        return mutedNote("All series hidden. Click a legend entry to bring one back.");
     }
+
+    const valueAt = (key, slotIndex) =>
+        SERIES.find((s) => s.key === key).profile(maps[slotIndex])
+            ?.file_size_bytes ?? null;
+
     // Y axis tracks only the visible series so toggling the
     // unfilled line off zooms the filled line in (and the other
     // way round). Hidden series stay in the hover tooltip
     // because the data point still exists.
-    const visibleSizes = visible
-        .flatMap((s) => s.values)
-        .filter((v) => v != null);
-    if (visibleSizes.length === 0) {
-        return emptyState();
+    const visibleValues = visibleSeries.flatMap((series) =>
+        maps.map((_, i) => valueAt(series.key, i)).filter((v) => v != null),
+    );
+    if (visibleValues.length === 0) {
+        return mutedNote("No published variants for the loaded builds.");
     }
 
-    const geometry = computeGeometry(maps, visibleSizes, width, height, layout, options);
-    const root = createSvgRoot(width, height);
-
-    drawAxes(root, maps, geometry, width);
-    drawSeriesLines(root, visible, geometry);
-    drawSeriesDots(root, visible, geometry);
-
-    return attachHover(root, maps, geometry);
-}
-
-// ---- Sample preparation ----------------------------------------
-
-// One row per build, one column per series. Nulls inline preserve
-// index alignment with the x axis so the hover handler's
-// nearestIndex() result indexes both series consistently.
-function sampleSeries(maps) {
-    return SERIES.map((series) => ({
-        ...series,
-        values: maps.map(
-            (m) => series.profile(m)?.file_size_bytes ?? null,
-        ),
-    }));
-}
-
-// Single computation of plot bounds, axis ticks, and the two
-// scales every sub-pass needs. Centralised here so the y ticks
-// the axis renders are guaranteed to match the y scale the lines
-// and dots are positioned with. ``sizes`` carries only the
-// values of the visible series so toggles rescale the y axis.
-//
-// The x scale is built from real release timestamps, not from the
-// build index, so a cluster of builds within a month appears as a
-// cluster and a four-month publishing pause leaves the line
-// visibly flat. xAt(i) keeps callers index-driven so the existing
-// dot-drawing and nearest-hover code reads naturally.
-//
-// ``options.domainStart`` / ``options.domainEnd`` (optional) let
-// the caller pin the x domain to a calendar window wider than the
-// data itself, so a publishing pause at the start or a stale
-// trailing edge stay visible. Without overrides the chart falls
-// back to the data bounds. The start always snaps to the first
-// of its month so the leftmost calendar tick lands flush with
-// plot.left.
-function computeGeometry(maps, sizes, width, height, layout, options = {}) {
-    const plot = plotBounds(width, height, layout);
-    const yTicks = niceTicks(Math.min(...sizes), Math.max(...sizes));
-    const yScale = linearScale(
-        [yTicks[0], yTicks.at(-1)],
-        [plot.bottom, plot.top],
-    );
-    const timestamps = maps.map((m) => new Date(m.released_at).getTime());
-    const rawStart = options.domainStart ?? timestamps[0];
-    const rawEnd = options.domainEnd ?? timestamps.at(-1);
-    const domainStart = snapToMonthStart(rawStart);
-    const domainEnd = rawEnd;
-    const xScale = linearScale(
-        [domainStart, domainEnd],
-        [plot.left, plot.right],
-    );
-    return {
-        plot,
-        yTicks,
-        yScale,
-        xScale,
-        timestamps,
-        domainStart,
-        domainEnd,
-        xAt: (i) => xScale(timestamps[i]),
-    };
-}
-
-// ---- Static drawing --------------------------------------------
-
-function createSvgRoot(width, height) {
-    const root = svg("svg", {
-        viewBox: `0 0 ${width} ${height}`,
-        class: "chart",
-        role: "presentation",
-    });
-    root.setAttribute(
-        "aria-label",
-        "ASmap file size over time, embedded vs source data variant. Hover the chart for exact values per build.",
-    );
-    return root;
-}
-
-function drawAxes(root, _maps, { plot, yTicks, yScale, xScale, domainStart, domainEnd }, width) {
-    renderYAxis(root, yTicks, yScale, {
-        plotLeft: plot.left,
-        plotRight: plot.right,
-        format: formatMegabytes,
-    });
-    renderYAxisTitle(root, "Megabytes", plot);
-    const ticks = pickTimeAxisTicks(
-        domainStart,
-        domainEnd,
-        labelDensityForWidth(width),
-    );
-    renderTimeAxis(root, ticks, xScale, plot.bottom);
-}
-
-// One smooth path per series, broken into sub-segments wherever a
-// build is missing the variant. This keeps the curve from ramping
-// toward a phantom zero across the gap.
-function drawSeriesLines(root, samples, { xAt, yScale }) {
-    for (const series of samples) {
-        for (const segment of contiguousSegments(series.values, xAt, yScale)) {
-            root.append(
-                svg("path", {
-                    d: smoothPath(segment),
-                    class: `chart__line ${series.lineClass}`,
+    return buildLineChart(
+        {
+            timestamps: maps.map((m) => new Date(m.released_at).getTime()),
+            visibleSeries,
+            valueAt,
+            yMin: Math.min(...visibleValues),
+            yMax: Math.max(...visibleValues),
+            yFormat: formatMegabytes,
+            yTitle: "Megabytes",
+            ariaLabel: ARIA_LABEL,
+            tooltipBodyAt: (slotIndex) =>
+                buildTooltipBody({
+                    title: formatDate(maps[slotIndex].released_at),
+                    rows: hoverRows(maps[slotIndex]),
+                    footer: maps[slotIndex].name,
                 }),
-            );
-        }
-    }
-}
-
-function drawSeriesDots(root, samples, { xAt, yScale }) {
-    for (const series of samples) {
-        for (let i = 0; i < series.values.length; i++) {
-            const value = series.values[i];
-            if (value == null) continue;
-            root.append(
-                svg("circle", {
-                    cx: xAt(i),
-                    cy: yScale(value),
-                    r: DOT_RADIUS,
-                    class: `chart__dot ${series.dotClass}`,
-                }),
-            );
-        }
-    }
-}
-
-// Split a values array (with nulls for missing samples) into
-// contiguous segments of [x, y] pairs. Each segment is fed to
-// smoothPath() on its own so the curve breaks at the gap instead
-// of bridging it.
-function contiguousSegments(values, xAt, yScale) {
-    const segments = [];
-    let current = [];
-    for (let i = 0; i < values.length; i++) {
-        if (values[i] == null) {
-            if (current.length >= 2) segments.push(current);
-            current = [];
-            continue;
-        }
-        current.push([xAt(i), yScale(values[i])]);
-    }
-    if (current.length >= 2) segments.push(current);
-    return segments;
-}
-
-// ---- Hover -----------------------------------------------------
-
-function attachHover(root, maps, { plot, xAt }) {
-    const cursorLine = svg("line", {
-        x1: plot.left,
-        x2: plot.left,
-        y1: plot.top,
-        y2: plot.bottom,
-        class: "chart__cursor-line",
-        visibility: "hidden",
-    });
-    root.append(cursorLine);
-
-    const { shell, tip } = createChartShell(root);
-
-    const hide = () => {
-        hideTooltip(tip);
-        cursorLine.setAttribute("visibility", "hidden");
-    };
-
-    const show = (idx, ev) => {
-        const map = maps[idx];
-        const x = xAt(idx);
-        cursorLine.setAttribute("x1", String(x));
-        cursorLine.setAttribute("x2", String(x));
-        cursorLine.setAttribute("visibility", "visible");
-        showTooltip(
-            tip,
-            buildTooltipBody({
-                title: formatDate(map.released_at),
-                rows: hoverRows(map),
-                footer: map.name,
-            }),
-        );
-        placeTooltipNextFrame(shell, tip, ev.clientX, ev.clientY);
-    };
-
-    shell.addEventListener("mousemove", (ev) => {
-        const pt = clientToSvg(root, ev.clientX, ev.clientY);
-        if (!pt) return;
-        if (
-            pt.x < plot.left - HOVER_BLEED ||
-            pt.x > plot.right + HOVER_BLEED ||
-            pt.y < plot.top ||
-            pt.y > plot.bottom
-        ) {
-            hide();
-            return;
-        }
-        show(nearestIndex(pt.x, maps.length, xAt), ev);
-    });
-    shell.addEventListener("mouseleave", hide);
-
-    return shell;
+        },
+        width,
+        height,
+        layout,
+        options,
+    );
 }
 
 // Tooltip rows: one per series with its size or "not published",
@@ -387,13 +180,4 @@ function hoverRows(map) {
         rows.push(["Fill compression", formatPercent(saved, 1)]);
     }
     return rows;
-}
-
-// ---- Static UI -------------------------------------------------
-
-function emptyState(text = "No published variants for the loaded builds.") {
-    const note = document.createElement("p");
-    note.className = "muted";
-    note.textContent = text;
-    return note;
 }

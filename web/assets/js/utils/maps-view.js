@@ -23,9 +23,11 @@ const WINDOW_DAYS = {
 
 export const DEFAULT_MAPS_VIEW = "max";
 
-export const MAPS_VIEW_KEYS = ["1y", "3y", "5y", "max"];
-
-export function filterMapsByView(maps, view = DEFAULT_MAPS_VIEW) {
+// Internal: filter to builds inside the picker's window. Kept
+// private so callers always go through ``viewWindow`` and receive
+// the matching domain bounds alongside the slice, never one
+// without the other.
+function filterMapsByView(maps, view) {
     if (!Array.isArray(maps)) return [];
     if (view === "max" || !WINDOW_DAYS[view]) return maps;
     const cutoff = Date.now() - WINDOW_DAYS[view] * MS_PER_DAY;

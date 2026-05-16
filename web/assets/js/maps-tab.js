@@ -165,17 +165,17 @@ async function init() {
 
     let historyView = DEFAULT_MAPS_VIEW;
     const renderHistory = () => {
-        const window = viewWindow(maps, historyView);
+        const slice = viewWindow(maps, historyView);
         const bounds = {
-            domainStart: window.domainStart,
-            domainEnd: window.domainEnd,
+            domainStart: slice.domainStart,
+            domainEnd: slice.domainEnd,
         };
-        mapSizeChart.mount(sizeSlot, window.maps, {
+        mapSizeChart.mount(sizeSlot, slice.maps, {
             ...bounds,
             state: mapSizeState,
         });
-        mapDeltaChart.mount(deltaSlot, window.maps, bounds);
-        driftChart.mount(driftSlot, window.maps, diffs, {
+        mapDeltaChart.mount(deltaSlot, slice.maps, bounds);
+        driftChart.mount(driftSlot, slice.maps, diffs, {
             ...bounds,
             state: driftState,
         });

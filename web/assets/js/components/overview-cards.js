@@ -22,6 +22,7 @@ import {
     formatSignedNumber,
 } from "../format.js";
 import { pairDriftRatio } from "../utils/diffs.js";
+import { mutedNote } from "../utils/dom.js";
 import { pickPreferUnfilled } from "../utils/variants.js";
 import { createInfoTooltip } from "./info-tooltip.js";
 
@@ -31,12 +32,14 @@ import { createInfoTooltip } from "./info-tooltip.js";
 // Only the drift card reads it. The other cards never need it.
 export function mount(parent, current, previous, diffs) {
     if (!current) {
-        parent.replaceChildren(emptyState());
+        parent.replaceChildren(mutedNote("No published maps found in metrics.json."));
         return;
     }
     const currentPick = pickPreferUnfilled(current);
     if (!currentPick) {
-        parent.replaceChildren(missingVariantsState(current));
+        parent.replaceChildren(
+            mutedNote(`Build ${current.name} has no published variant data.`),
+        );
         return;
     }
     const previousPick = pickPreferUnfilled(previous);
@@ -246,20 +249,3 @@ function legendItem(modifier, label) {
     return item;
 }
 
-function emptyState() {
-    const note = document.createElement("p");
-    note.className = "muted";
-    note.textContent = "No published maps found in metrics.json.";
-    return note;
-}
-
-// Defensive: a build entry exists but neither variant is marked
-// present. Should never happen in practice (discover_maps would
-// not have surfaced the build), but the frontend stays honest by
-// telling the reader instead of rendering hollow cards.
-function missingVariantsState(build) {
-    const note = document.createElement("p");
-    note.className = "muted";
-    note.textContent = `Build ${build.name} has no published variant data.`;
-    return note;
-}
