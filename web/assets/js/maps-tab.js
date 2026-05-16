@@ -154,6 +154,15 @@ async function init() {
     const deltaSlot = document.querySelector("[data-map-delta-chart]");
     const driftSlot = document.querySelector("[data-drift-chart]");
 
+    // Per-chart state lives at the tab level so toggling a series
+    // off or switching the drift mode survives a range-picker
+    // change: the picker re-mounts each chart, but every mount
+    // receives the same state object the previous mount mutated.
+    // Set instances stay stable so the new legend's "is in hidden"
+    // checks keep matching what the user toggled before.
+    const mapSizeState = { hidden: new Set() };
+    const driftState = { mode: "cumulative", hidden: new Set() };
+
     let historyView = DEFAULT_MAPS_VIEW;
     const renderHistory = () => {
         const window = viewWindow(maps, historyView);
@@ -161,9 +170,15 @@ async function init() {
             domainStart: window.domainStart,
             domainEnd: window.domainEnd,
         };
-        mapSizeChart.mount(sizeSlot, window.maps, bounds);
+        mapSizeChart.mount(sizeSlot, window.maps, {
+            ...bounds,
+            state: mapSizeState,
+        });
         mapDeltaChart.mount(deltaSlot, window.maps, bounds);
-        driftChart.mount(driftSlot, window.maps, diffs, bounds);
+        driftChart.mount(driftSlot, window.maps, diffs, {
+            ...bounds,
+            state: driftState,
+        });
     };
 
     const historyRangeSlot = document.querySelector("[data-history-range]");

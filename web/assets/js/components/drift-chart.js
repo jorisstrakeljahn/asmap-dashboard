@@ -169,7 +169,14 @@ export function mount(parent, maps, diffs, options = {}) {
         return;
     }
 
-    const state = { mode: "cumulative", hidden: new Set() };
+    // Mode and toggle state survive across mounts when the caller
+    // passes ``options.state``. Mutating callbacks below write to
+    // the same object so a range-picker swap that re-mounts this
+    // chart sees the previously-picked mode and hidden series
+    // already populated. Fresh defaults when called standalone.
+    const state = options.state ?? { mode: "cumulative", hidden: new Set() };
+    if (!state.mode) state.mode = "cumulative";
+    if (!state.hidden) state.hidden = new Set();
 
     const card = document.createElement("article");
     card.className = "card chart-card drift-chart";

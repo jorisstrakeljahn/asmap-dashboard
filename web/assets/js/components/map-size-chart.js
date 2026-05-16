@@ -102,12 +102,14 @@ export function mount(parent, maps, options = {}) {
         parent.replaceChildren();
         return;
     }
-    // Local toggle state lives in this closure. The legend
-    // callback below mutates it and asks the chart for a redraw
-    // through the rerender handle mountResponsiveChart returns.
-    // The handle is captured lazily (read at click time) so the
-    // legend factory can reference it before assignment.
-    const state = { hidden: new Set() };
+    // Toggle state survives across mounts when the caller passes
+    // ``options.state``. The legend callback mutates that object
+    // in place and asks the chart for a redraw via the rerender
+    // handle mountResponsiveChart returns. Falling back to a
+    // fresh state keeps the chart usable standalone (e.g. in
+    // tests or one-off renders).
+    const state = options.state ?? { hidden: new Set() };
+    if (!state.hidden) state.hidden = new Set();
     let ctrl;
     ctrl = mountResponsiveChart(parent, {
         title: "Map Size Over Time",

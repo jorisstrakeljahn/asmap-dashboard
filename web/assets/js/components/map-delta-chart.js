@@ -160,7 +160,21 @@ function buildChart(rows, domainMaps, width, height, layout, options = {}) {
     }
 
     const { shell, tip } = createChartShell(root);
-    const hide = () => hideTooltip(tip);
+    // Track the currently-highlighted bar so a fast cursor exit
+    // (mouseleave on the shell, not on the bar itself) still
+    // clears the active class. Without this guard the soft-accent
+    // fill can stick when the user whips the cursor off the chart.
+    let activeBar = null;
+    const clearActive = () => {
+        if (activeBar) {
+            activeBar.classList.remove("chart__bar--active");
+            activeBar = null;
+        }
+    };
+    const hide = () => {
+        hideTooltip(tip);
+        clearActive();
+    };
 
     rows.forEach((row, i) => {
         const top = yScale(Math.max(0, row.delta));
@@ -176,6 +190,9 @@ function buildChart(rows, domainMaps, width, height, layout, options = {}) {
         root.append(bar);
 
         bar.addEventListener("mouseenter", (ev) => {
+            clearActive();
+            bar.classList.add("chart__bar--active");
+            activeBar = bar;
             showTooltip(
                 tip,
                 buildTooltipBody({
