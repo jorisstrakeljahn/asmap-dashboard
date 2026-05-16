@@ -67,21 +67,56 @@ export function isTooltipVisible(tip) {
     return tip.classList.contains("is-visible");
 }
 
-// Place the tooltip near the cursor and clamp it inside the chart
-// shell so it never spills over the card border.
+// Place the tooltip near the cursor and flip it to the opposite
+// side whenever the preferred side would cover the cursor or clip
+// the chart edge. Keeps a fixed gap between cursor and tooltip so
+// the hovered data point is never visually obscured by the
+// floating panel that describes it.
+//
+// Horizontal preference is right; flips to left when the right
+// side would clip. Vertical preference is above; flips to below
+// when the top would clip. The shell rectangle is the clamp
+// boundary so the tooltip never spills out of the card.
+const TOOLTIP_GAP = 16;
+const TOOLTIP_PAD = 8;
+const TOOLTIP_W_FALLBACK = 200;
+const TOOLTIP_H_FALLBACK = 40;
+
 export function positionTooltip(shell, tip, clientX, clientY) {
     const rect = shell.getBoundingClientRect();
     const x = clientX - rect.left;
     const y = clientY - rect.top;
-    const pad = 8;
-    const tipW = tip.offsetWidth || 200;
-    const tipH = tip.offsetHeight || 40;
-    let left = x + 14;
-    let top = y - tipH - 10;
-    if (left + tipW + pad > rect.width) left = rect.width - tipW - pad;
-    if (left < pad) left = pad;
-    if (top < pad) top = y + 14;
-    if (top + tipH + pad > rect.height) top = rect.height - tipH - pad;
+    const tipW = tip.offsetWidth || TOOLTIP_W_FALLBACK;
+    const tipH = tip.offsetHeight || TOOLTIP_H_FALLBACK;
+
+    // Horizontal: prefer right of cursor. Flip to left when the
+    // tooltip would clip the right edge. If neither side fits
+    // (very narrow viewport), park it on whichever side has more
+    // room and accept the clamp.
+    const rightLeft = x + TOOLTIP_GAP;
+    const leftLeft = x - TOOLTIP_GAP - tipW;
+    let left;
+    if (rightLeft + tipW + TOOLTIP_PAD <= rect.width) {
+        left = rightLeft;
+    } else if (leftLeft >= TOOLTIP_PAD) {
+        left = leftLeft;
+    } else {
+        const roomRight = rect.width - x;
+        const roomLeft = x;
+        left = roomRight >= roomLeft
+            ? Math.max(TOOLTIP_PAD, rect.width - tipW - TOOLTIP_PAD)
+            : TOOLTIP_PAD;
+    }
+
+    // Vertical: prefer above. Flip below when the top would clip;
+    // clamp to the bottom edge as the last fallback so the tooltip
+    // never escapes the card.
+    let top = y - tipH - TOOLTIP_GAP;
+    if (top < TOOLTIP_PAD) top = y + TOOLTIP_GAP;
+    if (top + tipH + TOOLTIP_PAD > rect.height) {
+        top = rect.height - tipH - TOOLTIP_PAD;
+    }
+
     tip.style.left = `${left}px`;
     tip.style.top = `${top}px`;
 }

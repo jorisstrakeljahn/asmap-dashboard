@@ -140,6 +140,15 @@
 
 .chart__bar {
     fill: var(--color-accent);
+    transition: fill var(--motion-fast) var(--motion-ease);
+}
+
+/* Hovered bar fades to the soft accent so the eye locks onto the
+   bar the tooltip describes. Mirrors the cursor line used by the
+   line charts: a visible "you are here" marker that doesn't shift
+   geometry. */
+.chart__bar--active {
+    fill: var(--color-accent-soft);
 }
 
 /* Map-size dual-line series. Filled (embedded) keeps the standard
