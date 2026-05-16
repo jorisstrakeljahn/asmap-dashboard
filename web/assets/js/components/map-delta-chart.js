@@ -11,6 +11,7 @@
 
 import { linearScale, niceTicks, svg } from "../charts/svg.js";
 import {
+    createChartSvg,
     labelDensityForWidth,
     mountResponsiveChart,
     pickTimeAxisTicks,
@@ -18,7 +19,7 @@ import {
     renderTimeAxis,
     renderYAxis,
     renderYAxisTitle,
-    snapToMonthStart,
+    resolveTimeDomain,
 } from "../charts/chart-base.js";
 import {
     createChartShell,
@@ -91,7 +92,7 @@ function deltasBetween(maps) {
     return rows;
 }
 
-function buildChart(rows, domainMaps, width, height, layout, options = {}) {
+function buildChart(rows, maps, width, height, layout, options) {
     const plot = plotBounds(width, height, layout);
 
     const values = rows.map((r) => r.delta);
@@ -106,32 +107,17 @@ function buildChart(rows, domainMaps, width, height, layout, options = {}) {
     // that had no comparable previous build (filled-only neighbour
     // or the very first build), rather than silently shifting the
     // chart's start to a later date.
-    //
-    // ``options.domainStart`` / ``options.domainEnd`` (optional)
-    // override the data-derived bounds with the calendar window
-    // the picker promised, so a publishing pause at either edge
-    // stays visible. The start still snaps to the first of its
-    // month so the leftmost calendar tick lands flush with
-    // plot.left.
-    const rawStart = options.domainStart
-        ?? new Date(domainMaps[0].released_at).getTime();
-    const rawEnd = options.domainEnd
-        ?? new Date(domainMaps[domainMaps.length - 1].released_at).getTime();
-    const domainStart = snapToMonthStart(rawStart);
-    const domainEnd = rawEnd;
+    const buildTimestamps = maps.map((m) => new Date(m.released_at).getTime());
+    const { domainStart, domainEnd } = resolveTimeDomain(buildTimestamps, options);
     const xScale = linearScale([domainStart, domainEnd], [plot.left, plot.right]);
 
     const barTimestamps = rows.map((r) => new Date(r.released_at).getTime());
     const xAt = (i) => xScale(barTimestamps[i]);
     const barWidth = pickBarWidth(barTimestamps, xScale, plot);
 
-    const root = svg("svg", {
-        viewBox: `0 0 ${width} ${height}`,
-        class: "chart",
-        role: "presentation",
-    });
-    root.setAttribute(
-        "aria-label",
+    const root = createChartSvg(
+        width,
+        height,
         "Source-data entry count delta between consecutive ASmap builds. Hover each bar for details.",
     );
 

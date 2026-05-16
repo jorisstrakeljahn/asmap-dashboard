@@ -198,6 +198,36 @@ export function snapToMonthStart(timestampMs) {
     return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
 }
 
+// Resolve the x-axis time domain for a history chart.
+// ``options.domainStart`` / ``options.domainEnd`` (typically
+// supplied by viewWindow() in utils/maps-view.js) override the
+// data-derived bounds, so the calendar window the picker promised
+// is honoured even when no build sits at its edge. The start is
+// always snapped to the first of its month so the leftmost
+// calendar tick lands flush with plot.left.
+export function resolveTimeDomain(timestamps, options = {}) {
+    const rawStart = options.domainStart ?? timestamps[0];
+    const rawEnd = options.domainEnd ?? timestamps[timestamps.length - 1];
+    return {
+        domainStart: snapToMonthStart(rawStart),
+        domainEnd: rawEnd,
+    };
+}
+
+// Create the SVG root every chart uses. Centralised so the
+// viewBox, base class, and accessibility role stay consistent
+// across charts and any future chart-wide attribute lands here
+// instead of three separate creation sites.
+export function createChartSvg(width, height, ariaLabel) {
+    const root = svg("svg", {
+        viewBox: `0 0 ${width} ${height}`,
+        class: "chart",
+        role: "presentation",
+    });
+    if (ariaLabel) root.setAttribute("aria-label", ariaLabel);
+    return root;
+}
+
 // Calendar-friendly step sizes in months. Picked so a few-month
 // range steps up cleanly to a few-year range without producing
 // awkward 4- or 5-month intervals that don't read as familiar

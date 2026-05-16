@@ -6,7 +6,7 @@
 // directions.
 
 import { formatDate, formatNumber, formatPercent } from "../format.js";
-import { uniqueId } from "../utils/dom.js";
+import { mutedNote, uniqueId } from "../utils/dom.js";
 import { createDropdown } from "./dropdown.js";
 import { createInfoTooltip } from "./info-tooltip.js";
 import * as topMoversTable from "./top-movers-table.js";
@@ -52,7 +52,7 @@ const EM_DASH = "\u2014";
 
 export function mount(parent, payload) {
     if (!payload.maps.length || !payload.diffs.length) {
-        parent.replaceChildren(emptyState());
+        parent.replaceChildren(mutedNote("metrics.json contains no diffs yet."));
         return;
     }
 
@@ -331,9 +331,3 @@ function unavailableMessage() {
     return node;
 }
 
-function emptyState() {
-    const note = document.createElement("p");
-    note.className = "muted";
-    note.textContent = "metrics.json contains no diffs yet.";
-    return note;
-}

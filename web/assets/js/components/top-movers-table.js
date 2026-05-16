@@ -7,7 +7,7 @@
 
 import { formatNumber, formatPercent } from "../format.js";
 import { asnCell } from "../asn-names.js";
-import { uniqueId } from "../utils/dom.js";
+import { mutedNote, uniqueId } from "../utils/dom.js";
 import { createDropdown } from "./dropdown.js";
 import { createInfoTooltip } from "./info-tooltip.js";
 import { createModeSwitch } from "./mode-switch.js";
@@ -61,7 +61,7 @@ const ARROW = {
 
 export function mount(parent, diff) {
     if (!diff || !diff.top_movers.length) {
-        parent.replaceChildren(emptyState());
+        parent.replaceChildren(mutedNote("No top movers in the selected diff."));
         return;
     }
 
@@ -322,9 +322,3 @@ function renderPagination(diff, state, onChange) {
     return buttons;
 }
 
-function emptyState() {
-    const note = document.createElement("p");
-    note.className = "muted";
-    note.textContent = "No top movers in the selected diff.";
-    return note;
-}
