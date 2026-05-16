@@ -12,6 +12,11 @@ import { svg } from "./svg.js";
 // dashboard's content max (~1024 px). Each chart can override
 // individual fields via the ``layout`` arg if needed.
 //
+// paddingLeft has to fit the widest y-axis tick. Map size ticks
+// like "1.86 MB" are the widest text we draw on the y axis, so
+// the gutter has to be wider than the bare "1.86M" needed
+// before unit labels existed.
+//
 // paddingRight is generous on purpose: the rightmost X label uses
 // anchor="end" so it sits flush with the plot's right edge, and
 // the rightmost data dot still needs a few pixels of gutter so it
@@ -20,7 +25,7 @@ const DEFAULT_LAYOUT = {
     minWidth: 280,
     fallbackWidth: 720,
     height: 240,
-    paddingLeft: 44,
+    paddingLeft: 60,
     paddingRight: 20,
     paddingTop: 20,
     paddingBottom: 30,
@@ -133,50 +138,125 @@ export function renderYAxis(root, ticks, yScale, { plotLeft, plotRight, format }
     }
 }
 
-// Draw the X axis labels at the picked indices. The first and
-// last labels anchor to the plot's edge ("start" / "end") instead
-// of being centered on it, so the bookend dates always render
-// fully inside the chart and never get clipped at the card edge.
-// Chart-specific gridlines / cursors are the chart's own
-// responsibility, so we don't draw vertical lines here.
-export function renderXAxis(root, indices, xAt, plotBottom, format) {
-    if (indices.length === 0) return;
-    const firstIdx = indices[0];
-    const lastIdx = indices[indices.length - 1];
-    for (const idx of indices) {
-        let anchor = "middle";
-        if (idx === firstIdx) anchor = "start";
-        else if (idx === lastIdx) anchor = "end";
+// Render each calendar tick as an X-axis label at its scaled X
+// position. Every label is centered on its tick so the spacing
+// between consecutive labels stays uniform; the previous
+// start/end anchoring made the first and last labels visually
+// closer to their neighbours than the middle labels were to
+// each other. Labels can extend slightly into the left/right
+// gutter, which paddingLeft and paddingRight reserve enough
+// room for at typical chart widths.
+//
+// ``ticks`` is the output of pickTimeAxisTicks(): an array of
+// ``{ timestamp, label }`` already sorted ascending. Gridlines
+// aren't drawn here so each chart can theme them on its own.
+export function renderTimeAxis(root, ticks, xScale, plotBottom) {
+    if (ticks.length === 0) return;
+    for (let i = 0; i < ticks.length; i++) {
         root.append(
             svgText({
-                x: xAt(idx),
+                x: xScale(ticks[i].timestamp),
                 y: plotBottom + 16,
-                anchor,
+                anchor: "middle",
                 className: "chart__x-label",
-                text: format(idx),
+                text: ticks[i].label,
             }),
         );
     }
 }
 
-// Pick at most ``maxLabels`` indices spaced evenly across the
-// data range. Endpoints are always included so the time range's
-// start and end are visible.
-export function pickAxisLabelIndices(count, maxLabels = 5) {
-    if (count <= maxLabels) return [...Array(count).keys()];
-    const last = count - 1;
-    const stops = maxLabels - 1;
-    return Array.from(
-        { length: maxLabels },
-        (_, i) => Math.round((last * i) / stops),
-    );
+// Render a small rotated label in the left gutter that names what
+// the y axis measures. Sits halfway up the plot and rotates 90°
+// counter-clockwise so it reads bottom-to-top - the standard
+// convention in scientific and analytics charts. The x coordinate
+// sits flush with the SVG's left edge so the tick text (which
+// anchors to plot.left - 8) has enough breathing room between it
+// and the title.
+export function renderYAxisTitle(root, text, plot) {
+    if (!text) return;
+    const x = 8;
+    const y = (plot.top + plot.bottom) / 2;
+    const label = svgText({
+        x,
+        y,
+        anchor: "middle",
+        className: "chart__y-title",
+        text,
+    });
+    label.setAttribute("transform", `rotate(-90 ${x} ${y})`);
+    root.append(label);
+}
+
+// Snap a millisecond timestamp down to the first day of its month
+// in UTC. Used by the history charts so they pin the leftmost
+// x-axis label to plot.left: if data starts mid-month, the
+// domain extends back to the first of that month so the first
+// calendar tick lands on the plot's left edge instead of floating
+// 30-60 days inside it.
+export function snapToMonthStart(timestampMs) {
+    const d = new Date(timestampMs);
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
+}
+
+// Calendar-friendly step sizes in months. Picked so a few-month
+// range steps up cleanly to a few-year range without producing
+// awkward 4- or 5-month intervals that don't read as familiar
+// calendar units.
+const TIME_STEP_MONTHS = [1, 2, 3, 6, 12, 24];
+const AVG_MONTH_MS = 30.44 * 24 * 60 * 60 * 1000;
+const MONTH_ABBR = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+// Pick at most ``maxLabels`` calendar boundaries evenly spaced
+// across [startMs, endMs]. Each returned tick lands on the first
+// day of a month in UTC, so labels never drift across daylight-
+// saving boundaries. The step is the smallest entry in
+// TIME_STEP_MONTHS that fits the requested density: wide ranges
+// step up to yearly labels (e.g. "2025"), shorter ranges step
+// down to monthly labels (e.g. "Jul 25").
+//
+// Returns ``{ timestamp, label }[]`` sorted ascending.
+export function pickTimeAxisTicks(startMs, endMs, maxLabels = 5) {
+    if (!(endMs > startMs)) return [];
+    const totalMonths = (endMs - startMs) / AVG_MONTH_MS;
+    const minStep = totalMonths / Math.max(1, maxLabels);
+    const step = TIME_STEP_MONTHS.find((s) => s >= minStep)
+              || TIME_STEP_MONTHS.at(-1);
+    const useYearLabel = step >= 12;
+
+    const startDate = new Date(startMs);
+    const baseYear = startDate.getUTCFullYear();
+    let monthOffset = startDate.getUTCMonth();
+
+    // First candidate is the start of the start's month. If that
+    // falls before the data range (i.e. data starts mid-month),
+    // step forward so the first label only appears inside the
+    // plotted range and never extends past plot.left.
+    let cursor = Date.UTC(baseYear, monthOffset, 1);
+    if (cursor < startMs) {
+        monthOffset += step;
+        cursor = Date.UTC(baseYear, monthOffset, 1);
+    }
+
+    const ticks = [];
+    while (cursor <= endMs) {
+        const d = new Date(cursor);
+        const label = useYearLabel
+            ? String(d.getUTCFullYear())
+            : `${MONTH_ABBR[d.getUTCMonth()]} ${String(d.getUTCFullYear()).slice(-2)}`;
+        ticks.push({ timestamp: cursor, label });
+        monthOffset += step;
+        cursor = Date.UTC(baseYear, monthOffset, 1);
+    }
+    return ticks;
 }
 
 // Pick a comfortable label density based on the chart's pixel
 // width. Roughly one label per ~64 px so "Mar 26" / "Aug 25"
 // labels don't overlap at 11 px font. The minimum of 3 keeps the
-// axis readable even on a 280 px phone. The count is capped only
-// by the caller's data length via pickAxisLabelIndices.
+// axis readable even on a 280 px phone.
 const LABEL_SLOT_PX = 64;
 const MIN_LABELS = 3;
 export function labelDensityForWidth(width) {

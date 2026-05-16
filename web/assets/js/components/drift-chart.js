@@ -34,10 +34,12 @@
 import {
     labelDensityForWidth,
     mountResponsiveChart,
-    pickAxisLabelIndices,
+    pickTimeAxisTicks,
     plotBounds,
-    renderXAxis,
+    renderTimeAxis,
     renderYAxis,
+    renderYAxisTitle,
+    snapToMonthStart,
 } from "../charts/chart-base.js";
 import {
     clientToSvg,
@@ -49,7 +51,7 @@ import {
 } from "../charts/chart-interaction.js";
 import { buildTooltipBody } from "../charts/chart-tooltip.js";
 import { linearScale, niceTicks, smoothPath, svg } from "../charts/svg.js";
-import { formatDate, formatNumber, formatPercent, shortDate } from "../format.js";
+import { formatDate, formatNumber, formatPercent } from "../format.js";
 import { unfilledProfile } from "../utils/variants.js";
 import { createChartLegend } from "./chart-legend.js";
 import { createInfoTooltip } from "./info-tooltip.js";
@@ -401,11 +403,29 @@ function computeGeometry(sortedMaps, allRatios, width, height, layout) {
         [yTicks[0], yTicks.at(-1)],
         [plot.bottom, plot.top],
     );
+    // Time-based x scale: each build sits at its real release date
+    // so the curve's slope between two builds reflects the actual
+    // calendar interval, not a synthetic equal-spacing one. The
+    // domain start snaps to the first of the start's month so the
+    // leftmost calendar tick lands flush with plot.left instead of
+    // floating inside the plot area.
+    const timestamps = sortedMaps.map((m) => new Date(m.released_at).getTime());
+    const domainStart = snapToMonthStart(timestamps[0]);
+    const domainEnd = timestamps.at(-1);
     const xScale = linearScale(
-        [0, sortedMaps.length - 1],
+        [domainStart, domainEnd],
         [plot.left, plot.right],
     );
-    return { plot, yTicks, yScale, xAt: (i) => xScale(i) };
+    return {
+        plot,
+        yTicks,
+        yScale,
+        xScale,
+        timestamps,
+        domainStart,
+        domainEnd,
+        xAt: (i) => xScale(timestamps[i]),
+    };
 }
 
 function createSvgRoot(width, height, mode) {
@@ -425,19 +445,19 @@ function ariaLabelFor(mode) {
     return "Step drift composition between consecutive builds. Reassigned, newly mapped, unmapped, and total drift series.";
 }
 
-function drawAxes(root, sortedMaps, { plot, yTicks, yScale, xAt }, width) {
+function drawAxes(root, _sortedMaps, { plot, yTicks, yScale, xScale, domainStart, domainEnd }, width) {
     renderYAxis(root, yTicks, yScale, {
         plotLeft: plot.left,
         plotRight: plot.right,
         format: (tick) => formatPercent(tick, 0),
     });
-    renderXAxis(
-        root,
-        pickAxisLabelIndices(sortedMaps.length, labelDensityForWidth(width)),
-        xAt,
-        plot.bottom,
-        (i) => shortDate(sortedMaps[i].released_at),
+    renderYAxisTitle(root, "Share", plot);
+    const ticks = pickTimeAxisTicks(
+        domainStart,
+        domainEnd,
+        labelDensityForWidth(width),
     );
+    renderTimeAxis(root, ticks, xScale, plot.bottom);
 }
 
 // One smooth path per series, broken into sub-segments wherever a
