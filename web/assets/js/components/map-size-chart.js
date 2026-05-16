@@ -21,10 +21,12 @@ import {
 import {
     labelDensityForWidth,
     mountResponsiveChart,
-    pickAxisLabelIndices,
+    pickTimeAxisTicks,
     plotBounds,
-    renderXAxis,
+    renderTimeAxis,
     renderYAxis,
+    renderYAxisTitle,
+    snapToMonthStart,
 } from "../charts/chart-base.js";
 import {
     clientToSvg,
@@ -35,7 +37,12 @@ import {
     showTooltip,
 } from "../charts/chart-interaction.js";
 import { buildTooltipBody } from "../charts/chart-tooltip.js";
-import { formatDate, formatNumber, formatPercent, shortDate } from "../format.js";
+import {
+    formatDate,
+    formatMegabytes,
+    formatNumber,
+    formatPercent,
+} from "../format.js";
 import { filledProfile, unfilledProfile } from "../utils/variants.js";
 import { createChartLegend } from "./chart-legend.js";
 import { createInfoTooltip } from "./info-tooltip.js";
@@ -174,6 +181,12 @@ function sampleSeries(maps) {
 // the axis renders are guaranteed to match the y scale the lines
 // and dots are positioned with. ``sizes`` carries only the
 // values of the visible series so toggles rescale the y axis.
+//
+// The x scale is built from real release timestamps, not from the
+// build index, so a cluster of builds within a month appears as a
+// cluster and a four-month publishing pause leaves the line
+// visibly flat. xAt(i) keeps callers index-driven so the existing
+// dot-drawing and nearest-hover code reads naturally.
 function computeGeometry(maps, sizes, width, height, layout) {
     const plot = plotBounds(width, height, layout);
     const yTicks = niceTicks(Math.min(...sizes), Math.max(...sizes));
@@ -181,11 +194,23 @@ function computeGeometry(maps, sizes, width, height, layout) {
         [yTicks[0], yTicks.at(-1)],
         [plot.bottom, plot.top],
     );
+    const timestamps = maps.map((m) => new Date(m.released_at).getTime());
+    const domainStart = snapToMonthStart(timestamps[0]);
+    const domainEnd = timestamps.at(-1);
     const xScale = linearScale(
-        [0, maps.length - 1],
+        [domainStart, domainEnd],
         [plot.left, plot.right],
     );
-    return { plot, yTicks, yScale, xAt: (i) => xScale(i) };
+    return {
+        plot,
+        yTicks,
+        yScale,
+        xScale,
+        timestamps,
+        domainStart,
+        domainEnd,
+        xAt: (i) => xScale(timestamps[i]),
+    };
 }
 
 // ---- Static drawing --------------------------------------------
@@ -203,19 +228,19 @@ function createSvgRoot(width, height) {
     return root;
 }
 
-function drawAxes(root, maps, { plot, yTicks, yScale, xAt }, width) {
+function drawAxes(root, _maps, { plot, yTicks, yScale, xScale, domainStart, domainEnd }, width) {
     renderYAxis(root, yTicks, yScale, {
         plotLeft: plot.left,
         plotRight: plot.right,
-        format: (tick) => `${(tick / 1e6).toFixed(2)}M`,
+        format: formatMegabytes,
     });
-    renderXAxis(
-        root,
-        pickAxisLabelIndices(maps.length, labelDensityForWidth(width)),
-        xAt,
-        plot.bottom,
-        (i) => shortDate(maps[i].released_at),
+    renderYAxisTitle(root, "Megabytes", plot);
+    const ticks = pickTimeAxisTicks(
+        domainStart,
+        domainEnd,
+        labelDensityForWidth(width),
     );
+    renderTimeAxis(root, ticks, xScale, plot.bottom);
 }
 
 // One smooth path per series, broken into sub-segments wherever a

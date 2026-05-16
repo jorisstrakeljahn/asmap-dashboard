@@ -13,10 +13,12 @@ import { linearScale, niceTicks, svg } from "../charts/svg.js";
 import {
     labelDensityForWidth,
     mountResponsiveChart,
-    pickAxisLabelIndices,
+    pickTimeAxisTicks,
     plotBounds,
-    renderXAxis,
+    renderTimeAxis,
     renderYAxis,
+    renderYAxisTitle,
+    snapToMonthStart,
 } from "../charts/chart-base.js";
 import {
     createChartShell,
@@ -27,12 +29,20 @@ import {
     showTooltip,
 } from "../charts/chart-interaction.js";
 import { buildTooltipBody } from "../charts/chart-tooltip.js";
-import { formatDate, formatNumber, shortDate } from "../format.js";
+import { formatDate, formatNumber } from "../format.js";
 import { unfilledProfile } from "../utils/variants.js";
 import { createInfoTooltip } from "./info-tooltip.js";
 
-const BAR_GAP = 12;
-const MIN_BAR_WIDTH = 8;
+// Bars sit at their build's real release timestamp instead of in
+// uniformly spaced slots, so a 4-month publishing pause shows as
+// a wide gap and a cluster of weekly builds shows as a cluster.
+// Width is uniform so the eye doesn't read "fatter bar = bigger
+// delta". The smallest neighbour gap drives the width so dense
+// clusters never overlap and sparse periods don't render single
+// builds as solid blocks.
+const MIN_BAR_WIDTH = 3;
+const MAX_BAR_WIDTH = 14;
+const BAR_FILL_FRACTION = 0.7;
 const BAR_CORNER_RADIUS = 2;
 
 const MAP_DELTA_INFO = [
@@ -42,7 +52,7 @@ const MAP_DELTA_INFO = [
 ];
 
 export function mount(parent, maps) {
-    if (!parent) return;
+    if (!parent || !Array.isArray(maps) || maps.length === 0) return;
     const rows = deltasBetween(maps);
     if (rows.length < 1) {
         parent.replaceChildren();
@@ -55,7 +65,7 @@ export function mount(parent, maps) {
             ariaLabel: "About the entries delta chart",
         }),
         draw: ({ width, height, layout }) =>
-            buildChart(rows, width, height, layout),
+            buildChart(rows, maps, width, height, layout),
     });
 }
 
@@ -81,16 +91,32 @@ function deltasBetween(maps) {
     return rows;
 }
 
-function buildChart(rows, width, height, layout) {
+function buildChart(rows, domainMaps, width, height, layout) {
     const plot = plotBounds(width, height, layout);
 
     const values = rows.map((r) => r.delta);
     const yTicks = niceTicks(Math.min(0, ...values), Math.max(0, ...values));
     const yScale = linearScale([yTicks[0], yTicks.at(-1)], [plot.bottom, plot.top]);
 
-    const slotWidth = (plot.right - plot.left) / rows.length;
-    const barWidth = Math.max(MIN_BAR_WIDTH, slotWidth - BAR_GAP);
-    const xAt = (i) => plot.left + slotWidth * (i + 0.5);
+    // The x domain spans every build in the slice, not just the
+    // pairs that produced a bar. This pixel-aligns the delta x axis
+    // with the map size and drift charts above, so a build at the
+    // same release date sits at the same horizontal position in
+    // every history chart. Missing bars then visibly mark builds
+    // that had no comparable previous build (filled-only neighbour
+    // or the very first build), rather than silently shifting the
+    // chart's start to a later date. The start snaps to the first
+    // of its month so the leftmost calendar tick lands flush with
+    // plot.left.
+    const domainStart = snapToMonthStart(
+        new Date(domainMaps[0].released_at).getTime(),
+    );
+    const domainEnd = new Date(domainMaps[domainMaps.length - 1].released_at).getTime();
+    const xScale = linearScale([domainStart, domainEnd], [plot.left, plot.right]);
+
+    const barTimestamps = rows.map((r) => new Date(r.released_at).getTime());
+    const xAt = (i) => xScale(barTimestamps[i]);
+    const barWidth = pickBarWidth(barTimestamps, xScale, plot);
 
     const root = svg("svg", {
         viewBox: `0 0 ${width} ${height}`,
@@ -107,6 +133,7 @@ function buildChart(rows, width, height, layout) {
         plotRight: plot.right,
         format: formatTick,
     });
+    renderYAxisTitle(root, "Entries", plot);
 
     // Zero baseline goes in before the bars so positive bars
     // cover it where they sit above zero, but it stays visible
@@ -167,15 +194,31 @@ function buildChart(rows, width, height, layout) {
     });
     shell.addEventListener("mouseleave", hide);
 
-    renderXAxis(
-        root,
-        pickAxisLabelIndices(rows.length, labelDensityForWidth(width)),
-        xAt,
-        plot.bottom,
-        (i) => shortDate(rows[i].released_at),
+    const ticks = pickTimeAxisTicks(
+        domainStart,
+        domainEnd,
+        labelDensityForWidth(width),
     );
+    renderTimeAxis(root, ticks, xScale, plot.bottom);
 
     return shell;
+}
+
+// Uniform bar width sized from the smallest gap between adjacent
+// build timestamps so dense clusters never overlap. Falls back to
+// the full plot width when only one bar exists (a single delta is
+// shown as a moderate centred bar rather than a chart-wide block).
+function pickBarWidth(timestamps, xScale, plot) {
+    if (timestamps.length < 2) return MAX_BAR_WIDTH;
+    let minGap = Infinity;
+    for (let i = 1; i < timestamps.length; i++) {
+        const gap = xScale(timestamps[i]) - xScale(timestamps[i - 1]);
+        if (gap < minGap) minGap = gap;
+    }
+    if (!Number.isFinite(minGap) || minGap <= 0) {
+        return Math.min(MAX_BAR_WIDTH, plot.right - plot.left);
+    }
+    return Math.max(MIN_BAR_WIDTH, Math.min(MAX_BAR_WIDTH, minGap * BAR_FILL_FRACTION));
 }
 
 function formatSignedDelta(value) {

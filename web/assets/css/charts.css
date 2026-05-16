@@ -94,6 +94,20 @@
     fill: var(--color-text-subtle);
 }
 
+/* Tiny rotated mark in the left gutter that names what the y axis
+   measures. Tinted in the same subtle gray as the tick labels so
+   it reads as a quiet unit indicator rather than competing with
+   the data values for attention. Uppercase letter-spacing matches
+   the card label so the gutter mark feels stylistically of a
+   piece with the rest of the chart chrome. */
+.chart__y-title {
+    font-family: var(--font-sans);
+    font-size: var(--font-size-xs);
+    fill: var(--color-text-subtle);
+    letter-spacing: var(--letter-uppercase);
+    text-transform: uppercase;
+}
+
 .chart__line {
     fill: none;
     stroke: var(--color-accent);

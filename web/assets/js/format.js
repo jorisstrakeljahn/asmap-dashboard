@@ -4,6 +4,15 @@
 // and tables.
 
 const numberFormatter = new Intl.NumberFormat("en-US");
+// Y-axis tick formatter for file sizes. Trailing zeros are dropped
+// (1.60 -> "1.6") so adjacent ticks stay narrow, freeing the left
+// gutter for the rotated y-axis title without overlap. The minimum
+// of one fraction digit keeps round values readable as "2.0" rather
+// than the bare "2", which would look like a different metric.
+const megabyteFormatter = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 2,
+});
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "short",
@@ -26,6 +35,15 @@ export function formatSignedPercent(ratio, fractionDigits = 1) {
 export function formatSignedNumber(value) {
     const sign = value > 0 ? "+" : "";
     return `${sign}${numberFormatter.format(value)}`;
+}
+
+// Bytes -> "1.86 MB" using decimal megabytes (1 MB = 1,000,000 bytes)
+// because on-disk file sizes on modern OSes are reported the same way
+// and the unit is unambiguous against the tooltip's raw byte figure.
+// Always two fraction digits so adjacent ticks line up visually on the
+// y axis (e.g. "1.86 MB" / "1.90 MB" share the same width).
+export function formatMegabytes(bytes) {
+    return `${megabyteFormatter.format(bytes / 1e6)} MB`;
 }
 
 export function formatDate(isoDate) {
