@@ -51,7 +51,7 @@ const MAP_DELTA_INFO = [
     "Computed from the unfilled (source data) variant of both sides. Pairs missing the unfilled variant on either side are skipped silently rather than rendered as a misleading bar.",
 ];
 
-export function mount(parent, maps) {
+export function mount(parent, maps, options = {}) {
     if (!parent || !Array.isArray(maps) || maps.length === 0) return;
     const rows = deltasBetween(maps);
     if (rows.length < 1) {
@@ -65,7 +65,7 @@ export function mount(parent, maps) {
             ariaLabel: "About the entries delta chart",
         }),
         draw: ({ width, height, layout }) =>
-            buildChart(rows, maps, width, height, layout),
+            buildChart(rows, maps, width, height, layout, options),
     });
 }
 
@@ -91,7 +91,7 @@ function deltasBetween(maps) {
     return rows;
 }
 
-function buildChart(rows, domainMaps, width, height, layout) {
+function buildChart(rows, domainMaps, width, height, layout, options = {}) {
     const plot = plotBounds(width, height, layout);
 
     const values = rows.map((r) => r.delta);
@@ -105,13 +105,20 @@ function buildChart(rows, domainMaps, width, height, layout) {
     // every history chart. Missing bars then visibly mark builds
     // that had no comparable previous build (filled-only neighbour
     // or the very first build), rather than silently shifting the
-    // chart's start to a later date. The start snaps to the first
-    // of its month so the leftmost calendar tick lands flush with
+    // chart's start to a later date.
+    //
+    // ``options.domainStart`` / ``options.domainEnd`` (optional)
+    // override the data-derived bounds with the calendar window
+    // the picker promised, so a publishing pause at either edge
+    // stays visible. The start still snaps to the first of its
+    // month so the leftmost calendar tick lands flush with
     // plot.left.
-    const domainStart = snapToMonthStart(
-        new Date(domainMaps[0].released_at).getTime(),
-    );
-    const domainEnd = new Date(domainMaps[domainMaps.length - 1].released_at).getTime();
+    const rawStart = options.domainStart
+        ?? new Date(domainMaps[0].released_at).getTime();
+    const rawEnd = options.domainEnd
+        ?? new Date(domainMaps[domainMaps.length - 1].released_at).getTime();
+    const domainStart = snapToMonthStart(rawStart);
+    const domainEnd = rawEnd;
     const xScale = linearScale([domainStart, domainEnd], [plot.left, plot.right]);
 
     const barTimestamps = rows.map((r) => new Date(r.released_at).getTime());

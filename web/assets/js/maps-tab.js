@@ -11,6 +11,20 @@ import * as mapSizeChart from "./components/map-size-chart.js";
 import * as mapDeltaChart from "./components/map-delta-chart.js";
 import * as driftChart from "./components/drift-chart.js";
 import * as diffExplorer from "./components/diff-explorer.js";
+import { createModeSwitch } from "./components/mode-switch.js";
+import { DEFAULT_MAPS_VIEW, viewWindow } from "./utils/maps-view.js";
+
+// History range picker labels. Matches Bloomberg / TradingView
+// convention so the affordance is recognisable on first sight.
+// "Max" is the explicit name for the full-history view rather
+// than an unlabelled default, so the picker is fully self-
+// describing when read out by a screen reader.
+const HISTORY_RANGE_OPTIONS = [
+    { value: "1y", label: "1Y" },
+    { value: "3y", label: "3Y" },
+    { value: "5y", label: "5Y" },
+    { value: "max", label: "Max" },
+];
 
 const METRICS_URL = "assets/data/metrics.json";
 const ASN_NAMES_URL = "assets/data/asn-names.json";
@@ -131,13 +145,42 @@ async function init() {
     );
     renderOverview(defaultName);
 
-    mapSizeChart.mount(document.querySelector("[data-map-size-chart]"), maps);
-    mapDeltaChart.mount(document.querySelector("[data-map-delta-chart]"), maps);
-    driftChart.mount(
-        document.querySelector("[data-drift-chart]"),
-        maps,
-        diffs,
-    );
+    // History charts read a windowed slice of the maps array so the
+    // range picker can swap the slice without each chart needing
+    // its own filter. The overview cards, build selector, and diff
+    // explorer keep the full array because they describe individual
+    // builds rather than a time range.
+    const sizeSlot = document.querySelector("[data-map-size-chart]");
+    const deltaSlot = document.querySelector("[data-map-delta-chart]");
+    const driftSlot = document.querySelector("[data-drift-chart]");
+
+    let historyView = DEFAULT_MAPS_VIEW;
+    const renderHistory = () => {
+        const window = viewWindow(maps, historyView);
+        const bounds = {
+            domainStart: window.domainStart,
+            domainEnd: window.domainEnd,
+        };
+        mapSizeChart.mount(sizeSlot, window.maps, bounds);
+        mapDeltaChart.mount(deltaSlot, window.maps, bounds);
+        driftChart.mount(driftSlot, window.maps, diffs, bounds);
+    };
+
+    const historyRangeSlot = document.querySelector("[data-history-range]");
+    if (historyRangeSlot) {
+        const picker = createModeSwitch({
+            options: HISTORY_RANGE_OPTIONS,
+            value: historyView,
+            onChange: (next) => {
+                historyView = next;
+                renderHistory();
+            },
+            ariaLabel: "History time range",
+        });
+        historyRangeSlot.replaceChildren(picker);
+    }
+
+    renderHistory();
     diffExplorer.mount(document.querySelector("[data-diff]"), payload);
 }
 

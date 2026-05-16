@@ -96,7 +96,7 @@ const MAP_SIZE_INFO = [
     "Hover any build for the two raw sizes plus the fill-compression ratio between them. Builds that did not publish a variant show a gap rather than bridging the line toward zero.",
 ];
 
-export function mount(parent, maps) {
+export function mount(parent, maps, options = {}) {
     if (!parent) return;
     if (maps.length < 2) {
         parent.replaceChildren();
@@ -126,7 +126,7 @@ export function mount(parent, maps) {
                 },
             }),
         draw: ({ width, height, layout }) =>
-            buildChart(maps, state.hidden, width, height, layout),
+            buildChart(maps, state.hidden, width, height, layout, options),
     });
 }
 
@@ -135,7 +135,7 @@ export function mount(parent, maps) {
 // data point or every series has been toggled off in the legend.
 // Each sub-pass (axes, series, hover) lives in its own helper so
 // this function reads as the storyboard.
-function buildChart(maps, hidden, width, height, layout) {
+function buildChart(maps, hidden, width, height, layout, options) {
     const samples = sampleSeries(maps);
     const visible = samples.filter((s) => !hidden.has(s.key));
     if (visible.length === 0) {
@@ -152,7 +152,7 @@ function buildChart(maps, hidden, width, height, layout) {
         return emptyState();
     }
 
-    const geometry = computeGeometry(maps, visibleSizes, width, height, layout);
+    const geometry = computeGeometry(maps, visibleSizes, width, height, layout, options);
     const root = createSvgRoot(width, height);
 
     drawAxes(root, maps, geometry, width);
@@ -187,7 +187,15 @@ function sampleSeries(maps) {
 // cluster and a four-month publishing pause leaves the line
 // visibly flat. xAt(i) keeps callers index-driven so the existing
 // dot-drawing and nearest-hover code reads naturally.
-function computeGeometry(maps, sizes, width, height, layout) {
+//
+// ``options.domainStart`` / ``options.domainEnd`` (optional) let
+// the caller pin the x domain to a calendar window wider than the
+// data itself, so a publishing pause at the start or a stale
+// trailing edge stay visible. Without overrides the chart falls
+// back to the data bounds. The start always snaps to the first
+// of its month so the leftmost calendar tick lands flush with
+// plot.left.
+function computeGeometry(maps, sizes, width, height, layout, options = {}) {
     const plot = plotBounds(width, height, layout);
     const yTicks = niceTicks(Math.min(...sizes), Math.max(...sizes));
     const yScale = linearScale(
@@ -195,8 +203,10 @@ function computeGeometry(maps, sizes, width, height, layout) {
         [plot.bottom, plot.top],
     );
     const timestamps = maps.map((m) => new Date(m.released_at).getTime());
-    const domainStart = snapToMonthStart(timestamps[0]);
-    const domainEnd = timestamps.at(-1);
+    const rawStart = options.domainStart ?? timestamps[0];
+    const rawEnd = options.domainEnd ?? timestamps.at(-1);
+    const domainStart = snapToMonthStart(rawStart);
+    const domainEnd = rawEnd;
     const xScale = linearScale(
         [domainStart, domainEnd],
         [plot.left, plot.right],

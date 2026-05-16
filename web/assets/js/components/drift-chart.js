@@ -146,7 +146,7 @@ const DRIFT_INFO = [
 // Public mount: render the drift card under ``parent``. The card
 // owns its own state (mode) and re-draws the chart on every
 // state change.
-export function mount(parent, maps, diffs) {
+export function mount(parent, maps, diffs, options = {}) {
     if (!parent) return;
     if (!Array.isArray(maps) || maps.length < 2) {
         parent.replaceChildren(emptyState());
@@ -210,6 +210,7 @@ export function mount(parent, maps, diffs) {
                 width,
                 height,
                 layout,
+                options,
             ),
     });
 }
@@ -368,7 +369,7 @@ function gapPoint(map, index) {
 // the user has hidden every series via the legend. Each sub-pass
 // (axes, series, hover) lives in its own helper so this function
 // reads as the storyboard.
-function buildChart(sortedMaps, points, mode, hidden, width, height, layout) {
+function buildChart(sortedMaps, points, mode, hidden, width, height, layout, options) {
     const visibleSeries = SERIES.filter((s) => !hidden.has(s.key));
     if (visibleSeries.length === 0) {
         return emptyState("All series hidden. Click a legend entry to bring one back.");
@@ -383,7 +384,7 @@ function buildChart(sortedMaps, points, mode, hidden, width, height, layout) {
         return emptyState("No drift data for the picked mode.");
     }
 
-    const geometry = computeGeometry(sortedMaps, visibleRatios, width, height, layout);
+    const geometry = computeGeometry(sortedMaps, visibleRatios, width, height, layout, options);
     const root = createSvgRoot(width, height, mode);
 
     drawAxes(root, sortedMaps, geometry, width);
@@ -393,7 +394,7 @@ function buildChart(sortedMaps, points, mode, hidden, width, height, layout) {
     return attachHover(root, sortedMaps, points, geometry, mode);
 }
 
-function computeGeometry(sortedMaps, allRatios, width, height, layout) {
+function computeGeometry(sortedMaps, allRatios, width, height, layout, options = {}) {
     const plot = plotBounds(width, height, layout);
     // niceTicks on a flat-zero domain still needs a non-zero upper
     // bound. 1 % keeps the y axis usable even when every plotted
@@ -405,13 +406,20 @@ function computeGeometry(sortedMaps, allRatios, width, height, layout) {
     );
     // Time-based x scale: each build sits at its real release date
     // so the curve's slope between two builds reflects the actual
-    // calendar interval, not a synthetic equal-spacing one. The
-    // domain start snaps to the first of the start's month so the
-    // leftmost calendar tick lands flush with plot.left instead of
-    // floating inside the plot area.
+    // calendar interval, not a synthetic equal-spacing one.
+    //
+    // ``options.domainStart`` / ``options.domainEnd`` (optional)
+    // override the data-derived bounds with the calendar window
+    // the picker promised, so a publishing pause at either edge
+    // stays visible rather than the chart silently snapping in to
+    // the first or last available build. The start still snaps to
+    // the first of its month so the leftmost calendar tick lands
+    // flush with plot.left.
     const timestamps = sortedMaps.map((m) => new Date(m.released_at).getTime());
-    const domainStart = snapToMonthStart(timestamps[0]);
-    const domainEnd = timestamps.at(-1);
+    const rawStart = options.domainStart ?? timestamps[0];
+    const rawEnd = options.domainEnd ?? timestamps.at(-1);
+    const domainStart = snapToMonthStart(rawStart);
+    const domainEnd = rawEnd;
     const xScale = linearScale(
         [domainStart, domainEnd],
         [plot.left, plot.right],
