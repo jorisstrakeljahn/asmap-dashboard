@@ -93,13 +93,14 @@ def _emit_json(result: object, out_path: Path | None) -> int:
     Shared by every subcommand that produces a JSON payload (analyze,
     diff, metrics) so the on-disk format is identical regardless of
     caller. ``sort_keys=True`` and a trailing newline keep the output
-    byte-stable across runs and friendly to ``diff`` / git so the
-    daily refresh-metrics workflow only commits when the payload
-    actually changed.
+    byte-stable across runs so reruns against the same input only
+    diff when the payload actually changed.
     """
     payload = json.dumps(result, indent=2, sort_keys=True) + "\n"
     if out_path is not None:
-        Path(out_path).write_text(payload)
+        out_path = Path(out_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(payload)
     else:
         sys.stdout.write(payload)
     return 0

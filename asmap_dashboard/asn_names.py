@@ -122,5 +122,7 @@ def refresh(
         },
         **subset,
     }
-    Path(out_path).write_text(json.dumps(payload, indent=2) + "\n")
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(payload, indent=2) + "\n")
     return len(subset)

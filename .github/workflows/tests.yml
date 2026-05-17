@@ -34,7 +34,7 @@ jobs:
 
   lint-js:
     # ESLint runs against the static web/ assets to catch obvious
-    # tipos and unused imports before a drive-by contributor opens
+    # typos and unused imports before a drive-by contributor opens
     # a PR. The dashboard has no build step, so a single Node
     # version is enough — pin to the active LTS.
     runs-on: ubuntu-latest
