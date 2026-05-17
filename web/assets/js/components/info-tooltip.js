@@ -1,48 +1,25 @@
-// Small "i" affordance that reveals a structured explanatory
-// popover on click, hover or focus. The popover sits absolutely
-// beneath the trigger and flips above when the viewport edge
-// would clip it, mirroring the dropdown placement pattern.
-//
-// Body content is an array of paragraphs. A paragraph is either
-// a plain string or { lead, text } where ``lead`` is rendered
-// bold so a multi-bucket explainer ("Reassigned. ...",
-// "Newly Mapped. ...") reads as a labelled glossary.
-//
-//   createInfoTooltip({
-//       ariaLabel: "About drift",
-//       body: [
-//           "Drift is the share of mapping entries that differ between two builds.",
-//           { lead: "vs previous.", text: "Drift between consecutive builds." },
-//           { lead: "vs baseline.", text: "Drift from a chosen reference build." },
-//       ],
-//   })
-//
-// The single-string ``text`` form is still accepted for the
-// simple case where one sentence is enough.
-//
-// Returns a <span> exposing setBody(next) for late-binding copy.
+// "i" trigger + explanatory popover. ``body`` is an array of
+// paragraphs; a paragraph is either a string or { lead, text }
+// where ``lead`` renders bold so multi-bucket explainers read
+// as a glossary. Single-string ``text`` is accepted for the
+// simple case. Returns a <span> exposing setBody(next).
 
 import { SVG_NS, uniqueId } from "../utils/dom.js";
+import { t } from "../utils/i18n.js";
 
 const PANEL_GAP = 6;
 const VIEWPORT_MARGIN = 8;
-// 400 px gives multi-paragraph glossary popovers (the Top Movers
-// explainer in particular) enough horizontal room to read in two
-// or three lines instead of seven or eight. Still clamped against
-// the viewport edge by placePopover so it can never bleed off
-// screen on narrow phones.
 const PANEL_MAX_WIDTH = 400;
 
-export function createInfoTooltip({
-    text,
-    body,
-    ariaLabel = "More information",
-} = {}) {
+export function createInfoTooltip({ text, body, ariaLabel } = {}) {
     const root = document.createElement("span");
     root.className = "info-tooltip";
 
     const popoverId = uniqueId("info-tooltip");
-    const trigger = buildTrigger({ ariaLabel, popoverId });
+    const trigger = buildTrigger({
+        ariaLabel: ariaLabel ?? t("infoTooltip.defaultAria"),
+        popoverId,
+    });
     const popover = buildPopover(popoverId);
     renderBody(popover, body ?? text);
     root.append(trigger, popover);
@@ -50,27 +27,17 @@ export function createInfoTooltip({
     // Two-stage open / close model:
     //
     //   open   — popover is currently visible (hover or click)
-    //   sticky — user committed to keeping it open via a click;
-    //            mouseleave no longer auto-closes
+    //   sticky — committed via click; mouseleave no longer auto-closes
     //
-    // The naive "click toggles open" pattern fights the hover-to-
-    // preview behaviour: a click on an already-hovered icon would
-    // close the popover the user was about to read, because the
-    // mouseenter handler had already opened it. Treating the
-    // sticky transition as a third state instead of a toggle
-    // makes the interaction predictable: hover previews, click
-    // pins, click again (or outside / ESC) dismisses.
+    // The "click toggles open" pattern fights hover-preview (a
+    // click on an already-hovered icon would close it again), so
+    // sticky is a third state, not a toggle.
     let open = false;
     let sticky = false;
 
-    // Hover-intent timers. A 180 ms cold-open delay swallows mice
-    // that pass over the icon on their way to something else - the
-    // common case for a user dragging diagonally across the layout
-    // - so the popover does not flash open along the path. After
-    // a close the icon stays "warm" for 320 ms; re-entering inside
-    // that window opens immediately, the way Stripe / Linear do.
-    // Focus and explicit clicks bypass both timers because they
-    // express intent unambiguously.
+    // 180 ms cold-open delay swallows mice that only pass over the
+    // icon; 320 ms warm window after close lets a re-hover open
+    // instantly. Focus + click bypass both as explicit intent.
     const HOVER_OPEN_DELAY_MS = 180;
     const HOVER_WARM_WINDOW_MS = 320;
     let hoverOpenTimer = 0;
@@ -95,28 +62,16 @@ export function createInfoTooltip({
             document.addEventListener("touchstart", handleOutside, true);
             document.addEventListener("keydown", handleKey, true);
             window.addEventListener("resize", placePopover);
-            // Outside-scroll dismisses the popover instead of
-            // re-positioning it. A popover that follows the icon
-            // through a page scroll loses the visual link to the
-            // metric it explains and clutters the chart area the
-            // user is actually trying to read. The popover itself
-            // is short enough never to need internal scrolling,
-            // so there is no inside-scroll case to protect.
+            // Scroll dismisses rather than follows the trigger;
+            // the popover is short enough never to need internal
+            // scrolling, so there is no inside-scroll case.
             window.addEventListener("scroll", handleOutsideScroll, true);
-            // Two passes: the first reads a possibly-stale layout
-            // (popover was hidden moments ago), the second rAF
-            // reads the layout the browser has now committed.
+            // Two passes: the first reads a stale layout, the
+            // rAF reads the committed layout.
             placePopover();
             requestAnimationFrame(placePopover);
         } else {
-            // Always drop the sticky bit on close, so the next
-            // hover-open starts in the preview state instead of
-            // arriving already pinned.
             sticky = false;
-            // Stamp a "warm" window so a re-hover within the next
-            // few hundred ms feels instant. The next mouseenter
-            // checks this against Date.now() and skips the cold-
-            // open delay when it falls inside the window.
             warmUntil = Date.now() + HOVER_WARM_WINDOW_MS;
             document.removeEventListener("mousedown", handleOutside, true);
             document.removeEventListener("touchstart", handleOutside, true);
@@ -128,12 +83,8 @@ export function createInfoTooltip({
         }
     }
 
-    // Position the popover with `position: fixed` against the
-    // viewport so any overflow:auto / overflow:hidden ancestor
-    // (e.g. the Top Movers' horizontally-scrolling table) cannot
-    // clip it. Flips above when the trigger is too close to the
-    // viewport bottom; clamps horizontally so the popover anchors
-    // to the trigger centre and stays inside the viewport.
+    // position:fixed against the viewport so overflow:auto
+    // ancestors (the top-movers scroll container) cannot clip.
     function placePopover() {
         if (!open) return;
         const triggerRect = trigger.getBoundingClientRect();

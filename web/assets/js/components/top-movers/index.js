@@ -1,23 +1,8 @@
-// Top Movers card orchestrator. Mounts the card scaffold (header,
-// toolbar, table region, footer) once, then re-renders the table
-// body and pagination on every state change through render().
-//
-// The card is a paginated list of the AS numbers most affected by
-// the selected diff, with a Compact / Detailed view switch, a
-// page-size dropdown, and a direction column summarising which
-// counterpart prefixes flowed to or from. The view-mode
-// preference is persisted across visits via localStorage.
-//
-// Submodules:
-//   state.js       — defaults, persisted flags, mutable state shape
-//   sort.js        — comparator + derived "Touched" / direction rank
-//   filter.js      — substring + direction filter predicates
-//   pagination.js  — page-window picker + page-button rendering
-//   columns.js     — column metadata + table header + sort chevron
-//   rows.js        — per-row tbody builder (cells, direction glyph)
-//   controls.js    — toolbar / footer controls + TOP_MOVERS_INFO copy
+// Top Movers card orchestrator. Builds the scaffold once and
+// re-runs render() on every state change.
 
 import { mutedNote } from "../../utils/dom.js";
+import { t } from "../../utils/i18n.js";
 import { tableHead } from "./columns.js";
 import {
     buildDirectionFilter,
@@ -35,16 +20,13 @@ import { createState, isFiltering, saveShowNames } from "./state.js";
 
 export function mount(parent, diff) {
     if (!diff || !diff.top_movers.length) {
-        parent.replaceChildren(mutedNote("No top movers in the selected diff."));
+        parent.replaceChildren(mutedNote(t("topMovers.empty")));
         return;
     }
 
     const state = createState();
     const card = buildCardScaffold();
 
-    // The toolbar controls own a ``setValue`` hook so the Clear
-    // pill can reset them without each builder needing its own
-    // ref-passing dance.
     const filterInput = buildFilterInput(state, () => render());
     const directionControl = buildDirectionFilter(state, () => render());
     card.toolbarFields.append(filterInput.elem, directionControl.elem);
@@ -85,7 +67,7 @@ export function mount(parent, diff) {
 
 function renderTable(filteredMovers, diff, state, onChange) {
     if (!filteredMovers.length) {
-        return mutedNote("No autonomous systems match this filter.");
+        return mutedNote(t("topMovers.noMatches"));
     }
     const sorted = sortMovers(filteredMovers, state.sortField, state.sortDir);
     const start = state.pageIndex * state.pageSize;
@@ -101,12 +83,6 @@ function renderTable(filteredMovers, diff, state, onChange) {
     return table;
 }
 
-// Assemble the static DOM regions the orchestrator fills on
-// every render: header (identity + view mode + info tooltip),
-// toolbar (filter facets + Clear pill slot), table region, and
-// footer (page size + pagination). Returns named refs to each
-// region so the orchestrator can wire the controls without
-// re-querying the DOM.
 function buildCardScaffold() {
     const root = document.createElement("article");
     root.className = "card top-movers";
@@ -115,7 +91,7 @@ function buildCardScaffold() {
     header.className = "top-movers__header";
     const title = document.createElement("span");
     title.className = "card__label uppercase-label";
-    title.textContent = "Top Movers";
+    title.textContent = t("topMovers.title");
     const headerControls = document.createElement("div");
     headerControls.className = "top-movers__header-controls";
     header.append(title, headerControls);
@@ -137,7 +113,7 @@ function buildCardScaffold() {
 
     const pagination = document.createElement("nav");
     pagination.className = "top-movers__pagination";
-    pagination.setAttribute("aria-label", "Top movers pagination");
+    pagination.setAttribute("aria-label", t("topMovers.pagination.navAria"));
 
     root.append(header, toolbar, tableWrap, footer);
 

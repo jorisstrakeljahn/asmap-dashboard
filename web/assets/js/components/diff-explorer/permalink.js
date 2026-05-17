@@ -1,14 +1,7 @@
-// Sharable diff permalinks. The Map A / Map B selection is
-// reflected into the URL hash so a copy-paste of the address
-// bar reopens the dashboard on the same pair:
-//
-//   #diff?a=YYYY-MM-DD&b=YYYY-MM-DD
-//
-// Dates are taken from each map's released_at field rather than
-// the internal name (e.g. "2026/1770307200") so the URL stays
-// human-readable when pasted into chat or a PR comment. The tab
-// router in tabs.js already tolerates the "?<query>" suffix on
-// any tab token.
+// Sharable Map A / Map B permalink: ``#diff?a=YYYY-MM-DD&b=YYYY-MM-DD``.
+// Dates rather than internal names so the URL stays readable
+// when pasted into a PR comment. The tab router tolerates the
+// "?<query>" suffix on any tab token.
 
 const HASH_TAB = "#diff";
 
@@ -20,11 +13,8 @@ export function readPermalink() {
     return { a: params.get("a"), b: params.get("b") };
 }
 
-// Update the hash without triggering a hashchange listener
-// somewhere upstream. replaceState collapses the URL bar update
-// into a single history entry per diff selection so the back
-// button still steps through user-visible tab changes, not
-// every micro-edit to the dropdown pair.
+// replaceState (not pushState) so the back button still steps
+// through user-visible tab changes, not every dropdown tweak.
 export function writePermalink(aDate, bDate) {
     const params = new URLSearchParams();
     if (aDate) params.set("a", aDate);

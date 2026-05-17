@@ -1,17 +1,13 @@
-// Map A / Map B selector pair with the strict-ordering guard.
-//
-// Map A is always chronologically earlier than Map B; the
-// selectors enforce the ordering by greying out impossible
-// options in each dropdown and bumping the counterpart whenever
-// the user picks a same-or-later A or a same-or-earlier B.
-// Keeping the time direction fixed lets newly_mapped / unmapped
-// read unambiguously (always "gained" / "lost" going forward in
-// time) and removes the need to materialise reverse-direction
-// diffs in the payload.
+// Map A / Map B selector pair. A is always chronologically
+// earlier than B so newly_mapped / unmapped read unambiguously
+// as "gained" / "lost" forward in time; the dropdowns enforce
+// the ordering by greying out impossible options and bumping
+// the counterpart on conflicting picks.
 
 import { ARROW } from "../../utils/symbols.js";
 import { uniqueId } from "../../utils/dom.js";
 import { formatDate } from "../../format.js";
+import { t } from "../../utils/i18n.js";
 import { createDropdown } from "../dropdown.js";
 
 export function createSelectors(maps, onChange) {
@@ -26,20 +22,10 @@ export function createSelectors(maps, onChange) {
         label: formatDate(map.released_at),
     }));
 
-    // ``maps`` is in chronological order (oldest first), so the
-    // selector stays valid by index and we can clamp without
-    // re-sorting per change. Map B must be strictly newer than
-    // Map A; whoever the user just edited is the side we keep,
-    // and the counterpart bumps forward / backward to satisfy
-    // the constraint.
+    // maps[] is chronological (oldest first), so index ordering
+    // doubles as time ordering.
     const indexOf = (name) => maps.findIndex((m) => m.name === name);
 
-    // Recompute which options are disabled in each dropdown each
-    // time either side moves. Map A can only land on builds
-    // strictly older than Map B, and Map B only on builds
-    // strictly newer than Map A; greying out the impossible rows
-    // is more readable than silently bumping the counterpart and
-    // showing a "pick two different maps" notice after the fact.
     const refreshDisabled = () => {
         const aIdx = indexOf(fieldA.dropdown.getValue());
         const bIdx = indexOf(fieldB.dropdown.getValue());
@@ -59,10 +45,7 @@ export function createSelectors(maps, onChange) {
     };
 
     const onAChange = (newA) => {
-        // The Map A dropdown now greys out every option at or
-        // after Map B, so a backwards-or-equal pair is no longer
-        // reachable through the UI. The clamp below stays as a
-        // belt-and-braces guard for programmatic setSelection()
+        // Belt-and-braces clamp for programmatic setSelection()
         // calls (e.g. permalinks) that bypass the dropdown.
         const aIdx = indexOf(newA);
         const bIdx = indexOf(fieldB.dropdown.getValue());
@@ -82,14 +65,11 @@ export function createSelectors(maps, onChange) {
         fire();
     };
 
-    const fieldA = createField("Map A", options, onAChange);
-    const fieldB = createField("Map B", options, onBChange);
+    const fieldA = createField(t("diff.selectors.mapA"), options, onAChange);
+    const fieldB = createField(t("diff.selectors.mapB"), options, onBChange);
 
-    // The arrow signals reading direction (A -> B). The previous
-    // "vs" looked symmetric and hid which side the diff was
-    // computed from, which mattered once "newly mapped" and
-    // "unmapped" became asymmetric counts that flip when the
-    // user swaps A and B.
+    // Arrow not "vs" — newly_mapped / unmapped are asymmetric
+    // and depend on which side is the baseline.
     const arrow = document.createElement("span");
     arrow.className = "diff-selectors__arrow";
     arrow.setAttribute("aria-hidden", "true");
