@@ -378,6 +378,27 @@
     user-select: none;
 }
 
+/* Coarse-pointer hit area expansion. The sort buttons and the
+   pagination buttons stay visually compact for mouse / trackpad
+   (28 px and ~text-height respectively, matching the table's
+   tight rhythm), but a finger needs roughly 44 px to land
+   reliably. The ::before pseudo-element grows the pointer-events
+   surface without nudging layout, so neighbours don't reflow on
+   a touch device. */
+@media (pointer: coarse) {
+    .top-movers__sort-button,
+    .top-movers__page {
+        position: relative;
+    }
+
+    .top-movers__sort-button::before,
+    .top-movers__page::before {
+        content: "";
+        position: absolute;
+        inset: -8px;
+    }
+}
+
 /* ── Mobile ──────────────────────────────────────────────────── */
 
 @media (max-width: 720px) {

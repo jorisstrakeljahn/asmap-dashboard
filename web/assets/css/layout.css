@@ -56,11 +56,6 @@
     background: var(--color-text-strong);
 }
 
-.site-header__meta {
-    font-size: var(--font-size-sm);
-    color: var(--color-text-muted);
-}
-
 .content {
     max-width: var(--content-max);
     margin: 0 auto;
@@ -163,6 +158,111 @@
     line-height: var(--line-normal);
 }
 
+/* Secondary action sitting under the body copy. Muted by default
+   so it does not compete with the banner heading; the focus ring
+   reuses the same accent the rest of the dashboard uses. */
+.load-error__retry {
+    margin-top: var(--space-4);
+    height: var(--control-height);
+    padding: 0 var(--space-4);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius);
+    background: var(--color-bg);
+    color: var(--color-text-base);
+    font: inherit;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: border-color var(--motion-base) var(--motion-ease);
+}
+
+.load-error__retry:hover:not(:disabled) {
+    border-color: var(--color-text-muted);
+}
+
+.load-error__retry:focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-accent);
+    outline-offset: var(--focus-ring-offset);
+}
+
+.load-error__retry:disabled {
+    color: var(--color-text-subtle);
+    cursor: progress;
+}
+
+/* Loading skeletons. Pre-rendered placeholders that sit in every
+   data-* slot until the matching tab module mounts and calls
+   replaceChildren on the slot. Strategy here is "show the layout
+   the user is about to see, not a spinner": three card-shaped
+   blocks where the Overview cards will land, four chart-shaped
+   blocks where the History charts will land, and one tall block
+   for the Diff Explorer until both fetches resolve.
+
+   The shimmer is a single keyframe animation moving a soft band
+   of lighter pixels left-to-right across the placeholder. Under
+   prefers-reduced-motion the animation collapses to a static
+   gradient via the global *::after override in tokens.css. */
+.skeleton {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius);
+    background: var(--color-track);
+}
+
+.skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.55) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.skeleton-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4);
+}
+
+@media (max-width: 900px) {
+    .skeleton-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.skeleton--card {
+    height: 168px;
+    border: 1px solid var(--color-border);
+}
+
+.skeleton--chart {
+    height: var(--chart-min-height);
+}
+
+.skeleton--control {
+    width: 200px;
+    max-width: 100%;
+    height: var(--control-height);
+}
+
+.skeleton--diff {
+    height: 360px;
+}
+
 /* Footer sits below the main content with a thin top rule so it
    detaches from the last section without competing with it. Two
    stacked lines (sources + project meta) center-aligned so the
@@ -255,10 +355,6 @@
         justify-content: center;
         gap: var(--space-6);
     }
-    .site-header__meta {
-        margin-left: auto;
-        text-align: right;
-    }
 }
 
 @media (max-width: 540px) {
@@ -281,10 +377,6 @@
     .site-footer {
         margin-top: var(--space-8);
         padding: var(--space-5) var(--space-4) var(--space-6);
-    }
-    .site-header__meta {
-        max-width: min(100%, 12rem);
-        word-break: break-word;
     }
 }
 

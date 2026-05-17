@@ -15,6 +15,7 @@
 }
 
 .info-tooltip__trigger {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -31,6 +32,22 @@
     transition:
         color var(--motion-fast) var(--motion-ease),
         background var(--motion-fast) var(--motion-ease);
+}
+
+/* Invisible hitbox expansion so a coarse pointer (finger, stylus)
+   can reliably tap the 18 px icon. The visual size stays at 18 px
+   for mouse users; the ::before pseudo-element grows the
+   pointer-events surface to ~32 px without nudging the layout
+   (its absolute positioning leaves siblings untouched). Limited
+   to coarse pointers because on a mouse the extra hit area can
+   trip neighbouring elements with their own hover behaviour. */
+@media (pointer: coarse) {
+    .info-tooltip__trigger::before {
+        content: "";
+        position: absolute;
+        inset: -7px;
+        border-radius: var(--radius-pill);
+    }
 }
 
 .info-tooltip__trigger:hover,
@@ -86,7 +103,10 @@
     font-weight: var(--font-weight-regular);
     white-space: normal;
     width: max-content;
-    max-width: 320px;
+    /* Mirrors PANEL_MAX_WIDTH in info-tooltip.js. The JS-set inline
+       style.maxWidth wins at runtime; this rule is the fallback for
+       any future caller that bypasses the JS factory. */
+    max-width: 400px;
 }
 
 .info-tooltip__popover[hidden] {
