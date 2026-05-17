@@ -67,9 +67,7 @@ def test_metrics_writes_json_to_file(tmp_path):
     )
     out = tmp_path / "metrics.json"
 
-    rc = main(
-        ["metrics", "--data-dir", str(tmp_path / "data"), "--out", str(out)]
-    )
+    rc = main(["metrics", "--data-dir", str(tmp_path / "data"), "--out", str(out)])
 
     assert rc == 0
     payload = json.loads(out.read_text())
@@ -90,4 +88,3 @@ def test_metrics_without_data_dir_exits_with_error(capsys):
     with pytest.raises(SystemExit) as exc:
         main(["metrics"])
     assert exc.value.code != 0
-

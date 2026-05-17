@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import ipaddress
 from collections import Counter
 
-from asmap_dashboard._vendor.asmap import prefix_to_net
+from asmap_dashboard._prefix import is_ipv4_prefix
 from asmap_dashboard.loader import LoadedMap, PathLike, load_map
 
 # Cap on top_ases rows. Matches TOP_MOVERS_LIMIT in diff.py in
@@ -56,9 +55,12 @@ def analyze_loaded_map(loaded: LoadedMap) -> dict:
     ipv4_count = 0
     ipv6_count = 0
     asn_prefix_count: Counter[int] = Counter()
+    # The same bit-comparison helper as diff.py; keeping the two
+    # passes on one address-family classifier means the analyze
+    # totals and the diff buckets can never disagree on what counts
+    # as IPv4 for the same .dat file.
     for prefix, asn in entries:
-        net = prefix_to_net(prefix)
-        if isinstance(net, ipaddress.IPv4Network):
+        if is_ipv4_prefix(prefix):
             ipv4_count += 1
         else:
             ipv6_count += 1

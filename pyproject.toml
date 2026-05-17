@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "asmap-dashboard"
+version = "0.1.0"
+description = "Dashboard for exploring ASmap binary files used by Bitcoin Core for peer diversity."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [{ name = "Joris Strakeljahn" }]
+keywords = ["bitcoin", "asmap", "bgp", "peer-diversity", "dashboard"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Networking",
+]
+# Intentionally empty: the runtime relies on the standard library
+# only. Map parsing goes through the vendored ``asmap.py`` (see
+# ``asmap_dashboard/_vendor/asmap.py`` for the upstream Bitcoin Core
+# SHA and the refresh procedure), so a fresh ``pip install .`` pulls
+# nothing from PyPI.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[project.scripts]
+asmap-dashboard = "asmap_dashboard.cli:main"
+
+[project.urls]
+Homepage = "https://jorisstrakeljahn.github.io/asmap-dashboard/"
+Source = "https://github.com/jorisstrakeljahn/asmap-dashboard"
+Issues = "https://github.com/jorisstrakeljahn/asmap-dashboard/issues"
+
+[tool.setuptools.packages.find]
+include = ["asmap_dashboard*"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+# The vendored asmap.py mirrors upstream byte-for-byte so reviewers
+# can diff the two files cleanly; linting it would tie a refresh to
+# our style choices and reject perfectly-valid upstream code.
+extend-exclude = ["asmap_dashboard/_vendor"]
+
+[tool.ruff.lint]
+# A deliberately small rule set so contributors get fast feedback on
+# the categories that actually catch bugs without drowning in
+# stylistic noise:
+#   E, W : pycodestyle errors / warnings
+#   F    : pyflakes (unused imports, undefined names, ...)
+#   I    : isort import ordering
+#   B    : flake8-bugbear (real-world pitfalls)
+#   UP   : pyupgrade (modernisation suggestions for py310+)
+select = ["E", "F", "W", "I", "B", "UP"]
+# E501: line-too-long is enforced by the formatter; keeping it off
+# the lint pass avoids fighting the formatter on URL / docstring
+# lines that would not be auto-wrappable anyway.
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Test modules accept long fixture literals and intentional
+# unused-name patterns ("_ = ..."); not worth a separate config.
+"tests/*.py" = ["B011"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

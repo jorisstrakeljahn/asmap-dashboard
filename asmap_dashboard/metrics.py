@@ -32,18 +32,16 @@ from __future__ import annotations
 
 import itertools
 import re
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional, Union
-
-from collections import Counter
 
 from asmap_dashboard.analyze import analyze_loaded_map
 from asmap_dashboard.diff import count_entries_per_asn, diff_loaded_maps
 from asmap_dashboard.loader import LoadedMap, load_map
 
-PathLike = Union[str, Path]
+PathLike = str | Path
 FILLED_FILENAME_RE = re.compile(r"^(\d+)_asmap\.dat$")
 UNFILLED_FILENAME_RE = re.compile(r"^(\d+)_asmap_unfilled\.dat$")
 YEAR_DIRNAME_RE = re.compile(r"^\d{4}$")
@@ -62,11 +60,11 @@ class DiscoveredBuild:
 
     timestamp: int
     name: str
-    unfilled_path: Optional[Path]
-    filled_path: Optional[Path]
+    unfilled_path: Path | None
+    filled_path: Path | None
 
 
-def discover_maps(data_dir: PathLike) -> List[DiscoveredBuild]:
+def discover_maps(data_dir: PathLike) -> list[DiscoveredBuild]:
     """Return one DiscoveredBuild per (year, timestamp), sorted in time.
 
     Both variants of a build are merged into a single entry so the
@@ -82,7 +80,7 @@ def discover_maps(data_dir: PathLike) -> List[DiscoveredBuild]:
     etc.) cannot accidentally feed the parser.
     """
     data_dir = Path(data_dir)
-    builds: Dict[tuple, dict] = {}
+    builds: dict[tuple, dict] = {}
     year_dirs = sorted(
         p for p in data_dir.iterdir() if p.is_dir() and YEAR_DIRNAME_RE.match(p.name)
     )
@@ -92,12 +90,10 @@ def discover_maps(data_dir: PathLike) -> List[DiscoveredBuild]:
             if ts is None:
                 continue
             key = (year_dir.name, ts)
-            slot = builds.setdefault(
-                key, {"unfilled": None, "filled": None}
-            )
+            slot = builds.setdefault(key, {"unfilled": None, "filled": None})
             slot[kind] = entry
 
-    out: List[DiscoveredBuild] = []
+    out: list[DiscoveredBuild] = []
     for (year, ts), slot in builds.items():
         unfilled = slot["unfilled"]
         filled = slot["filled"]
@@ -185,7 +181,7 @@ def generate_dashboard_data(data_dir: PathLike) -> dict:
     # parsed result keyed by absolute path. Both the per-variant
     # profiling pass and the diff pass below pick from this cache, so
     # no .dat is touched twice across the run.
-    loaded: Dict[Path, LoadedMap] = {}
+    loaded: dict[Path, LoadedMap] = {}
     for build in builds:
         for path in (build.unfilled_path, build.filled_path):
             if path is not None and path not in loaded:
@@ -201,9 +197,9 @@ def generate_dashboard_data(data_dir: PathLike) -> dict:
 
 
 def _compute_pair_diffs(
-    builds: List[DiscoveredBuild],
-    loaded: Dict[Path, LoadedMap],
-) -> List[dict]:
+    builds: list[DiscoveredBuild],
+    loaded: dict[Path, LoadedMap],
+) -> list[dict]:
     """Diff every chronological pair of builds, preferring unfilled.
 
     Why unfilled: filled-vs-filled diffs conflate two unrelated
@@ -222,8 +218,26 @@ def _compute_pair_diffs(
     diff timeline until / unless an unfilled is back-published for
     it. The frontend surfaces this as a gap in the drift chart, not
     as a wrong number.
+
+    Scaling note: this is an explicit O(N^2) all-pairs walk so the
+    Diff Explorer can pivot to any (A, B) pair without a backend.
+    The cost budget today (~50 published builds = 1225 pair diffs,
+    each touching one trie diff plus two cached per-AS counters) is
+    a few seconds of CPU and well under 1 MB of payload per
+    ``TOP_MOVERS_LIMIT``-capped row set. The CI cron has a generous
+    daily budget, so the constant factor is fine. The switch point
+    is the build count at which either the runtime or the payload
+    size pushes the daily refresh out of the workflow's wall-clock
+    budget; at the upstream's current ~1 build / week release
+    cadence that crosses ~150 builds around 2027-2028. The drop-in
+    alternative is to materialise only adjacent pairs plus a small
+    set of reference distances (e.g. last-known-good, 30-day,
+    90-day) and to compute arbitrary pairs lazily in the browser
+    against the cached map profiles. The trade-off lives here, not
+    in a TODO, so a reviewer hitting the limit knows exactly which
+    knob to turn.
     """
-    diffable: List[tuple] = [
+    diffable: list[tuple] = [
         (build, loaded[build.unfilled_path])
         for build in builds
         if build.unfilled_path is not None
@@ -232,14 +246,11 @@ def _compute_pair_diffs(
     # counter is reused N-1 times across the all-pairs diff loop, so
     # caching here avoids walking every trie O(N) times for the
     # "Touched" multipliers carried on each top_mover row.
-    entries_per_asn: Dict[str, "Counter[int]"] = {
-        build.name: count_entries_per_asn(loaded_map)
-        for build, loaded_map in diffable
+    entries_per_asn: dict[str, Counter[int]] = {
+        build.name: count_entries_per_asn(loaded_map) for build, loaded_map in diffable
     }
-    out: List[dict] = []
-    for (build_a, loaded_a), (build_b, loaded_b) in itertools.combinations(
-        diffable, 2
-    ):
+    out: list[dict] = []
+    for (build_a, loaded_a), (build_b, loaded_b) in itertools.combinations(diffable, 2):
         diff = diff_loaded_maps(
             loaded_a,
             loaded_b,
@@ -255,7 +266,7 @@ def _compute_pair_diffs(
 
 def _build_entry(
     build: DiscoveredBuild,
-    loaded: Dict[Path, LoadedMap],
+    loaded: dict[Path, LoadedMap],
     data_dir: Path,
 ) -> dict:
     """Assemble the maps[] entry for one build with both variants."""
@@ -268,8 +279,8 @@ def _build_entry(
 
 
 def _variant_payload(
-    path: Optional[Path],
-    loaded: Dict[Path, LoadedMap],
+    path: Path | None,
+    loaded: dict[Path, LoadedMap],
     data_dir: Path,
 ) -> dict:
     """Return the per-variant profile dict, or {"present": false}.

@@ -124,14 +124,7 @@ def test_bitcoin_node_impact_filters_to_addrs(tmp_path):
         ],
     )
     addrs = tmp_path / "addrs.txt"
-    addrs.write_text(
-        "# header line\n"
-        "\n"
-        "1.2.3.4\n"
-        "2.3.4.5\n"
-        "not-an-ip\n"
-        "1.50.60.70\n"
-    )
+    addrs.write_text("# header line\n\n1.2.3.4\n2.3.4.5\nnot-an-ip\n1.50.60.70\n")
 
     result = diff_maps(a, b, addrs_file=addrs)
 
@@ -308,17 +301,12 @@ def test_address_family_split_sums_to_bucket_total(tmp_path):
 
     result = diff_maps(a, b)
 
-    assert (
-        result["reassigned_ipv4"] + result["reassigned_ipv6"]
-        == result["reassigned"]
-    )
+    assert result["reassigned_ipv4"] + result["reassigned_ipv6"] == result["reassigned"]
     assert (
         result["newly_mapped_ipv4"] + result["newly_mapped_ipv6"]
         == result["newly_mapped"]
     )
-    assert (
-        result["unmapped_ipv4"] + result["unmapped_ipv6"] == result["unmapped"]
-    )
+    assert result["unmapped_ipv4"] + result["unmapped_ipv6"] == result["unmapped"]
     # Concretely: two reassignments (one v4 one v6), one v6 newly
     # mapped, one v4 unmapped. The split must reflect that the
     # address family is read off the prefix itself, not derived

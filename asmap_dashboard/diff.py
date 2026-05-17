@@ -5,8 +5,8 @@ from __future__ import annotations
 import ipaddress
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Optional
 
+from asmap_dashboard._prefix import is_ipv4_prefix
 from asmap_dashboard._vendor.asmap import ASMap, net_to_prefix
 from asmap_dashboard.loader import LoadedMap, PathLike, load_map
 
@@ -31,25 +31,6 @@ def count_entries_per_asn(loaded: LoadedMap) -> Counter:
     return counter
 
 
-# asmap stores both address families in the same bit-prefix trie
-# by remapping every IPv4 prefix into the IPv4-mapped IPv6 range
-# ::ffff:0:0/96 (see ``net_to_prefix`` in the vendored asmap.py).
-# An IPv4 prefix therefore starts with 80 zero bits followed by 16
-# one bits (0x...0000ffff); any prefix that does not match that
-# 96-bit head is native IPv6.
-#
-# Comparing the bit-list head directly is cheaper than calling
-# ``prefix_to_net`` per diff entry, which would allocate an
-# ipaddress.IPv4Network / IPv6Network object for every change.
-_V4_MAPPED_HEAD = [False] * 80 + [True] * 16
-
-
-def _is_ipv4_prefix(prefix: list) -> bool:
-    """Return True if ``prefix`` lives under ::ffff:0:0/96 (i.e. IPv4)."""
-    if len(prefix) < 96:
-        return False
-    return prefix[:96] == _V4_MAPPED_HEAD
-
 # Cap on how many top-mover ASes a single diff records. The cap
 # exists to bound metrics.json size: an uncapped diff at the high
 # end of the change distribution (~130k entry-level changes)
@@ -65,7 +46,7 @@ TOP_MOVERS_LIMIT = 100
 def diff_maps(
     map_a: PathLike,
     map_b: PathLike,
-    addrs_file: Optional[PathLike] = None,
+    addrs_file: PathLike | None = None,
 ) -> dict:
     """Compute an aggregated diff between two ASmap binary files.
 
@@ -82,10 +63,10 @@ def diff_maps(
 def diff_loaded_maps(
     loaded_a: LoadedMap,
     loaded_b: LoadedMap,
-    addrs_file: Optional[PathLike] = None,
+    addrs_file: PathLike | None = None,
     *,
-    entries_per_asn_a: Optional[Counter] = None,
-    entries_per_asn_b: Optional[Counter] = None,
+    entries_per_asn_a: Counter | None = None,
+    entries_per_asn_b: Counter | None = None,
 ) -> dict:
     """Compute an aggregated diff between two already-loaded ASmaps.
 
@@ -180,7 +161,7 @@ def diff_loaded_maps(
     for prefix, old_asn, new_asn in diff_entries:
         if old_asn == new_asn:
             continue
-        is_v4 = _is_ipv4_prefix(prefix)
+        is_v4 = is_ipv4_prefix(prefix)
         if old_asn == 0:
             newly_mapped += 1
             if is_v4:

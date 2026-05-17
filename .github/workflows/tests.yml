@@ -14,6 +14,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+    # ruff is config-pinned to a single Python target, so a single
+    # job is enough and keeps PR feedback fast.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -e ".[dev]"
+
+      - run: python -m ruff check
+
+      - run: python -m ruff format --check
+
   pytest:
     runs-on: ubuntu-latest
     strategy:
@@ -34,6 +52,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
-      - run: pip install -r requirements-dev.txt
+      - run: pip install -e ".[dev]"
 
       - run: python -m pytest tests

@@ -12,11 +12,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Union
 
 from asmap_dashboard._vendor.asmap import ASMap
 
-PathLike = Union[str, Path]
+PathLike = str | Path
 
 
 @dataclass(frozen=True)
