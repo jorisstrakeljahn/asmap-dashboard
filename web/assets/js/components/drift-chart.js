@@ -43,7 +43,7 @@ import { buildLineChart } from "../charts/line-chart.js";
 import { buildStackedBarChart } from "../charts/stacked-bar-chart.js";
 import { formatDate, formatNumber, formatPercent } from "../format.js";
 import { mutedNote } from "../utils/dom.js";
-import { unfilledProfile } from "../utils/variants.js";
+import { unfilledProfile } from "../utils/map-variants.js";
 import { createChartLegend } from "./chart-legend.js";
 import { computePoints } from "./drift-chart-points.js";
 import { createInfoTooltip } from "./info-tooltip.js";

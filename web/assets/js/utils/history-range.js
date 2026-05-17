@@ -1,10 +1,10 @@
-// Resolve a history range key to the slice of maps that fits in
+// Resolve a history-range key to the slice of maps that fits in
 // the window plus the raw time domain the x axis should span.
 // Centralised so the charts stay window-agnostic: each chart
 // consumes the slice and the bounds and the picker swaps both
 // without touching chart code.
 //
-// Window keys mirror common analytics conventions:
+// Range keys mirror common analytics conventions:
 //   "1y" / "3y" / "5y" - last N years from today
 //   "max"              - every build in the array
 //
@@ -15,55 +15,55 @@
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-const WINDOW_DAYS = {
+const RANGE_DAYS = {
     "1y": 365,
     "3y": 365 * 3,
     "5y": 365 * 5,
 };
 
-export const DEFAULT_MAPS_VIEW = "max";
+export const DEFAULT_HISTORY_RANGE = "max";
 
-// Internal: filter to builds inside the picker's window. Kept
-// private so callers always go through ``viewWindow`` and receive
-// the matching domain bounds alongside the slice, never one
-// without the other.
-function filterMapsByView(maps, view) {
+// Internal: filter to builds inside the picker's range. Kept
+// private so callers always go through ``resolveHistoryRange``
+// and receive the matching domain bounds alongside the slice,
+// never one without the other.
+function filterMapsByRange(maps, range) {
     if (!Array.isArray(maps)) return [];
-    if (view === "max" || !WINDOW_DAYS[view]) return maps;
-    const cutoff = Date.now() - WINDOW_DAYS[view] * MS_PER_DAY;
+    if (range === "max" || !RANGE_DAYS[range]) return maps;
+    const cutoff = Date.now() - RANGE_DAYS[range] * MS_PER_DAY;
     return maps.filter((m) => new Date(m.released_at).getTime() >= cutoff);
 }
 
-// Resolve a view key to its filtered slice plus the time domain
+// Resolve a range key to its filtered slice plus the time domain
 // charts should span. Splitting "what data fits" from "what
-// calendar window the picker promised" lets bounded views honour
-// their range even when no build sits at the edge:
+// calendar window the picker promised" lets bounded ranges
+// honour their span even when no build sits at the edge:
 //
-//   - Bounded views ("1y" / "3y" / "5y") pin the domain to
+//   - Bounded ranges ("1y" / "3y" / "5y") pin the domain to
 //     [now - N days, now]. A publishing pause at either edge of
-//     the window shows as empty space rather than the chart
+//     the range shows as empty space rather than the chart
 //     silently snapping in to the first or last available build.
 //     The right edge at "now" also makes data staleness visible:
-//     if the latest build is two months old, there are two months
-//     of empty space on the right rather than a chart that always
-//     looks current.
+//     if the latest build is two months old, there are two
+//     months of empty space on the right rather than a chart
+//     that always looks current.
 //
 //   - "max" has no calendar promise, so left collapses to the
 //     oldest build and right still sits at "now" so freshness
 //     stays visible across every picker option.
 //
-// Charts apply their own start-snap (e.g. month boundary), so we
-// hand back raw milliseconds and the snapping policy stays in one
-// place.
-export function viewWindow(maps, view = DEFAULT_MAPS_VIEW) {
-    const filtered = filterMapsByView(maps, view);
+// Charts apply their own start-snap (e.g. month boundary), so
+// we hand back raw milliseconds and the snapping policy stays
+// in one place.
+export function resolveHistoryRange(maps, range = DEFAULT_HISTORY_RANGE) {
+    const filtered = filterMapsByRange(maps, range);
     const now = Date.now();
     if (filtered.length === 0) {
         return { maps: filtered, domainStart: null, domainEnd: null };
     }
     const firstMs = new Date(filtered[0].released_at).getTime();
     const lastMs = new Date(filtered[filtered.length - 1].released_at).getTime();
-    if (view === "max" || !WINDOW_DAYS[view]) {
+    if (range === "max" || !RANGE_DAYS[range]) {
         return {
             maps: filtered,
             domainStart: firstMs,
@@ -72,7 +72,7 @@ export function viewWindow(maps, view = DEFAULT_MAPS_VIEW) {
     }
     return {
         maps: filtered,
-        domainStart: now - WINDOW_DAYS[view] * MS_PER_DAY,
+        domainStart: now - RANGE_DAYS[range] * MS_PER_DAY,
         domainEnd: now,
     };
 }

@@ -6,7 +6,7 @@
 // total_changes). Asymmetric callers (Diff Explorer) own their own
 // inversion logic on top of this.
 
-import { unfilledProfile } from "./variants.js";
+import { unfilledProfile } from "./map-variants.js";
 
 export function findDiff(diffs, fromName, toName) {
     if (!Array.isArray(diffs)) return null;

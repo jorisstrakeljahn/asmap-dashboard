@@ -203,7 +203,7 @@ export function snapToMonthStart(timestampMs) {
 
 // Resolve the x-axis time domain for a history chart.
 // ``options.domainStart`` / ``options.domainEnd`` (typically
-// supplied by viewWindow() in utils/maps-view.js) override the
+// supplied by resolveHistoryRange() in utils/history-range.js) override the
 // data-derived bounds, so the calendar window the picker promised
 // is honoured even when no build sits at its edge. The start is
 // always snapped to the first of its month so the leftmost

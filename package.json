@@ -1,0 +1,15 @@
+{
+  "name": "asmap-dashboard-web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Frontend assets for the ASmap Dashboard. The Python package (see pyproject.toml) generates metrics.json; this package only carries the ESLint toolchain for the static web/ assets.",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint web/assets/js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0"
+  }
+}

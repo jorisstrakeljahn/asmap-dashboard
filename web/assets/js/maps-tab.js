@@ -6,7 +6,7 @@
 // "what is this build, and where has the project trended" view
 // without the larger compare table in the middle.
 
-import { daysBetween, formatDate, formatNumber } from "./format.js";
+import { daysBetween, formatNumber } from "./format.js";
 import * as overviewCards from "./components/overview-cards.js";
 import * as buildSelector from "./components/build-selector.js";
 import * as mapDeltaChart from "./components/map-delta-chart.js";
@@ -14,7 +14,10 @@ import * as driftChart from "./components/drift-chart.js";
 import * as entriesChart from "./components/entries-chart.js";
 import { createModeSwitch } from "./components/mode-switch.js";
 import { previousDiffable } from "./utils/diffs.js";
-import { DEFAULT_MAPS_VIEW, viewWindow } from "./utils/maps-view.js";
+import {
+    DEFAULT_HISTORY_RANGE,
+    resolveHistoryRange,
+} from "./utils/history-range.js";
 
 // History range picker labels. Matches Bloomberg / TradingView
 // convention so the affordance is recognisable on first sight.
@@ -102,9 +105,9 @@ export function mount(payload) {
     const driftStepState = { hidden: new Set() };
     const entriesState = { hidden: new Set() };
 
-    let historyView = DEFAULT_MAPS_VIEW;
+    let historyRange = DEFAULT_HISTORY_RANGE;
     const renderHistory = () => {
-        const slice = viewWindow(maps, historyView);
+        const slice = resolveHistoryRange(maps, historyRange);
         const bounds = {
             domainStart: slice.domainStart,
             domainEnd: slice.domainEnd,
@@ -130,9 +133,9 @@ export function mount(payload) {
     if (historyRangeSlot) {
         const picker = createModeSwitch({
             options: HISTORY_RANGE_OPTIONS,
-            value: historyView,
+            value: historyRange,
             onChange: (next) => {
-                historyView = next;
+                historyRange = next;
                 renderHistory();
             },
             ariaLabel: "History time range",

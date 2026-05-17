@@ -16,7 +16,7 @@
 // pair.
 
 import { previousDiffable } from "../utils/diffs.js";
-import { unfilledProfile } from "../utils/variants.js";
+import { unfilledProfile } from "../utils/map-variants.js";
 
 // Build one Point per chronological build slot.
 //

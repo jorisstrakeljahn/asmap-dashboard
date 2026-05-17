@@ -29,7 +29,7 @@ import {
     formatPercent,
 } from "../format.js";
 import { mutedNote } from "../utils/dom.js";
-import { filledProfile, unfilledProfile } from "../utils/variants.js";
+import { filledProfile, unfilledProfile } from "../utils/map-variants.js";
 import { createChartLegend } from "./chart-legend.js";
 import { createInfoTooltip } from "./info-tooltip.js";
 
