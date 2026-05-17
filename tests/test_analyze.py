@@ -6,7 +6,11 @@ import ipaddress
 
 import pytest
 
-from asmap_dashboard.analyze import analyze_loaded_map, analyze_map
+from asmap_dashboard.analyze import (
+    TOP_ASES_LIMIT,
+    analyze_loaded_map,
+    analyze_map,
+)
 from asmap_dashboard.loader import load_map
 
 from .conftest import write_asmap
@@ -65,16 +69,18 @@ def test_unmapped_entries_are_excluded_from_unique_asns(tmp_path):
     assert all(entry["asn"] != 0 for entry in profile["top_ases"])
 
 
-def test_top_ases_capped_at_twenty(tmp_path):
+def test_top_ases_capped_at_limit(tmp_path):
+    # Feed five more ASes than the cap allows so the cap is the
+    # binding constraint rather than the input size.
     entries = [
         (ipaddress.IPv4Network(f"{octet}.0.0.0/8"), 1000 + octet)
-        for octet in range(1, 26)
+        for octet in range(1, TOP_ASES_LIMIT + 6)
     ]
     path = write_asmap(tmp_path / "many.dat", entries)
 
     profile = analyze_map(path)
 
-    assert len(profile["top_ases"]) == 20
+    assert len(profile["top_ases"]) == TOP_ASES_LIMIT
 
 
 def test_invalid_file_raises_value_error(tmp_path):

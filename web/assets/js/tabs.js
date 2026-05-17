@@ -36,9 +36,15 @@ export function initTabs({ defaultTab } = {}) {
         ? defaultTab
         : panels[0]?.dataset.tabPanel ?? null;
 
+    // Tabs may carry their own state in the fragment after a "?",
+    // e.g. "#diff?a=2026-02-05&b=2026-03-05" for a sharable Map A /
+    // Map B selection. The router only cares about the leading
+    // token; the query suffix is owned by the tab module that
+    // mounts into the matching panel.
     const tabFromHash = () => {
         const raw = window.location.hash.replace(/^#/, "");
-        return knownTabs.has(raw) ? raw : fallback;
+        const token = raw.split("?", 1)[0];
+        return knownTabs.has(token) ? token : fallback;
     };
 
     const activate = (tab) => {

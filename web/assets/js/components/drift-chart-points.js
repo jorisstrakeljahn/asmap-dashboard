@@ -36,10 +36,10 @@ export function computePoints(sortedMaps, diffs, mode) {
 
 function cumulativePoints(sortedMaps, diffs) {
     // Anchor on the oldest build that actually published an unfilled
-    // variant. The single filled-only build (2025-03-21) cannot
-    // contribute a diff and would shift the anchor forward in time
-    // for everything after it, which would silently relabel the
-    // baseline. Filtering keeps the anchor stable and honest.
+    // variant. A filled-only build cannot contribute a diff and would
+    // shift the anchor forward in time for everything after it, which
+    // would silently relabel the baseline. Filtering keeps the anchor
+    // stable and honest.
     const baseline = sortedMaps.find((m) => unfilledProfile(m) !== null);
     if (!baseline) return sortedMaps.map((m, i) => gapPoint(m, i));
 

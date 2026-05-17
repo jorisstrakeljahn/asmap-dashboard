@@ -8,6 +8,15 @@ from collections import Counter
 from asmap_dashboard._vendor.asmap import prefix_to_net
 from asmap_dashboard.loader import LoadedMap, PathLike, load_map
 
+# Cap on top_ases rows. Matches TOP_MOVERS_LIMIT in diff.py in
+# style (named constant at module top, used in the .most_common
+# call below) so reviewers find both limits in the same place
+# without grepping for magic numbers. The cap exists because the
+# tail of the distribution is dominated by ASes with one or two
+# prefixes, which carry no analytical value at the per-build
+# overview tier.
+TOP_ASES_LIMIT = 20
+
 
 def analyze_map(path: PathLike) -> dict:
     """Read an ASmap binary file and return a profile of its contents.
@@ -40,7 +49,8 @@ def analyze_loaded_map(loaded: LoadedMap) -> dict:
         ipv6_count:       int, native IPv6 entries.
         file_size_bytes:  int, raw size of the .dat file.
         top_ases:         list of {"asn": int, "prefix_count": int},
-                          sorted by prefix_count descending, max 20.
+                          sorted by prefix_count descending, capped
+                          at TOP_ASES_LIMIT entries.
     """
     entries = loaded.asmap.to_entries()
     ipv4_count = 0
@@ -57,7 +67,7 @@ def analyze_loaded_map(loaded: LoadedMap) -> dict:
 
     top_ases = [
         {"asn": asn, "prefix_count": count}
-        for asn, count in asn_prefix_count.most_common(20)
+        for asn, count in asn_prefix_count.most_common(TOP_ASES_LIMIT)
     ]
 
     return {

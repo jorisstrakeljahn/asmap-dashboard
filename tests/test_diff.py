@@ -3,8 +3,14 @@
 from __future__ import annotations
 
 import ipaddress
+from collections import Counter
 
-from asmap_dashboard.diff import diff_loaded_maps, diff_maps
+from asmap_dashboard.diff import (
+    TOP_MOVERS_LIMIT,
+    count_entries_per_asn,
+    diff_loaded_maps,
+    diff_maps,
+)
 from asmap_dashboard.loader import load_map
 
 from .conftest import write_asmap
@@ -93,6 +99,13 @@ def test_top_movers_ranked_with_primary_counterpart(tmp_path):
     assert top[0]["primary_counterpart"] == 999
     assert top[1]["asn"] == 999 and top[1]["primary_counterpart"] == 100
     assert top[1]["gained"] == 3 and top[1]["lost"] == 0
+    # AS100 holds three /8 prefixes in map A and one (128.0.0.0/8)
+    # in map B; AS999 is absent from A and holds three /8 prefixes
+    # in B. The presence counts ride along on each row so the
+    # frontend can render the "Touched" multiplier without a second
+    # walk.
+    assert top[0]["entries_in_a"] == 3 and top[0]["entries_in_b"] == 0
+    assert top[1]["entries_in_a"] == 0 and top[1]["entries_in_b"] == 3
 
 
 def test_bitcoin_node_impact_filters_to_addrs(tmp_path):
@@ -128,23 +141,27 @@ def test_bitcoin_node_impact_filters_to_addrs(tmp_path):
     assert impact["total_affected"] == 2
 
 
-def test_top_movers_capped_at_twentyfive(tmp_path):
+def test_top_movers_capped_at_limit(tmp_path):
     # Spread prefixes across the IPv4 space so every reassignment lands on a
-    # distinct AS and gets its own row in changes_per_as.
+    # distinct AS and gets its own row in changes_per_as. Generate strictly
+    # more distinct ASes than TOP_MOVERS_LIMIT so the assertion exercises the
+    # cap rather than the natural row count.
+    overflow = 5
+    target = TOP_MOVERS_LIMIT + overflow
     a_entries = [
-        (ipaddress.IPv4Network(f"{octet}.0.0.0/16"), 1000 + octet)
-        for octet in range(1, 60, 2)
+        (ipaddress.IPv4Network(f"{index}.0.0.0/16"), 100_000 + index)
+        for index in range(1, target + 1)
     ]
     b_entries = [
-        (ipaddress.IPv4Network(f"{octet}.0.0.0/16"), 9000 + octet)
-        for octet in range(1, 60, 2)
+        (ipaddress.IPv4Network(f"{index}.0.0.0/16"), 900_000 + index)
+        for index in range(1, target + 1)
     ]
     a = write_asmap(tmp_path / "a.dat", a_entries)
     b = write_asmap(tmp_path / "b.dat", b_entries)
 
     result = diff_maps(a, b)
 
-    assert len(result["top_movers"]) == 25
+    assert len(result["top_movers"]) == TOP_MOVERS_LIMIT
 
 
 def test_empty_maps_diff_to_no_changes(tmp_path):
@@ -234,3 +251,131 @@ def test_diff_loaded_maps_matches_diff_maps(tmp_path):
     )
 
     assert diff_loaded_maps(load_map(a), load_map(b)) == diff_maps(a, b)
+
+
+def test_pre_computed_per_asn_counts_match_lazy_computation(tmp_path):
+    """Passing pre-computed entries_per_asn must not change the diff payload."""
+    a = write_asmap(
+        tmp_path / "a.dat",
+        [
+            (ipaddress.IPv4Network("1.0.0.0/8"), 100),
+            (ipaddress.IPv4Network("16.0.0.0/8"), 100),
+            (ipaddress.IPv4Network("64.0.0.0/8"), 200),
+        ],
+    )
+    b = write_asmap(
+        tmp_path / "b.dat",
+        [
+            (ipaddress.IPv4Network("1.0.0.0/8"), 999),
+            (ipaddress.IPv4Network("16.0.0.0/8"), 100),
+            (ipaddress.IPv4Network("64.0.0.0/8"), 200),
+        ],
+    )
+    loaded_a = load_map(a)
+    loaded_b = load_map(b)
+
+    lazy = diff_loaded_maps(loaded_a, loaded_b)
+    eager = diff_loaded_maps(
+        loaded_a,
+        loaded_b,
+        entries_per_asn_a=count_entries_per_asn(loaded_a),
+        entries_per_asn_b=count_entries_per_asn(loaded_b),
+    )
+
+    assert lazy == eager
+
+
+def test_address_family_split_sums_to_bucket_total(tmp_path):
+    """reassigned_ipv4 + reassigned_ipv6 must equal reassigned (same for the other two buckets)."""
+    a = write_asmap(
+        tmp_path / "a.dat",
+        [
+            (ipaddress.IPv4Network("1.0.0.0/8"), 100),
+            (ipaddress.IPv6Network("2001:db8::/32"), 200),
+            (ipaddress.IPv4Network("16.0.0.0/8"), 300),
+            (ipaddress.IPv6Network("2002:db8::/32"), 0),
+        ],
+    )
+    b = write_asmap(
+        tmp_path / "b.dat",
+        [
+            (ipaddress.IPv4Network("1.0.0.0/8"), 999),
+            (ipaddress.IPv6Network("2001:db8::/32"), 998),
+            (ipaddress.IPv4Network("16.0.0.0/8"), 0),
+            (ipaddress.IPv6Network("2002:db8::/32"), 997),
+        ],
+    )
+
+    result = diff_maps(a, b)
+
+    assert (
+        result["reassigned_ipv4"] + result["reassigned_ipv6"]
+        == result["reassigned"]
+    )
+    assert (
+        result["newly_mapped_ipv4"] + result["newly_mapped_ipv6"]
+        == result["newly_mapped"]
+    )
+    assert (
+        result["unmapped_ipv4"] + result["unmapped_ipv6"] == result["unmapped"]
+    )
+    # Concretely: two reassignments (one v4 one v6), one v6 newly
+    # mapped, one v4 unmapped. The split must reflect that the
+    # address family is read off the prefix itself, not derived
+    # from the bucket totals.
+    assert result["reassigned_ipv4"] == 1 and result["reassigned_ipv6"] == 1
+    assert result["newly_mapped_ipv4"] == 0 and result["newly_mapped_ipv6"] == 1
+    assert result["unmapped_ipv4"] == 1 and result["unmapped_ipv6"] == 0
+
+
+def test_count_entries_per_asn_skips_asn_zero(tmp_path):
+    """The sentinel ASN 0 must not appear in per-asn counts."""
+    a = write_asmap(
+        tmp_path / "a.dat",
+        [
+            (ipaddress.IPv4Network("1.0.0.0/8"), 100),
+            (ipaddress.IPv4Network("16.0.0.0/8"), 100),
+            (ipaddress.IPv4Network("64.0.0.0/8"), 0),
+            (ipaddress.IPv4Network("128.0.0.0/8"), 200),
+        ],
+    )
+
+    counts = count_entries_per_asn(load_map(a))
+
+    assert counts == Counter({100: 2, 200: 1})
+    assert 0 not in counts
+
+
+def test_as_roster_delta_tracks_appearances_and_disappearances(tmp_path):
+    """Map A holds ASes {100, 200, 300}; map B holds {200, 300, 400, 500}.
+
+    The roster delta should report:
+      - as_total_a = 3
+      - as_total_b = 4
+      - as_appeared = 2  (400 and 500 are new in B)
+      - as_disappeared = 1  (100 is gone in B)
+    """
+    a = write_asmap(
+        tmp_path / "a.dat",
+        [
+            (ipaddress.IPv4Network("1.0.0.0/8"), 100),
+            (ipaddress.IPv4Network("16.0.0.0/8"), 200),
+            (ipaddress.IPv4Network("64.0.0.0/8"), 300),
+        ],
+    )
+    b = write_asmap(
+        tmp_path / "b.dat",
+        [
+            (ipaddress.IPv4Network("1.0.0.0/8"), 400),
+            (ipaddress.IPv4Network("16.0.0.0/8"), 200),
+            (ipaddress.IPv4Network("64.0.0.0/8"), 300),
+            (ipaddress.IPv4Network("128.0.0.0/8"), 500),
+        ],
+    )
+
+    result = diff_maps(a, b)
+
+    assert result["as_total_a"] == 3
+    assert result["as_total_b"] == 4
+    assert result["as_appeared"] == 2
+    assert result["as_disappeared"] == 1

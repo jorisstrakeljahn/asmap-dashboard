@@ -54,7 +54,13 @@
 
 .match-banner {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.match-banner__row {
+    display: flex;
+    align-items: baseline;
     flex-wrap: wrap;
     gap: var(--space-2);
 }
@@ -70,6 +76,15 @@
     color: var(--color-text-muted);
 }
 
+/* Variant + date sub-caption. Sits one font size below the
+   headline row, in subtle text colour, so the reader's eye
+   picks up "95.0% match" first and then the metadata. */
+.match-banner__variant {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-subtle);
+    margin: 0;
+}
+
 .classification-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -78,33 +93,44 @@
     border-top: 1px solid var(--color-divider);
 }
 
+/* Address-family sub-caption that sits below the bucket label.
+   Subtle font so the headline value and the coloured share still
+   carry the eye; the v4 / v6 split is meant as supporting context,
+   not as a primary number. */
+.classification-cell__family {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-subtle);
+    font-variant-numeric: tabular-nums;
+}
+
 .classification-cell__value {
     font-size: var(--font-size-xl);
     font-weight: var(--font-weight-semibold);
     color: var(--color-text-strong);
 }
 
-.classification-cell__share {
+.classification-cell__label {
     margin-top: var(--space-1);
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
 }
 
-.classification-cell__share--reassigned {
+/* The label colour matches its segment in the stacked bar
+   underneath, so the eye links "Reassigned" with the right
+   slice without an extra legend row. The previous share
+   percentages were dropped because the bar already encodes
+   the same proportions visually. */
+.classification-cell__label--reassigned {
     color: var(--color-accent);
 }
 
-.classification-cell__share--new {
+.classification-cell__label--new {
     color: var(--color-success);
 }
 
-.classification-cell__share--unmapped {
+.classification-cell__label--unmapped {
     color: var(--color-warning);
-}
-
-.classification-cell__label {
-    margin-top: var(--space-1);
-    font-size: var(--font-size-sm);
 }
 
 .stacked-bar {
@@ -137,6 +163,19 @@
 
 .stacked-bar__segment--unmapped {
     background: var(--color-warning);
+}
+
+/* AS roster delta line that sits one row below the stacked bar.
+   Lives in the muted text colour so the entry-level numbers above
+   stay the headline; the eye drops to this row only when the
+   reader specifically asks "and how many distinct ASes moved?".
+   Tabular numerics so the two large totals line up visually with
+   each other rather than dancing as fonts hint variable widths. */
+.as-roster-delta {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
 }
 
 .diff-explorer__notice {
