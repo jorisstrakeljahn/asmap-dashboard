@@ -3,3 +3,11 @@ __pycache__/
 .venv/
 .pytest_cache/
 .DS_Store
+
+# Build artefacts from `pip install -e .` and `python -m build`.
+*.egg-info/
+build/
+dist/
+
+# Local ruff cache; the lint config lives in pyproject.toml.
+.ruff_cache/

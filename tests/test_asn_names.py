@@ -6,8 +6,6 @@ import io
 import json
 from unittest.mock import patch
 
-import pytest
-
 from asmap_dashboard import asn_names
 
 
@@ -71,13 +69,7 @@ def test_parse_csv_extracts_asn_name_pairs():
 
 def test_parse_csv_skips_invalid_rows():
     """Rows missing a numeric ASN or a name are dropped, not propagated."""
-    body = (
-        "asn,name\n"
-        "174,Cogent Communications\n"
-        "notanumber,Bad Row\n"
-        "999,\n"
-        ",Empty Asn\n"
-    )
+    body = "asn,name\n174,Cogent Communications\nnotanumber,Bad Row\n999,\n,Empty Asn\n"
 
     assert asn_names.parse_csv(body) == {174: "Cogent Communications"}
 
@@ -113,25 +105,29 @@ def test_refresh_writes_subset_and_about_section(tmp_path):
     """End-to-end: refresh reads metrics, fetches names, writes the JSON."""
     metrics_path = tmp_path / "metrics.json"
     metrics_path.write_text(
-        json.dumps({
-            "diffs": [
-                {"top_movers": [
-                    {"asn": 174, "primary_counterpart": 7018},
-                    {"asn": 16509, "primary_counterpart": 13335},
-                ]},
-            ],
-        })
+        json.dumps(
+            {
+                "diffs": [
+                    {
+                        "top_movers": [
+                            {"asn": 174, "primary_counterpart": 7018},
+                            {"asn": 16509, "primary_counterpart": 13335},
+                        ]
+                    },
+                ],
+            }
+        )
     )
     out_path = tmp_path / "asn-names.json"
 
     fake_csv = (
-        "asn,name,iso2cc,class\n"
-        "174,Cogent Communications,US,t1\n"
-        "7018,AT&T,US,t1\n"
-        "16509,Amazon,US,cloud\n"
-        "13335,Cloudflare,US,cloud\n"
-        "99999,Should Not Appear,US,other\n"
-    ).encode("utf-8")
+        b"asn,name,iso2cc,class\n"
+        b"174,Cogent Communications,US,t1\n"
+        b"7018,AT&T,US,t1\n"
+        b"16509,Amazon,US,cloud\n"
+        b"13335,Cloudflare,US,cloud\n"
+        b"99999,Should Not Appear,US,other\n"
+    )
 
     with patch(
         "asmap_dashboard.asn_names.urllib.request.urlopen",
@@ -153,9 +149,7 @@ def test_refresh_writes_subset_and_about_section(tmp_path):
 def test_refresh_with_no_matching_asns_writes_empty_subset(tmp_path):
     """If bgp.tools has none of the wanted ASNs, the file still gets written."""
     metrics_path = tmp_path / "metrics.json"
-    metrics_path.write_text(
-        json.dumps({"diffs": [{"top_movers": [{"asn": 999999}]}]})
-    )
+    metrics_path.write_text(json.dumps({"diffs": [{"top_movers": [{"asn": 999999}]}]}))
     out_path = tmp_path / "asn-names.json"
     fake_csv = b"asn,name\n174,Cogent\n"
 
@@ -173,6 +167,7 @@ def test_refresh_with_no_matching_asns_writes_empty_subset(tmp_path):
 
 def _fake_response(body: bytes):
     """Minimal urlopen() stand-in supporting the context manager protocol."""
+
     class _Response(io.BytesIO):
         def __enter__(self):
             return self

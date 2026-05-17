@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import ipaddress
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Tuple, Union
 
 from asmap_dashboard._vendor.asmap import ASMap, net_to_prefix
 
-Network = Union[ipaddress.IPv4Network, ipaddress.IPv6Network]
-Entry = Tuple[Network, int]
+Network = ipaddress.IPv4Network | ipaddress.IPv6Network
+Entry = tuple[Network, int]
 
 
 def write_asmap(path: Path, entries: Iterable[Entry]) -> Path:

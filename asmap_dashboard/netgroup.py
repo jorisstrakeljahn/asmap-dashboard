@@ -16,7 +16,6 @@ Rules, mirrored from src/netaddress.cpp in Bitcoin Core:
 from __future__ import annotations
 
 import ipaddress
-from typing import Union
 
 IPV4_BUCKET_BITS = 16
 IPV6_BUCKET_BITS = 32
@@ -24,11 +23,11 @@ HENET_BUCKET_BITS = 36
 
 HENET_NETWORK = ipaddress.IPv6Network("2001:470::/32")
 
-IPAddress = Union[ipaddress.IPv4Address, ipaddress.IPv6Address]
-NetGroup = Union[ipaddress.IPv4Network, ipaddress.IPv6Network]
+IPAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
+NetGroup = ipaddress.IPv4Network | ipaddress.IPv6Network
 
 
-def default_netgroup(ip: Union[str, IPAddress]) -> NetGroup:
+def default_netgroup(ip: str | IPAddress) -> NetGroup:
     """Return the network bucket Bitcoin Core's GetGroup() would assign.
 
     The result is hashable, so it can be used directly as a dict or set

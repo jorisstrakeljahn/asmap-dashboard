@@ -27,12 +27,12 @@ Builds that only published one variant remain visible in the build picker. Cards
 
 ## Setup
 
-Requires Python 3.10+. The runtime uses only the standard library; tests need `pytest`.
+Requires Python 3.10+. The runtime uses only the standard library; the dev extras (`pytest`, `ruff`) are pulled in from `pyproject.toml`.
 
 ```
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements-dev.txt
+pip install -e ".[dev]"
 ```
 
 ## Regenerate dashboard data
@@ -67,8 +67,10 @@ python -m asmap_dashboard diff /path/to/old.dat /path/to/new.dat
 
 Pass `--addrs nodes.txt` (one IP per line) to `diff` to also report how many of those nodes resolve to a different ASN under the new map.
 
-## Tests
+## Tests and lint
 
 ```
 python -m pytest tests
+python -m ruff check
+python -m ruff format --check
 ```

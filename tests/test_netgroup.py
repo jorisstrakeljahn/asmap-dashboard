@@ -33,9 +33,9 @@ def test_henet_addresses_bucket_by_slash_thirtysix():
     """Hurricane Electric tunnel addresses bucket by /36 instead of /32."""
     # /36 covers the first 4 bits of the third 16-bit group, so addresses
     # whose third group starts with the same hex nibble share a bucket.
-    same_a = default_netgroup("2001:470:1::1")        # group3 0001, nibble 0
-    same_b = default_netgroup("2001:470:fff::1")      # group3 0fff, nibble 0
-    other = default_netgroup("2001:470:1000::1")      # group3 1000, nibble 1
+    same_a = default_netgroup("2001:470:1::1")  # group3 0001, nibble 0
+    same_b = default_netgroup("2001:470:fff::1")  # group3 0fff, nibble 0
+    other = default_netgroup("2001:470:1000::1")  # group3 1000, nibble 1
 
     assert same_a == ipaddress.IPv6Network("2001:470::/36")
     assert same_a == same_b

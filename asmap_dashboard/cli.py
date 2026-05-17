@@ -1,20 +1,35 @@
-"""Command-line entry point for the analysis pipeline."""
+"""Command-line entry point for the analysis pipeline.
+
+The module exposes one ``main(argv)`` entry that is wired both into
+``python -m asmap_dashboard`` (via ``__main__.py``) and into the
+``asmap-dashboard`` console script declared in ``pyproject.toml``.
+Each subcommand is implemented as a small ``_run_*`` function so the
+dispatch table at the bottom stays readable and each handler can be
+unit-tested without going through argparse.
+"""
 
 from __future__ import annotations
 
 import argparse
 import json
 import sys
+from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import Optional, Sequence
 
 from asmap_dashboard.analyze import analyze_map
-from asmap_dashboard.asn_names import BGP_TOOLS_URL, refresh as refresh_asn_names
+from asmap_dashboard.asn_names import BGP_TOOLS_URL
+from asmap_dashboard.asn_names import refresh as refresh_asn_names
 from asmap_dashboard.diff import diff_maps
 from asmap_dashboard.metrics import generate_dashboard_data
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def _build_parser() -> argparse.ArgumentParser:
+    """Construct the top-level argparse parser with every subcommand.
+
+    Kept as a free function so tests and shell-completion generators
+    can introspect the parser without paying the cost of running
+    ``main``.
+    """
     parser = argparse.ArgumentParser(prog="asmap_dashboard")
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -69,30 +84,62 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         help="Override the bgp.tools CSV URL (mainly for tests).",
     )
 
-    args = parser.parse_args(argv)
+    return parser
 
-    if args.command == "analyze":
-        result = analyze_map(args.map)
-    elif args.command == "diff":
-        result = diff_maps(args.map_a, args.map_b, addrs_file=args.addrs)
-    elif args.command == "metrics":
-        result = generate_dashboard_data(args.data_dir)
-    elif args.command == "refresh-asn-names":
-        count = refresh_asn_names(
-            args.metrics, args.out, source_url=args.source_url
-        )
-        sys.stderr.write(f"Wrote {count} ASN names to {args.out}\n")
-        return 0
-    else:
-        parser.error(f"unknown command {args.command}")
-        return 2
 
-    payload = json.dumps(result, indent=2, sort_keys=True)
-    if getattr(args, "out", None) is not None:
-        args.out.write_text(payload + "\n")
+def _emit_json(result: object, out_path: Path | None) -> int:
+    """Serialise ``result`` to ``out_path`` or stdout, return exit code 0.
+
+    Shared by every subcommand that produces a JSON payload (analyze,
+    diff, metrics) so the on-disk format is identical regardless of
+    caller. ``sort_keys=True`` and a trailing newline keep the output
+    byte-stable across runs and friendly to ``diff`` / git so the
+    daily refresh-metrics workflow only commits when the payload
+    actually changed.
+    """
+    payload = json.dumps(result, indent=2, sort_keys=True) + "\n"
+    if out_path is not None:
+        Path(out_path).write_text(payload)
     else:
-        sys.stdout.write(payload + "\n")
+        sys.stdout.write(payload)
     return 0
+
+
+def _run_analyze(args: argparse.Namespace) -> int:
+    return _emit_json(analyze_map(args.map), getattr(args, "out", None))
+
+
+def _run_diff(args: argparse.Namespace) -> int:
+    result = diff_maps(args.map_a, args.map_b, addrs_file=args.addrs)
+    return _emit_json(result, getattr(args, "out", None))
+
+
+def _run_metrics(args: argparse.Namespace) -> int:
+    return _emit_json(generate_dashboard_data(args.data_dir), args.out)
+
+
+def _run_refresh_asn_names(args: argparse.Namespace) -> int:
+    count = refresh_asn_names(args.metrics, args.out, source_url=args.source_url)
+    sys.stderr.write(f"Wrote {count} ASN names to {args.out}\n")
+    return 0
+
+
+# Single-source-of-truth dispatch from subcommand name to handler.
+# argparse already rejects unknown commands at parse time (via
+# ``required=True`` on add_subparsers), so a KeyError here would be
+# a wiring bug rather than user input we need to defend against.
+_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
+    "analyze": _run_analyze,
+    "diff": _run_diff,
+    "metrics": _run_metrics,
+    "refresh-asn-names": _run_refresh_asn_names,
+}
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+    return _COMMANDS[args.command](args)
 
 
 if __name__ == "__main__":

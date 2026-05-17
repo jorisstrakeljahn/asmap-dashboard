@@ -19,10 +19,10 @@ import csv
 import io
 import json
 import urllib.request
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable, Set, Union
 
-PathLike = Union[str, Path]
+PathLike = str | Path
 
 BGP_TOOLS_URL = "https://bgp.tools/asns.csv"
 # bgp.tools rejects requests without a descriptive User-Agent. Keep the
@@ -34,14 +34,14 @@ USER_AGENT = (
 )
 
 
-def extract_asns(metrics: dict) -> Set[int]:
+def extract_asns(metrics: dict) -> set[int]:
     """Return every ASN referenced in the diffs of a metrics payload.
 
     Walks ``top_movers[*].asn`` plus ``primary_counterpart`` for every
     diff. ASN 0 is a sentinel for "unmapped" and is dropped so it
     never asks bgp.tools for a name that does not exist.
     """
-    wanted: Set[int] = set()
+    wanted: set[int] = set()
     for diff in metrics.get("diffs", []):
         for row in diff.get("top_movers", []):
             for key in ("asn", "primary_counterpart"):
@@ -51,7 +51,7 @@ def extract_asns(metrics: dict) -> Set[int]:
     return wanted
 
 
-def parse_csv(body: str) -> Dict[int, str]:
+def parse_csv(body: str) -> dict[int, str]:
     """Parse a bgp.tools-style CSV (asn,name,...) into {asn: name}.
 
     Tolerates two ASN formats: bgp.tools prefixes every value with
@@ -63,7 +63,7 @@ def parse_csv(body: str) -> Dict[int, str]:
     the whole refresh.
     """
     reader = csv.DictReader(io.StringIO(body))
-    out: Dict[int, str] = {}
+    out: dict[int, str] = {}
     for row in reader:
         asn = (row.get("asn") or "").strip().upper()
         if asn.startswith("AS"):
@@ -77,7 +77,7 @@ def parse_csv(body: str) -> Dict[int, str]:
 
 def fetch_bgp_tools_csv(
     url: str = BGP_TOOLS_URL, timeout: float = 60.0
-) -> Dict[int, str]:
+) -> dict[int, str]:
     """Download the bgp.tools ASN CSV and return {asn: name}."""
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=timeout) as response:
@@ -85,9 +85,7 @@ def fetch_bgp_tools_csv(
     return parse_csv(body)
 
 
-def build_subset(
-    wanted: Iterable[int], all_names: Dict[int, str]
-) -> Dict[str, str]:
+def build_subset(wanted: Iterable[int], all_names: dict[int, str]) -> dict[str, str]:
     """Keep labels only for ``wanted`` ASNs, JSON-stringified and sorted.
 
     Sorting by integer keeps the output diff-friendly across refreshes;
@@ -95,11 +93,7 @@ def build_subset(
     keys) and consistent with the manually curated file the frontend
     already loads.
     """
-    return {
-        str(asn): all_names[asn]
-        for asn in sorted(wanted)
-        if asn in all_names
-    }
+    return {str(asn): all_names[asn] for asn in sorted(wanted) if asn in all_names}
 
 
 def refresh(
