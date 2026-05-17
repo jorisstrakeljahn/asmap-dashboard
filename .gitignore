@@ -15,3 +15,8 @@ dist/
 # Node + ESLint toolchain (only used by the lint-js CI job; the
 # dashboard ships zero JS dependencies and has no build step).
 node_modules/
+
+# Generated dashboard payloads. Built fresh on every Pages deploy from
+# bitcoin-core/asmap-data + bgp.tools; see README for the regen commands
+# used locally.
+/web/assets/data/*.json
