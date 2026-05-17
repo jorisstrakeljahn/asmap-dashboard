@@ -2,6 +2,7 @@
   "name": "asmap-dashboard-web",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
   "description": "Frontend assets for the ASmap Dashboard. The Python package (see pyproject.toml) generates metrics.json; this package only carries the ESLint toolchain for the static web/ assets.",
   "type": "module",
   "scripts": {
