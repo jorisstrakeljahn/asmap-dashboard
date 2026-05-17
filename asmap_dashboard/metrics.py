@@ -37,8 +37,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
+from collections import Counter
+
 from asmap_dashboard.analyze import analyze_loaded_map
-from asmap_dashboard.diff import diff_loaded_maps
+from asmap_dashboard.diff import count_entries_per_asn, diff_loaded_maps
 from asmap_dashboard.loader import LoadedMap, load_map
 
 PathLike = Union[str, Path]
@@ -216,21 +218,34 @@ def _compute_pair_diffs(
     when both sides published an unfilled variant; mixed
     unfilled-vs-filled is silently skipped because the two encodings
     answer different questions and a number derived from them would
-    be misleading. The single filled-only build in the historical
-    inventory (2025-03-21) therefore drops out of the diff timeline
-    until / unless an unfilled is back-published for it. The frontend
-    surfaces this as a gap in the drift chart, not as a wrong number.
+    be misleading. Any filled-only build therefore drops out of the
+    diff timeline until / unless an unfilled is back-published for
+    it. The frontend surfaces this as a gap in the drift chart, not
+    as a wrong number.
     """
     diffable: List[tuple] = [
         (build, loaded[build.unfilled_path])
         for build in builds
         if build.unfilled_path is not None
     ]
+    # Pre-compute per-ASN prefix counts once per unfilled map. Each
+    # counter is reused N-1 times across the all-pairs diff loop, so
+    # caching here avoids walking every trie O(N) times for the
+    # "Touched" multipliers carried on each top_mover row.
+    entries_per_asn: Dict[str, "Counter[int]"] = {
+        build.name: count_entries_per_asn(loaded_map)
+        for build, loaded_map in diffable
+    }
     out: List[dict] = []
     for (build_a, loaded_a), (build_b, loaded_b) in itertools.combinations(
         diffable, 2
     ):
-        diff = diff_loaded_maps(loaded_a, loaded_b)
+        diff = diff_loaded_maps(
+            loaded_a,
+            loaded_b,
+            entries_per_asn_a=entries_per_asn[build_a.name],
+            entries_per_asn_b=entries_per_asn[build_b.name],
+        )
         diff["from"] = build_a.name
         diff["to"] = build_b.name
         diff["variant"] = "unfilled"

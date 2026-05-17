@@ -12,10 +12,13 @@ import { svg } from "./svg.js";
 // dashboard's content max (~1024 px). Each chart can override
 // individual fields via the ``layout`` arg if needed.
 //
-// paddingLeft has to fit the widest y-axis tick. Map size ticks
-// like "1.86 MB" are the widest text we draw on the y axis, so
-// the gutter has to be wider than the bare "1.86M" needed
-// before unit labels existed.
+// paddingLeft has to fit the widest y-axis tick label across all
+// charts. The current set tops out at four-character labels like
+// "460k" (entries chart) which fit comfortably in ~48 px including
+// the 8 px gap to plot.left. The previous 60 px was sized for a
+// rotated "Mapped size (MB)" gutter title that no chart renders
+// anymore — every chart now lets its card title speak for the y
+// axis, so the gutter shrinks back to what the ticks need.
 //
 // paddingRight is generous on purpose: the rightmost X label uses
 // anchor="end" so it sits flush with the plot's right edge, and
@@ -25,7 +28,7 @@ const DEFAULT_LAYOUT = {
     minWidth: 280,
     fallbackWidth: 720,
     height: 240,
-    paddingLeft: 60,
+    paddingLeft: 48,
     paddingRight: 20,
     paddingTop: 20,
     paddingBottom: 30,

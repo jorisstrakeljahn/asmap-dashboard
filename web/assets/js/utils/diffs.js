@@ -39,11 +39,11 @@ export function pairDriftRatio(diffs, fromName, toName) {
 // exists, which only happens for the very oldest published build.
 //
 // "Diffable" here matches the rule the precomputed diffs use:
-// each pair is computed unfilled-vs-unfilled, so a filled-only
-// build (currently 2025-03-21) is invisible to this lookup. The
-// drift card and the step-mode drift chart both call this helper
-// so they show the same "vs <date>" reference build for any
-// build that follows a filled-only one.
+// each pair is computed unfilled-vs-unfilled, so any filled-only
+// build is invisible to this lookup. The drift card and the step-
+// mode drift chart both call this helper so they show the same
+// "vs <date>" reference build for any build that follows a
+// filled-only one.
 export function previousDiffable(maps, name) {
     if (!Array.isArray(maps)) return null;
     const idx = maps.findIndex((m) => m.name === name);

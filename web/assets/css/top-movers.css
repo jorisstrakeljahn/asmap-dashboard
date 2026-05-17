@@ -1,8 +1,14 @@
-/* Top Movers table: paginated list of the AS numbers most
-   affected by the selected diff. Header carries the Compact /
-   Detailed view-mode switch and the page-size dropdown; body rows
-   render the AS number, change counts, and a direction column
-   linking to the primary counterpart. */
+/* Top Movers table. Three-zone layout pattern:
+   - header  : card identity + view-mode switch + info trigger
+   - toolbar : filter facets (left) and active-filter pill (right)
+   - table   : the grid itself, sortable per column
+   - footer  : page-size selector (left) and pagination (right)
+
+   Header / toolbar / footer each carry one job so neither row
+   gets cluttered when more controls land later (e.g. a network
+   pivot or a column-visibility menu). */
+
+/* ── Header ──────────────────────────────────────────────────── */
 
 .top-movers__header {
     display: flex;
@@ -12,28 +18,144 @@
     flex-wrap: wrap;
 }
 
-.top-movers__controls {
+.top-movers__header-controls {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-4);
+    gap: var(--space-3);
     flex-wrap: wrap;
 }
 
-.top-movers__page-size {
+/* Info trigger rides at the right edge of the header so it lines
+   up with the corner-pinned info icons on cards without controls. */
+.top-movers__info {
+    display: inline-flex;
+    align-items: center;
+    margin-left: var(--space-1);
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────── */
+
+.top-movers__toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    margin-top: var(--space-3);
+    margin-bottom: var(--space-2);
+}
+
+.top-movers__toolbar-fields {
     display: inline-flex;
     align-items: center;
     gap: var(--space-2);
-    font-size: var(--font-size-sm);
-    color: var(--color-text-muted);
+    flex-wrap: wrap;
 }
+
+.top-movers__filter-field {
+    display: inline-flex;
+    align-items: center;
+}
+
+.top-movers__filter-input {
+    height: var(--control-height-sm);
+    min-width: 240px;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg);
+    color: var(--color-text-base);
+    font: inherit;
+    font-size: var(--font-size-sm);
+}
+
+.top-movers__filter-input::placeholder {
+    color: var(--color-text-subtle);
+}
+
+.top-movers__filter-input:focus-visible {
+    outline: 2px solid var(--color-focus, var(--color-text-strong));
+    outline-offset: 1px;
+    border-color: transparent;
+}
+
+/* Lock the direction dropdown's trigger to a fixed width so
+   short labels (Lost, Gained) don't shrink it and shift the
+   filter input around. The floor matches the longest option
+   ("Exchanged ↔") plus the chevron. */
+.top-movers__direction-dropdown .dropdown__trigger {
+    min-width: 9.5rem;
+}
+
+/* Clear-filter slot sits on the right of the toolbar; it stays
+   empty (and collapses out of the flow) when no filter narrows
+   the matrix, so the toolbar reads as a single field row in the
+   default state. */
+.top-movers__clear-slot {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+}
+
+.top-movers__clear-slot:empty {
+    display: none;
+}
+
+.top-movers__clear {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    height: var(--control-height-sm);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-bg);
+    color: var(--color-text-muted);
+    font: inherit;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+}
+
+.top-movers__clear:hover,
+.top-movers__clear:focus-visible {
+    color: var(--color-text-strong);
+    border-color: var(--color-border-strong);
+}
+
+.top-movers__clear:focus-visible {
+    outline: 2px solid var(--color-focus, var(--color-text-strong));
+    outline-offset: 2px;
+}
+
+.top-movers__clear-glyph {
+    font-size: 0.85em;
+    line-height: 1;
+}
+
+/* ── Table ───────────────────────────────────────────────────── */
 
 .top-movers__table {
     overflow-x: auto;
 }
 
+/* Fixed table layout pins each column to the percentages declared
+   below so the grid does not reflow when the user toggles
+   Compact / Detailed (which adds or removes the operator name
+   under each AS number). Without this, a long operator name like
+   "Earthlink Telecommunications Equipment Trading & Services
+   DMCC" would push the AS column wide on that row and shove the
+   Changes / Direction columns over.
+
+   min-width keeps the grid legible on narrow viewports — the
+   table-wrap above provides horizontal scrolling once the card
+   gets narrower than 720px. The bump from 640 to 720 makes room
+   for the extra "Touched" column without squeezing the AS or
+   Direction columns below the threshold where a 5-digit ASN
+   plus operator name would wrap awkwardly. */
 .top-movers__grid {
     width: 100%;
+    min-width: 720px;
     border-collapse: collapse;
+    table-layout: fixed;
 }
 
 .top-movers__grid th,
@@ -54,18 +176,82 @@
     white-space: nowrap;
 }
 
-/* The "About the top movers table" affordance hangs at the right
-   end of the controls strip so it lines up with the corner-pinned
-   info icons used on cards without controls. */
-.top-movers__info {
+/* Sortable headers wrap their label + chevron in a single
+   button so the entire affordance is one keyboard / pointer
+   target. The button inherits the <th>'s muted uppercase
+   typography on purpose: we don't strengthen the colour on the
+   active column because the filled chevron is signal enough.
+   Two competing "look here" signals would muddy the table. */
+.top-movers__sort-button {
     display: inline-flex;
     align-items: center;
-    margin-left: var(--space-1);
+    gap: var(--space-1);
+    padding: 0;
+    background: none;
+    border: 0;
+    color: inherit;
+    font: inherit;
+    text-transform: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
 }
 
-/* Numeric columns right-align so the digit places line up across
-   rows; the rank column rides along so "1 / 2 / 3" sit under the
-   "#" header instead of floating in the gutter to its left. */
+.top-movers__sort-button:hover {
+    color: var(--color-text-strong);
+}
+
+.top-movers__sort-button:focus-visible {
+    outline: 2px solid var(--color-focus, var(--color-text-strong));
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+/* The button is inline-flex, so it lives in the inline flow of
+   its <th> and inherits the cell's text-align (left for AS,
+   right for the numeric Changes column). That keeps the chevron
+   on the trailing side of each label without per-column overrides.
+
+   Chevron only renders for the currently sorted column (see
+   headerCell in top-movers-table.js); cold columns stay text-
+   only. The chevron inherits the header text's colour so it
+   doesn't introduce a second tonal layer next to the label. */
+
+.top-movers__sort-chevron {
+    color: inherit;
+    flex-shrink: 0;
+    /* display: block strips the inline-baseline offset that SVGs
+       inherit by default; without it the chevron sits a hair
+       above the text mid-line and reads as misaligned. */
+    display: block;
+}
+
+/* ── Columns ─────────────────────────────────────────────────── */
+
+/* Column widths (table-layout: fixed picks these up). Six columns
+   share the row: a narrow leading rank, the AS identity, three
+   numeric columns of equal width (Changes / Touched / % of all),
+   and the Direction column for the counterpart. The AS and
+   Direction columns get the widest allocation because both render
+   an asn-cell stack (Compact: 1 line, Detailed: 2 lines), or, on
+   the Direction side, an arrow followed by another asn-cell
+   stack. Equal-width numeric columns keep their headers and
+   right-aligned values visually flush. */
+.top-movers__grid th.top-movers__rank {
+    width: 4%;
+}
+
+.top-movers__grid th.top-movers__asn {
+    width: 30%;
+}
+
+.top-movers__grid th.top-movers__num {
+    width: 11%;
+}
+
+.top-movers__grid th.top-movers__direction {
+    width: 33%;
+}
+
 .top-movers__grid th.top-movers__rank,
 .top-movers__grid td.top-movers__rank,
 .top-movers__grid th.top-movers__num,
@@ -73,10 +259,12 @@
     text-align: right;
 }
 
+/* Row numbers ride along with each row purely as an orientation
+   cue (where am I in the current page) — they stay subtle so the
+   AS / Changes / Direction trio carries the actual information. */
 .top-movers__rank {
     color: var(--color-text-subtle);
     font-variant-numeric: tabular-nums;
-    width: 36px;
 }
 
 .top-movers__num {
@@ -84,9 +272,6 @@
     white-space: nowrap;
 }
 
-/* Two-line ASN cell: AS<num> on top, operator name muted below.
-   When the toggle hides names the cell collapses naturally to a
-   single line via the --no-names variant. */
 .asn-cell {
     display: inline-flex;
     flex-direction: column;
@@ -111,14 +296,6 @@
     display: none;
 }
 
-.top-movers__asn {
-    min-width: 140px;
-}
-
-.top-movers__direction {
-    min-width: 180px;
-}
-
 /* Flex sits on the inner span so the <td> stays a regular table
    cell - browsers ignore table layout sizing on cells with
    `display: flex`, which was making the column collapse to
@@ -137,10 +314,30 @@
     cursor: help;
 }
 
-.top-movers__pagination {
+/* ── Footer ──────────────────────────────────────────────────── */
+
+.top-movers__footer {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    margin-top: var(--space-3);
+}
+
+.top-movers__page-size {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+.top-movers__pagination {
+    display: inline-flex;
+    align-items: center;
     gap: var(--space-1);
-    margin-top: var(--space-2);
+    margin-left: auto;
 }
 
 .top-movers__page {
@@ -151,27 +348,77 @@
     border-radius: var(--radius-sm);
     background: var(--color-bg);
     color: var(--color-text-base);
+    font: inherit;
     font-size: var(--font-size-sm);
+    font-variant-numeric: tabular-nums;
     cursor: pointer;
 }
 
-.top-movers__page.is-active {
-    background: var(--color-text-strong);
-    color: var(--color-bg);
-    border-color: var(--color-text-strong);
+.top-movers__page:hover {
+    border-color: var(--color-border-strong);
 }
+
+.top-movers__page:focus-visible {
+    outline: 2px solid var(--color-focus, var(--color-text-strong));
+    outline-offset: 2px;
+}
+
+.top-movers__page.is-active {
+    background: var(--color-accent);
+    color: var(--color-on-fill);
+    border-color: var(--color-accent);
+}
+
+.top-movers__page-ellipsis {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--control-height-sm);
+    color: var(--color-text-subtle);
+    user-select: none;
+}
+
+/* ── Mobile ──────────────────────────────────────────────────── */
 
 @media (max-width: 720px) {
     .top-movers__header {
         align-items: flex-start;
     }
-    .top-movers__controls {
+    .top-movers__header-controls {
         width: 100%;
         justify-content: space-between;
         gap: var(--space-2);
     }
-    .top-movers__direction {
+    .top-movers__toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .top-movers__toolbar-fields {
+        width: 100%;
+    }
+    .top-movers__filter-field {
+        flex: 1;
+    }
+    .top-movers__filter-input {
         min-width: 0;
+        width: 100%;
+    }
+    .top-movers__clear-slot {
+        margin-left: 0;
+        align-self: flex-end;
+    }
+    .top-movers__footer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-2);
+    }
+    .top-movers__page-size {
+        justify-content: space-between;
+    }
+    .top-movers__pagination {
+        margin-left: 0;
+        justify-content: center;
+        flex-wrap: wrap;
     }
     .top-movers__grid th,
     .top-movers__grid td {
