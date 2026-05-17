@@ -1,19 +1,9 @@
-// Vertical bar chart of entry-count delta against the last
-// diffable predecessor, computed from the unfilled (source data)
-// variant of both sides. Each bar is the gain or loss in real
-// source-data prefixes between this build and the most recent
-// earlier build that actually published an unfilled variant.
-// Positive deltas grow up from the baseline, negative down. Hover
-// a bar for the exact prev-to-this entry counts, the signed
-// delta, and the date of the predecessor it diffed against.
-//
-// Builds without an unfilled variant contribute no bar because
-// the entry count is missing on their side. Builds whose direct
-// predecessor is filled-only still contribute, because the
-// bridge falls back to the last build that did publish an
-// unfilled variant. That keeps the chart in lockstep with the
-// drift card and the step-drift chart, both of which use the
-// same last-diffable-predecessor rule.
+// Bar chart of entry-count delta vs last diffable predecessor,
+// computed from the unfilled variant on both sides. Bars at real
+// release timestamps (not uniform slots) so a publishing pause
+// shows as a wide gap. Uses the same last-diffable-predecessor
+// bridge as the drift card and the step-drift chart, so all
+// three stay in lockstep.
 
 import { linearScale, niceTicks, svg } from "../charts/svg.js";
 import {
@@ -38,27 +28,17 @@ import { buildTooltipBody } from "../charts/chart-tooltip.js";
 import { formatDate, formatNumber } from "../format.js";
 import { mutedNote } from "../utils/dom.js";
 import { previousDiffable } from "../utils/diffs.js";
+import { t } from "../utils/i18n.js";
 import { unfilledProfile } from "../utils/map-variants.js";
 import { createInfoTooltip } from "./info-tooltip.js";
 
-// Bars sit at their build's real release timestamp instead of in
-// uniformly spaced slots, so a 4-month publishing pause shows as
-// a wide gap and a cluster of weekly builds shows as a cluster.
-// Width is uniform so the eye doesn't read "fatter bar = bigger
-// delta". The smallest neighbour gap drives the width so dense
-// clusters never overlap and sparse periods don't render single
-// builds as solid blocks.
+// Uniform bar width (no "fatter bar = bigger delta" misreading)
+// driven by the smallest neighbour gap so dense clusters never
+// overlap.
 const MIN_BAR_WIDTH = 3;
 const MAX_BAR_WIDTH = 14;
 const BAR_FILL_FRACTION = 0.7;
 const BAR_CORNER_RADIUS = 2;
-
-const MAP_DELTA_INFO = [
-    "Gain or loss in source-data prefix entries between each build and the most recent earlier build that published an unfilled variant.",
-    "A positive bar means this build added that many real (prefix to ASN) entries on top of its diffable predecessor. A negative bar means entries fell out of the upstream data, typically because RPKI / IRR coverage retracted for some prefix.",
-    "Computed from the unfilled (source data) variant of both sides. Builds whose immediate predecessor is filled-only fall back to the last build that did publish an unfilled variant, so a single filled-only release no longer blanks out the surrounding bars. Builds without an unfilled variant themselves still render as an empty column.",
-    "Hover any bar for the exact entry counts and the date of the predecessor the diff was taken against.",
-];
 
 export function mount(parent, maps, options = {}) {
     if (!parent || !Array.isArray(maps) || maps.length === 0) return;
@@ -68,33 +48,20 @@ export function mount(parent, maps, options = {}) {
     // charts use the same affordance; matching them keeps the
     // history section's empty-state vocabulary consistent.
     if (rows.length < 1) {
-        parent.replaceChildren(
-            mutedNote(
-                "Need at least two builds with an unfilled variant to plot deltas.",
-            ),
-        );
+        parent.replaceChildren(mutedNote(t("history.mapDeltaChart.empty")));
         return;
     }
     mountResponsiveChart(parent, {
-        title: "Source Data Entries Delta Between Builds",
+        title: t("history.mapDeltaChart.title"),
         info: createInfoTooltip({
-            body: MAP_DELTA_INFO,
-            ariaLabel: "About the entries delta chart",
+            body: t("history.mapDeltaChart.info"),
+            ariaLabel: t("history.mapDeltaChart.infoAria"),
         }),
         draw: ({ width, height, layout }) =>
             buildChart(rows, maps, width, height, layout, options),
     });
 }
 
-// Pre-compute everything each bar will need so the render path
-// never has to re-derive values from the raw map list. For every
-// build that exposes an unfilled variant, walk back via
-// ``previousDiffable`` to find the most recent earlier build that
-// also published one, then emit a row. Builds with no diffable
-// predecessor (the oldest build, or anything older than the first
-// published unfilled variant) produce no row. Builds without
-// their own unfilled variant likewise produce no row, since the
-// "this" side of the diff would be missing.
 function deltasBetween(maps) {
     const rows = [];
     for (let i = 0; i < maps.length; i++) {
@@ -122,14 +89,9 @@ function buildChart(rows, maps, width, height, layout, options) {
     const yTicks = niceTicks(Math.min(0, ...values), Math.max(0, ...values));
     const yScale = linearScale([yTicks[0], yTicks.at(-1)], [plot.bottom, plot.top]);
 
-    // The x domain spans every build in the slice, not just the
-    // pairs that produced a bar. This pixel-aligns the delta x axis
-    // with the map size and drift charts above, so a build at the
-    // same release date sits at the same horizontal position in
-    // every history chart. Missing bars then visibly mark builds
-    // that had no comparable previous build (filled-only neighbour
-    // or the very first build), rather than silently shifting the
-    // chart's start to a later date.
+    // X domain spans every build (not just bar-producing pairs)
+    // so this chart's axis pixel-aligns with the other history
+    // charts and missing bars visibly mark filled-only neighbours.
     const buildTimestamps = maps.map((m) => new Date(m.released_at).getTime());
     const { domainStart, domainEnd } = resolveTimeDomain(buildTimestamps, options);
     const xScale = linearScale([domainStart, domainEnd], [plot.left, plot.right]);
@@ -141,7 +103,7 @@ function buildChart(rows, maps, width, height, layout, options) {
     const root = createChartSvg(
         width,
         height,
-        "Source-data entry count delta between each ASmap build and its last diffable predecessor. Hover each bar for details.",
+        t("history.mapDeltaChart.ariaLabel"),
     );
 
     renderYAxis(root, yTicks, yScale, {
@@ -150,9 +112,8 @@ function buildChart(rows, maps, width, height, layout, options) {
         format: formatTick,
     });
 
-    // Zero baseline goes in before the bars so positive bars
-    // cover it where they sit above zero, but it stays visible
-    // where bars dip negative.
+    // Zero baseline before bars: covered where positive, visible
+    // where negative.
     const crossesZero = yTicks[0] < 0 && yTicks.at(-1) > 0;
     if (crossesZero) {
         const zeroY = yScale(0);
@@ -168,10 +129,8 @@ function buildChart(rows, maps, width, height, layout, options) {
     }
 
     const { shell, tip } = createChartShell(root);
-    // Track the currently-highlighted bar so a fast cursor exit
-    // (mouseleave on the shell, not on the bar itself) still
-    // clears the active class. Without this guard the soft-accent
-    // fill can stick when the user whips the cursor off the chart.
+    // Tracked so a fast mouseleave on the shell (not the bar)
+    // still clears the highlight.
     let activeBar = null;
     const clearActive = () => {
         if (activeBar) {
@@ -206,18 +165,23 @@ function buildChart(rows, maps, width, height, layout, options) {
                 buildTooltipBody({
                     title: formatDate(row.released_at),
                     rows: [
-                        ["Delta", `${formatSignedDelta(row.delta)} entries`],
                         [
-                            "Entries (prev \u2192 this)",
-                            `${formatNumber(row.prev_entries)} \u2192 ${formatNumber(row.entries)}`,
+                            t("history.mapDeltaChart.deltaLabel"),
+                            t("history.mapDeltaChart.deltaUnit", {
+                                value: formatSignedDelta(row.delta),
+                            }),
+                        ],
+                        [
+                            t("history.mapDeltaChart.entriesPrevThis"),
+                            t("history.mapDeltaChart.entriesTransition", {
+                                prev: formatNumber(row.prev_entries),
+                                curr: formatNumber(row.entries),
+                            }),
                         ],
                     ],
-                    // Naming the predecessor matters when the
-                    // direct previous build was filled-only and we
-                    // bridged across it. Always rendering the
-                    // footer (not just for filled-only skips) keeps
-                    // the reader from having to remember the rule.
-                    footer: `vs ${formatDate(row.previous_released_at)}`,
+                    footer: t("history.mapDeltaChart.vsDate", {
+                        date: formatDate(row.previous_released_at),
+                    }),
                 }),
             );
             placeTooltipNextFrame(shell, tip, ev.clientX, ev.clientY);
@@ -241,10 +205,6 @@ function buildChart(rows, maps, width, height, layout, options) {
     return shell;
 }
 
-// Uniform bar width sized from the smallest gap between adjacent
-// build timestamps so dense clusters never overlap. Falls back to
-// the full plot width when only one bar exists (a single delta is
-// shown as a moderate centred bar rather than a chart-wide block).
 function pickBarWidth(timestamps, xScale, plot) {
     if (timestamps.length < 2) return MAX_BAR_WIDTH;
     let minGap = Infinity;

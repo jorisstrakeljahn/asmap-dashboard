@@ -1,23 +1,16 @@
-// Pagination model + DOM builder for the Top Movers footer.
-//
-// The window picker (which page indices to render with which
-// ellipses) is a pure function so it stays trivially testable;
-// the rendered buttons consume the picker output and own the
-// click handlers.
+// Pagination window picker + button rendering for the Top
+// Movers footer. paginationWindow is pure for ease of testing.
 
 import { ELLIPSIS } from "../../utils/symbols.js";
+import { t } from "../../utils/i18n.js";
 
-// Pagination starts to elide page buttons once the matrix gets
-// long enough that printing every index hurts the eye more than
-// jumping helps. Below the threshold every page is shown; above
-// it we keep the first, last, and a small window around the
-// active page (see paginationWindow).
+// Below this many pages we render every index; above it we elide
+// to first + last + a window around the active page.
 const PAGINATION_FULL_THRESHOLD = 7;
 
-// Filtering can shrink the matrix below the user's current page;
-// snap back to the last in-range page so the table never lands
-// on an empty slice. Page 0 is the safe fallback when nothing
-// matches.
+// Filtering can shrink the matrix below the active page; snap
+// back to the last in-range page so the body never lands on an
+// empty slice.
 export function clampPageIndex(state, filteredCount) {
     if (filteredCount === 0) {
         state.pageIndex = 0;
@@ -30,12 +23,6 @@ export function clampPageIndex(state, filteredCount) {
     if (state.pageIndex > lastPage) state.pageIndex = lastPage;
 }
 
-// Pick which page indices to render and where to insert
-// "ellipsis" tokens. Below PAGINATION_FULL_THRESHOLD pages every
-// index is shown; above it we keep the first, last, and a one-
-// neighbour window around the active page, with extra slots
-// expanded at the ends so "1 2 3 … 10" reads naturally instead
-// of "1 2 … 10".
 export function paginationWindow(active, total) {
     if (total <= PAGINATION_FULL_THRESHOLD) {
         return Array.from({ length: total }, (_, i) => i);
@@ -44,9 +31,8 @@ export function paginationWindow(active, total) {
     for (let p = active - 1; p <= active + 1; p++) {
         if (p > 0 && p < total - 1) pages.add(p);
     }
-    // Near the edges, expand the window inward so the user
-    // doesn't see a two-button block ("1 2 … 10") that hides
-    // their real position.
+    // Near the edges, expand inward so the active page never
+    // hides inside a two-button block like "1 2 … 10".
     if (active <= 2) [1, 2].forEach((p) => pages.add(p));
     if (active >= total - 3) {
         [total - 3, total - 2].forEach((p) => pages.add(p));
@@ -90,7 +76,10 @@ function pageButton(index, state, onChange) {
         button.setAttribute("aria-current", "page");
     }
     button.textContent = String(index + 1);
-    button.setAttribute("aria-label", `Page ${index + 1}`);
+    button.setAttribute(
+        "aria-label",
+        t("topMovers.pagination.pageAria", { n: index + 1 }),
+    );
     button.addEventListener("click", () => {
         state.pageIndex = index;
         onChange();

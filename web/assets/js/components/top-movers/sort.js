@@ -1,15 +1,10 @@
-// Pure sort + derived-metric helpers for the Top Movers table.
-//
-// Everything here is DOM-free so the same function calls feed
-// both the rendered table and the sort logic without a second
-// source of truth. The sort comparator and the direction filter
-// agree on a single ranking via directionRank().
+// Sort + derived-metric helpers for the Top Movers table.
+// directionRank() is reused by filter.js so sort and filter never
+// disagree on what counts as "gained" vs "lost".
 
-// Stable sort over a shallow copy so the cached diff.top_movers
-// array on the payload stays untouched. JavaScript's Array.sort
-// is stable since ES2019, so a fresh sort by direction keeps the
-// metrics.json input order (by changes desc) as the tiebreaker
-// for rows in the same flow category.
+// Shallow copy so diff.top_movers stays untouched. Array.sort is
+// stable since ES2019, so the metrics.json input order survives
+// as the tiebreaker.
 export function sortMovers(movers, field, dir) {
     const copy = movers.slice();
     copy.sort((a, b) => compareMovers(a, b, field, dir));
@@ -27,40 +22,17 @@ export function compareMovers(a, b, field, dir) {
     return 0;
 }
 
-// Significance multiplier used for both the "Touched" column and
-// its sort key. The denominator is the larger of the per-AS
-// prefix counts on either side, so the ratio has a stable
-// interpretation: "the diff visited this many trie positions for
-// every prefix this AS holds in the larger snapshot".
-//
-// Values above 1.0 are real — and they are not a bug. ``changes``
-// is counted at the binary trie's diff granularity, which walks
-// to the finest split present anywhere in the comparison; the
-// per-AS prefix count is measured at leaf granularity, which
-// aggregates contiguous ranges. When one map holds an AS as a
-// single large block (one leaf) and the other splits the same
-// range into many small pieces (many leafs), the diff visits one
-// position per fine-grained piece, but the leaf count stays at
-// one or close to it. That is what makes the multiplier exceed 1
-// — see the tooltip in controls.js (TOP_MOVERS_INFO) for the
-// user-facing explanation. We expose the raw multiplier on
-// purpose; capping it to 100 % would hide the very fragmentation
-// event Bitcoin Core reviewers want to spot.
-//
-// Rows without per-side counts (older payloads or ASes whose
-// presence is zero on both sides) collapse to 0 so the sort
-// stays well-defined and the cell can render a dash.
+// Trie-diff entry count over the larger per-side prefix count.
+// Values above 1.0 are intentional and surface fragmentation
+// events — see the user-facing tooltip ``topMovers.info`` in
+// en.json. Capping to 100 % would hide exactly that signal.
 export function touchedRatio(row) {
     const presence = Math.max(row.entries_in_a ?? 0, row.entries_in_b ?? 0);
     return presence > 0 ? row.changes / presence : 0;
 }
 
-// Ordinal rank used to sort the Direction column. Ascending sort
-// produces gained -> lost -> exchanged -> unmapped, which reads
-// as "what kind of flow happened" rather than the underlying
-// counterpart number. The same buckets feed describeFlow() in
-// rows.js, so the ranking matches whatever glyph the cell
-// renders.
+// Ascending order reads as gained -> lost -> exchanged ->
+// unmapped. Same buckets as describeFlow() in rows.js.
 export function directionRank(row) {
     if (!row.primary_counterpart) return 4; // -> unmapped
     const gained = row.gained ?? 0;
@@ -68,8 +40,7 @@ export function directionRank(row) {
     if (gained > 0 && lost > 0) return 3; // exchanged
     if (gained > 0) return 1;
     if (lost > 0) return 2;
-    // Older payloads without per-direction counts (gained/lost both
-    // undefined) collapse onto "exchanged" via describeFlow(); match
-    // that ranking so the sort agrees with what the cell shows.
+    // Older payloads (gained/lost both undefined) fall through
+    // to "exchanged" in describeFlow().
     return 3;
 }

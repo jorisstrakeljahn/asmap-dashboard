@@ -19,10 +19,10 @@
     </head>
     <body>
         <header class="site-header">
-            <a class="site-header__logo" href="./">ASmap Dashboard</a>
-            <nav class="site-header__nav" aria-label="Primary">
-                <a class="site-header__nav-link is-active" href="#maps" data-tab-link="maps" aria-current="page">Maps</a>
-                <a class="site-header__nav-link" href="#diff" data-tab-link="diff">Diff Explorer</a>
+            <a class="site-header__logo" href="./" data-i18n="header.title">ASmap Dashboard</a>
+            <nav class="site-header__nav" data-i18n-attr="aria-label:header.nav.primary" aria-label="Primary">
+                <a class="site-header__nav-link is-active" href="#maps" data-tab-link="maps" aria-current="page" data-i18n="header.nav.maps">Maps</a>
+                <a class="site-header__nav-link" href="#diff" data-tab-link="diff" data-i18n="header.nav.diff">Diff Explorer</a>
             </nav>
         </header>
 
@@ -31,8 +31,8 @@
                 <section class="section" aria-labelledby="overview-title">
                     <header class="section__header">
                         <div class="section__heading">
-                            <h2 id="overview-title" class="section__title">Overview</h2>
-                            <p class="section__lede">
+                            <h2 id="overview-title" class="section__title" data-i18n="overview.sectionTitle">Overview</h2>
+                            <p class="section__lede" data-i18n="overview.sectionLede">
                                 Key metrics for the selected ASmap build
                             </p>
                         </div>
@@ -55,8 +55,8 @@
                 <section class="section" aria-labelledby="history-title">
                     <header class="section__header">
                         <div class="section__heading">
-                            <h2 id="history-title" class="section__title">History</h2>
-                            <p class="section__lede">Per-release drift and entry-count trends across every published build</p>
+                            <h2 id="history-title" class="section__title" data-i18n="history.sectionTitle">History</h2>
+                            <p class="section__lede" data-i18n="history.sectionLede">Per-release drift and entry-count trends across every published build</p>
                         </div>
                         <div class="section__header-tools" data-history-range></div>
                     </header>
@@ -79,8 +79,8 @@
                 <section class="section" aria-labelledby="diff-title">
                     <header class="section__header">
                         <div class="section__heading">
-                            <h2 id="diff-title" class="section__title">Diff Explorer</h2>
-                            <p class="section__lede">Compare any two ASmap builds</p>
+                            <h2 id="diff-title" class="section__title" data-i18n="diff.sectionTitle">Diff Explorer</h2>
+                            <p class="section__lede" data-i18n="diff.sectionLede">Compare any two ASmap builds</p>
                         </div>
                     </header>
                     <div class="section__body" data-diff>
@@ -93,13 +93,12 @@
         <footer class="site-footer">
             <div class="site-footer__inner">
                 <p class="site-footer__sources">
-                    Data sourced from
-                    <a href="https://github.com/bitcoin-core/asmap-data" rel="noopener noreferrer" target="_blank">bitcoin-core/asmap-data</a>.
-                    ASN labels from
-                    <a href="https://bgp.tools" rel="noopener noreferrer" target="_blank">bgp.tools</a>.
+                    <span data-i18n="footer.sourcesLead">Data sourced from</span>
+                    <a href="https://github.com/bitcoin-core/asmap-data" rel="noopener noreferrer" target="_blank" data-i18n="footer.sourceLinkLabel">bitcoin-core/asmap-data</a><span data-i18n="footer.sourcesMiddle">. ASN labels from</span>
+                    <a href="https://bgp.tools" rel="noopener noreferrer" target="_blank" data-i18n="footer.asnLinkLabel">bgp.tools</a><span data-i18n="footer.sourcesEnd">.</span>
                 </p>
                 <p class="site-footer__meta">
-                    <a href="https://github.com/jorisstrakeljahn/asmap-dashboard" rel="noopener noreferrer" target="_blank">Source on GitHub</a>
+                    <a href="https://github.com/jorisstrakeljahn/asmap-dashboard" rel="noopener noreferrer" target="_blank" data-i18n="footer.repoLinkLabel">Source on GitHub</a>
                 </p>
                 <p class="site-footer__meta" data-last-refreshed hidden></p>
             </div>

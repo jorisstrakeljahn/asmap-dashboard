@@ -1,20 +1,7 @@
-// Shared variant-picking rules for the new metrics.json schema.
-//
-// Each maps[] entry carries two sub-objects, ``unfilled`` and
-// ``filled``, with a ``present`` flag. ``unfilled`` is the
-// canonical source of truth. Filled can be derived from it
-// deterministically, the reverse is not possible. So most surfaces
-// should default to unfilled and fall back to filled only when
-// unfilled was not published.
-//
-// A handful of surfaces ask "what does Bitcoin Core actually
-// embed?" instead. File size and anything in the same family
-// prefer filled. Both orientations live in this module so the
-// rule is named once and reused.
-//
-// All getters return ``null`` when no usable variant exists, so
-// the caller can map that to a "data unavailable" placeholder
-// rather than rendering misleading zeros.
+// Variant selection rules. ``unfilled`` is the canonical source
+// of truth (filled can be derived from it, not vice versa), so
+// most surfaces default to unfilled and fall back to filled.
+// The few "what does Bitcoin Core embed?" surfaces invert that.
 
 const UNFILLED = "unfilled";
 const FILLED = "filled";
@@ -23,11 +10,9 @@ function isPresent(variant) {
     return Boolean(variant && variant.present);
 }
 
-// Default getter for "what should this card show?".
-// Returns the unfilled profile when present, otherwise filled when
-// present, otherwise null. The accompanying source is returned in
-// the same call so the caller can label the data ("source data" vs
-// "filled fallback") without having to re-derive which side won.
+// Returns { profile, source } so the caller can label the data
+// ("source data" vs "filled fallback") without re-deriving which
+// side won. ``null`` when neither variant is present.
 export function pickPreferUnfilled(map) {
     if (!map) return null;
     if (isPresent(map.unfilled)) {
@@ -39,9 +24,6 @@ export function pickPreferUnfilled(map) {
     return null;
 }
 
-// Inverse of pickPreferUnfilled for the few surfaces that ask
-// "what does Bitcoin Core embed?". File size and Bitcoin Core
-// embedding-size charts use this orientation.
 export function pickPreferFilled(map) {
     if (!map) return null;
     if (isPresent(map.filled)) {
@@ -53,8 +35,6 @@ export function pickPreferFilled(map) {
     return null;
 }
 
-// Direct accessors when the caller knows it wants exactly one
-// variant (e.g. the dual-line size chart needs both independently).
 export function unfilledProfile(map) {
     return isPresent(map?.unfilled) ? map.unfilled : null;
 }
