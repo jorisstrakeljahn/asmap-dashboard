@@ -8,7 +8,7 @@ Live: <https://jorisstrakeljahn.github.io/asmap-dashboard/>
 
 A Python pipeline (`asmap_dashboard/`) reads every published `.dat` file in [bitcoin-core/asmap-data](https://github.com/bitcoin-core/asmap-data), profiles each build, diffs every distinct pair, and emits a single `metrics.json`. The static site under `web/` consumes that payload: overview cards, time-series charts, and a diff explorer with match-rate banner, change classification, and top-movers table.
 
-A GitHub Actions workflow regenerates `metrics.json` daily; a separate workflow deploys `web/` to GitHub Pages on push.
+`metrics.json` and `asn-names.json` are generated artefacts and are not tracked in git. The Pages workflow rebuilds them from scratch on every deploy and a daily cron picks up new asmap-data builds.
 
 ### Filled vs unfilled inputs
 
@@ -35,7 +35,9 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-## Regenerate dashboard data
+## Generate dashboard data
+
+A fresh clone has no `web/assets/data/*.json` — run the pipeline once before serving the site:
 
 ```
 git clone https://github.com/bitcoin-core/asmap-data.git
@@ -43,7 +45,7 @@ python -m asmap_dashboard metrics --data-dir asmap-data --out web/assets/data/me
 python -m asmap_dashboard refresh-asn-names --metrics web/assets/data/metrics.json --out web/assets/data/asn-names.json
 ```
 
-The first command builds the full metrics payload from a checkout of asmap-data. The second pulls operator labels (`AS7018 (AT&T Services, Inc.)`) from [bgp.tools/asns.csv](https://bgp.tools/asns.csv) and filters them down to the ASNs actually used. Both commands also run daily in CI. The ASN-names step is non-fatal. If bgp.tools is unreachable the previous file is kept and the dashboard falls back to bare `AS<num>` labels.
+The first command builds the full metrics payload from a checkout of asmap-data. The second pulls operator labels (`AS7018 (AT&T Services, Inc.)`) from [bgp.tools/asns.csv](https://bgp.tools/asns.csv) and filters them down to the ASNs actually used. The ASN-names step is non-fatal — if bgp.tools is unreachable the dashboard falls back to bare `AS<num>` labels. The same two commands run on every Pages deploy and daily via cron.
 
 ## Run the dashboard
 
@@ -54,7 +56,7 @@ cd web
 python3 -m http.server 8000
 ```
 
-Open <http://localhost:8000>. `metrics.json` is committed, so a fresh clone works without running the pipeline first.
+Open <http://localhost:8000>.
 
 ## Other commands
 

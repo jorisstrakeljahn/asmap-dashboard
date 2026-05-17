@@ -1,14 +1,16 @@
 name: pages
 
+# The dashboard's data layer (metrics.json, asn-names.json) is generated
+# fresh on every deploy from bitcoin-core/asmap-data + bgp.tools and is
+# not committed. Triggers:
+#   - push to main: redeploy when web/, the pipeline, or the workflow changes
+#   - daily cron: pick up new asmap-data builds and ASN-name updates
+#   - manual dispatch: ad-hoc rebuild
 on:
   push:
     branches: [main]
-    paths:
-      - "web/**"
-      - ".github/workflows/pages.yml"
-  workflow_run:
-    workflows: ["refresh-metrics"]
-    types: [completed]
+  schedule:
+    - cron: "0 0 * * *"
   workflow_dispatch:
 
 permissions:
@@ -21,17 +23,44 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+  build-and-deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install asmap_dashboard
+        run: pip install -e .
+
+      - name: Clone bitcoin-core/asmap-data
+        run: git clone --depth=1 https://github.com/bitcoin-core/asmap-data.git /tmp/asmap-data
+
+      - name: Generate metrics.json
+        run: |
+          python -m asmap_dashboard metrics \
+            --data-dir /tmp/asmap-data \
+            --out web/assets/data/metrics.json
+
+      - name: Refresh ASN names from bgp.tools
+        # Non-fatal: if bgp.tools is unreachable we still ship metrics.json
+        # and the dashboard falls back to bare AS<num> labels.
+        continue-on-error: true
+        run: |
+          python -m asmap_dashboard refresh-asn-names \
+            --metrics web/assets/data/metrics.json \
+            --out web/assets/data/asn-names.json
+
       - uses: actions/configure-pages@v6
+
       - uses: actions/upload-pages-artifact@v5
         with:
           path: web
+
       - id: deployment
         uses: actions/deploy-pages@v5
