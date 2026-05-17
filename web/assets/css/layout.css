@@ -5,6 +5,7 @@
 .site-header {
     display: flex;
     align-items: center;
+    gap: var(--space-4);
     height: var(--header-height);
     padding: 0 var(--page-gutter);
     border-bottom: 1px solid var(--color-border);
@@ -32,6 +33,7 @@
     position: relative;
     padding-bottom: var(--space-1);
     color: var(--color-text-base);
+    white-space: nowrap;
 }
 
 .site-header__nav-link:hover {
@@ -65,7 +67,19 @@
     padding: var(--space-8) var(--page-gutter) var(--space-12);
 }
 
-.section + .section {
+/* Tab panels: the dashboard runs two panels (Maps + Diff
+   Explorer) inside the same document and toggles them with the
+   `hidden` attribute set by tabs.js. Inactive panels stay in
+   the DOM so their state (selected build, dropdown values,
+   chart toggles) survives a tab switch, but `hidden` removes
+   them from layout, paint, and assistive tech. Using the
+   attribute keeps the contract obvious: any panel with no
+   `hidden` is shown, no CSS class machinery in between. */
+.tab-panel[hidden] {
+    display: none;
+}
+
+.tab-panel > .section + .section {
     margin-top: var(--space-12);
     padding-top: var(--space-12);
     border-top: 1px solid var(--color-border);
@@ -123,6 +137,32 @@
     color: var(--color-text-muted);
 }
 
+/* Visible failure surface when metrics.json cannot be loaded.
+   Replaces every tab panel inside main.content so the user sees
+   the cause instead of an empty page. Styled as a calm muted
+   block rather than an alarm banner because the most common
+   failure modes (CI did not run yet, GitHub Pages is rebuilding)
+   self-heal on the next refresh. role="alert" on the element
+   surfaces it to screen readers regardless of styling. */
+.load-error {
+    margin-top: var(--space-8);
+    padding: var(--space-6);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+}
+
+.load-error__title {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--space-2);
+}
+
+.load-error__body {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-normal);
+}
+
 /* Footer sits below the main content with a thin top rule so it
    detaches from the last section without competing with it. Two
    stacked lines (sources + project meta) center-aligned so the
@@ -176,7 +216,7 @@
     .section__toolbar-control {
         width: 100%;
     }
-    .section + .section {
+    .tab-panel > .section + .section {
         margin-top: var(--space-6);
         padding-top: var(--space-6);
     }
@@ -195,32 +235,37 @@
     }
 }
 
-@media (max-width: 540px) {
+/* Below 720px the logo + nav + meta line stops fitting on one
+   row. Drop the nav onto its own full-width row underneath the
+   logo, with the build-meta beside the logo. The grid layout
+   keeps the logo flush left, meta flush right, and nav spans
+   both columns on a second visual row. */
+@media (max-width: 720px) {
     .site-header {
         flex-wrap: wrap;
         height: auto;
         row-gap: var(--space-2);
         padding-top: var(--space-3);
         padding-bottom: var(--space-3);
-        align-items: center;
     }
     .site-header__nav {
         order: 3;
-        width: 100%;
+        flex: 0 0 100%;
         margin: 0;
-        gap: var(--space-4);
-        flex-wrap: wrap;
+        justify-content: center;
+        gap: var(--space-6);
     }
     .site-header__meta {
         margin-left: auto;
         text-align: right;
-        max-width: min(100%, 12rem);
-        word-break: break-word;
     }
+}
+
+@media (max-width: 540px) {
     .content {
         padding: var(--space-5) var(--space-4) var(--space-6);
     }
-    .section + .section {
+    .tab-panel > .section + .section {
         margin-top: var(--space-5);
         padding-top: var(--space-5);
     }
@@ -236,6 +281,10 @@
     .site-footer {
         margin-top: var(--space-8);
         padding: var(--space-5) var(--space-4) var(--space-6);
+    }
+    .site-header__meta {
+        max-width: min(100%, 12rem);
+        word-break: break-word;
     }
 }
 

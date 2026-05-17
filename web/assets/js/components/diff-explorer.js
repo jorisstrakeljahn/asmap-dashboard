@@ -34,7 +34,7 @@ const DIFF_RESULTS_INFO = [
     "Each entry-level change between Map A and Map B falls into exactly one of three buckets.",
     {
         lead: "Reassigned.",
-        text: "A prefix kept its mapping but changed which autonomous system it points to. This is where most ASmap edits land.",
+        text: "A prefix was mapped in both Map A and Map B, but now resolves to a different autonomous system. This is where most ASmap edits land.",
     },
     {
         lead: "Newly Mapped.",

@@ -1,13 +1,19 @@
-// Vertical bar chart of entry-count delta between consecutive
-// builds, computed from the unfilled (source data) variant. Each
-// bar is the gain or loss in real source-data prefixes. Positive
-// deltas grow up from the baseline, negative down. Hover a bar
-// for the exact "prev to this" entries and signed delta.
+// Vertical bar chart of entry-count delta against the last
+// diffable predecessor, computed from the unfilled (source data)
+// variant of both sides. Each bar is the gain or loss in real
+// source-data prefixes between this build and the most recent
+// earlier build that actually published an unfilled variant.
+// Positive deltas grow up from the baseline, negative down. Hover
+// a bar for the exact prev-to-this entry counts, the signed
+// delta, and the date of the predecessor it diffed against.
 //
-// Builds without an unfilled variant cannot contribute a bar
-// because the corresponding entry count is missing on either
-// side. The chart silently skips them, matching the behaviour of
-// the drift chart and pair-diff loop.
+// Builds without an unfilled variant contribute no bar because
+// the entry count is missing on their side. Builds whose direct
+// predecessor is filled-only still contribute, because the
+// bridge falls back to the last build that did publish an
+// unfilled variant. That keeps the chart in lockstep with the
+// drift card and the step-drift chart, both of which use the
+// same last-diffable-predecessor rule.
 
 import { linearScale, niceTicks, svg } from "../charts/svg.js";
 import {
@@ -18,7 +24,6 @@ import {
     plotBounds,
     renderTimeAxis,
     renderYAxis,
-    renderYAxisTitle,
     resolveTimeDomain,
 } from "../charts/chart-base.js";
 import {
@@ -31,6 +36,8 @@ import {
 } from "../charts/chart-interaction.js";
 import { buildTooltipBody } from "../charts/chart-tooltip.js";
 import { formatDate, formatNumber } from "../format.js";
+import { mutedNote } from "../utils/dom.js";
+import { previousDiffable } from "../utils/diffs.js";
 import { unfilledProfile } from "../utils/variants.js";
 import { createInfoTooltip } from "./info-tooltip.js";
 
@@ -47,20 +54,29 @@ const BAR_FILL_FRACTION = 0.7;
 const BAR_CORNER_RADIUS = 2;
 
 const MAP_DELTA_INFO = [
-    "Gain or loss in source-data prefix entries between every pair of consecutive builds.",
-    "A positive bar means the next build added that many real (prefix to ASN) entries on top of the previous one. A negative bar means entries fell out of the upstream data, typically because RPKI / IRR coverage retracted for some prefix.",
-    "Computed from the unfilled (source data) variant of both sides. Pairs missing the unfilled variant on either side are skipped silently rather than rendered as a misleading bar.",
+    "Gain or loss in source-data prefix entries between each build and the most recent earlier build that published an unfilled variant.",
+    "A positive bar means this build added that many real (prefix to ASN) entries on top of its diffable predecessor. A negative bar means entries fell out of the upstream data, typically because RPKI / IRR coverage retracted for some prefix.",
+    "Computed from the unfilled (source data) variant of both sides. Builds whose immediate predecessor is filled-only fall back to the last build that did publish an unfilled variant, so a single filled-only release no longer blanks out the surrounding bars. Builds without an unfilled variant themselves still render as an empty column.",
+    "Hover any bar for the exact entry counts and the date of the predecessor the diff was taken against.",
 ];
 
 export function mount(parent, maps, options = {}) {
     if (!parent || !Array.isArray(maps) || maps.length === 0) return;
     const rows = deltasBetween(maps);
+    // No diffable pair in the picked range: spell the empty state
+    // out so the slot does not silently render blank. The drift
+    // charts use the same affordance; matching them keeps the
+    // history section's empty-state vocabulary consistent.
     if (rows.length < 1) {
-        parent.replaceChildren();
+        parent.replaceChildren(
+            mutedNote(
+                "Need at least two builds with an unfilled variant to plot deltas.",
+            ),
+        );
         return;
     }
     mountResponsiveChart(parent, {
-        title: "Source Data Entries Delta Between Consecutive Maps",
+        title: "Source Data Entries Delta Between Builds",
         info: createInfoTooltip({
             body: MAP_DELTA_INFO,
             ariaLabel: "About the entries delta chart",
@@ -71,19 +87,26 @@ export function mount(parent, maps, options = {}) {
 }
 
 // Pre-compute everything each bar will need so the render path
-// never has to re-derive values from the raw map list. Walks
-// every (previous, current) pair and emits one row when both
-// sides expose an unfilled variant. Pairs missing either side
-// are dropped silently rather than rendered as a misleading bar.
+// never has to re-derive values from the raw map list. For every
+// build that exposes an unfilled variant, walk back via
+// ``previousDiffable`` to find the most recent earlier build that
+// also published one, then emit a row. Builds with no diffable
+// predecessor (the oldest build, or anything older than the first
+// published unfilled variant) produce no row. Builds without
+// their own unfilled variant likewise produce no row, since the
+// "this" side of the diff would be missing.
 function deltasBetween(maps) {
     const rows = [];
-    for (let i = 1; i < maps.length; i++) {
-        const previous = unfilledProfile(maps[i - 1]);
+    for (let i = 0; i < maps.length; i++) {
         const current = unfilledProfile(maps[i]);
-        if (!previous || !current) continue;
+        if (!current) continue;
+        const previousMap = previousDiffable(maps, maps[i].name);
+        if (!previousMap) continue;
+        const previous = unfilledProfile(previousMap);
+        if (!previous) continue;
         rows.push({
             released_at: maps[i].released_at,
-            name: maps[i].name,
+            previous_released_at: previousMap.released_at,
             entries: current.entries_count,
             prev_entries: previous.entries_count,
             delta: current.entries_count - previous.entries_count,
@@ -118,7 +141,7 @@ function buildChart(rows, maps, width, height, layout, options) {
     const root = createChartSvg(
         width,
         height,
-        "Source-data entry count delta between consecutive ASmap builds. Hover each bar for details.",
+        "Source-data entry count delta between each ASmap build and its last diffable predecessor. Hover each bar for details.",
     );
 
     renderYAxis(root, yTicks, yScale, {
@@ -126,7 +149,6 @@ function buildChart(rows, maps, width, height, layout, options) {
         plotRight: plot.right,
         format: formatTick,
     });
-    renderYAxisTitle(root, "Entries", plot);
 
     // Zero baseline goes in before the bars so positive bars
     // cover it where they sit above zero, but it stays visible
@@ -190,7 +212,12 @@ function buildChart(rows, maps, width, height, layout, options) {
                             `${formatNumber(row.prev_entries)} \u2192 ${formatNumber(row.entries)}`,
                         ],
                     ],
-                    footer: row.name,
+                    // Naming the predecessor matters when the
+                    // direct previous build was filled-only and we
+                    // bridged across it. Always rendering the
+                    // footer (not just for filled-only skips) keeps
+                    // the reader from having to remember the rule.
+                    footer: `vs ${formatDate(row.previous_released_at)}`,
                 }),
             );
             placeTooltipNextFrame(shell, tip, ev.clientX, ev.clientY);

@@ -1,0 +1,77 @@
+// Hash-based tab router for the top-level navigation.
+//
+// Why hash and not History API: hashes work over file:// loads
+// (Bitcoin Core contributors often pull the repo and open
+// index.html without spinning up a server), survive page reloads
+// for deep links, and need no server-side rewriting. The cost is
+// the leading "#" in the URL bar, which is the right trade-off
+// for a static, GitHub-Pages-style dashboard.
+//
+// The router is intentionally tiny: it does not own any UI, does
+// not depend on a framework, and only mutates two things in the
+// DOM — the `is-active` class on every `[data-tab-link]` and on
+// every `[data-tab-panel]`. CSS handles the rest (hide inactive
+// panels, underline the active link). The tab-link elements are
+// regular `<a href="#...">`, so middle-click, right-click, and
+// "copy link" do the obvious thing out of the box.
+
+const ACTIVE_CLASS = "is-active";
+
+/**
+ * Wire up tab navigation for the current document.
+ *
+ * @param {object} [opts]
+ * @param {string} [opts.defaultTab] - tab to show when the URL
+ *   carries no hash, or a hash that does not match any panel.
+ * @returns {{ activate(tab: string): void, current(): string }}
+ *   Tiny handle for callers that need to read or force-switch
+ *   the active tab (e.g. focus management after a deep link).
+ */
+export function initTabs({ defaultTab } = {}) {
+    const links = Array.from(document.querySelectorAll("[data-tab-link]"));
+    const panels = Array.from(document.querySelectorAll("[data-tab-panel]"));
+    const knownTabs = new Set(panels.map((p) => p.dataset.tabPanel));
+
+    const fallback = defaultTab && knownTabs.has(defaultTab)
+        ? defaultTab
+        : panels[0]?.dataset.tabPanel ?? null;
+
+    const tabFromHash = () => {
+        const raw = window.location.hash.replace(/^#/, "");
+        return knownTabs.has(raw) ? raw : fallback;
+    };
+
+    const activate = (tab) => {
+        const next = knownTabs.has(tab) ? tab : fallback;
+        if (!next) return;
+        for (const link of links) {
+            const isActive = link.dataset.tabLink === next;
+            link.classList.toggle(ACTIVE_CLASS, isActive);
+            if (isActive) {
+                link.setAttribute("aria-current", "page");
+            } else {
+                link.removeAttribute("aria-current");
+            }
+        }
+        for (const panel of panels) {
+            // `hidden` attribute does the layout work; we still
+            // keep `is-active` in sync for hooks that want a
+            // class selector (e.g. a future highlight or
+            // animation).
+            const isActive = panel.dataset.tabPanel === next;
+            panel.classList.toggle(ACTIVE_CLASS, isActive);
+            panel.hidden = !isActive;
+        }
+    };
+
+    activate(tabFromHash());
+
+    window.addEventListener("hashchange", () => activate(tabFromHash()));
+
+    return {
+        activate,
+        current: () =>
+            links.find((l) => l.classList.contains(ACTIVE_CLASS))?.dataset
+                .tabLink ?? fallback,
+    };
+}
