@@ -66,7 +66,7 @@ const MAP_SIZE_INFO = [
         lead: "Embedded (filled).",
         text: "Bytes of the binary Bitcoin Core actually ships. Adjacent same-AS prefixes are collapsed so the file stays small.",
     },
-    "Hover any build for the two raw sizes plus the fill-compression ratio between them. Builds that did not publish a variant show a gap rather than bridging the line toward zero.",
+    "Hover any build for the two raw sizes plus the fill-compression ratio between them. Builds that did not publish a variant carry no dot and the tooltip names them as not published, but the line connects the surrounding points so the trend stays readable.",
 ];
 
 const ARIA_LABEL =

@@ -120,7 +120,7 @@ const DRIFT_INFO = [
         lead: "Total drift.",
         text: "Sum of the three categories. In Step mode this matches the drift figure the overview card shows for the same pair.",
     },
-    "Click any legend entry to hide that line and rescale the chart to whatever stays on. Computed from the unfilled (source data) variant of every build. Builds that did not publish an unfilled variant appear as gaps.",
+    "Click any legend entry to hide that line and rescale the chart to whatever stays on. Computed from the unfilled (source data) variant of every build. Builds that did not publish an unfilled variant carry no dot and the tooltip flags them as having no diff, but the line connects the surrounding points so the trend stays readable.",
 ];
 
 // Public mount: render the drift card under ``parent``. The card

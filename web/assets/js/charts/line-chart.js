@@ -47,8 +47,11 @@ const HOVER_BLEED = 12;
 //     and ``dotClass``. Hidden series do not appear here, but the
 //     caller is free to keep them inside ``tooltipBodyAt``.
 //   - ``valueAt(seriesKey, slotIndex)``: returns the y value for
-//     that pair, or ``null`` for a gap. Gaps break the line and
-//     skip the dot so a missing build never bridges toward zero.
+//     that pair, or ``null`` for a gap. Gap slots get no dot and
+//     are skipped by the line pass so the curve connects the
+//     surrounding points instead of breaking. The hover tooltip
+//     still names the slot, so the bridge is a visual aid, not a
+//     claim of data.
 //   - ``yMin`` / ``yMax``: the y domain the caller wants. niceTicks
 //     extends this to a tick-friendly range. Letting the caller
 //     pass exact bounds keeps domain quirks (drift forcing min=0,
@@ -120,19 +123,22 @@ function drawAxes(root, geometry, spec, width) {
     renderTimeAxis(root, ticks, xScale, plot.bottom);
 }
 
-// One smooth path per visible series, broken into sub-segments at
-// every null returned by ``valueAt``. Breaking on null keeps the
-// curve from ramping toward a phantom zero across a gap.
+// One smooth path per visible series. Missing slots (``valueAt``
+// returns null) are skipped so the line connects the surrounding
+// data points instead of breaking. The dot pass keeps gap slots
+// dot-less and the hover tooltip still names them as "not
+// published" / "no diff", so the bridge is a visual aid, not a
+// claim of data.
 function drawSeriesLines(root, { xAt, yScale, slotCount }, spec) {
     for (const series of spec.visibleSeries) {
-        for (const segment of contiguousSegments(spec, series, slotCount, xAt, yScale)) {
-            root.append(
-                svg("path", {
-                    d: smoothPath(segment),
-                    class: `chart__line ${series.lineClass}`,
-                }),
-            );
-        }
+        const points = seriesLinePoints(spec, series, slotCount, xAt, yScale);
+        if (points.length < 2) continue;
+        root.append(
+            svg("path", {
+                d: smoothPath(points),
+                class: `chart__line ${series.lineClass}`,
+            }),
+        );
     }
 }
 
@@ -153,24 +159,18 @@ function drawSeriesDots(root, { xAt, yScale, slotCount }, spec) {
     }
 }
 
-// Walk the slot index range and collect [x, y] pairs into
-// contiguous segments, breaking wherever ``valueAt`` returns null.
-// Each segment is rendered by its own smoothPath() call so the
-// curve breaks at the gap instead of bridging it.
-function contiguousSegments(spec, series, slotCount, xAt, yScale) {
-    const segments = [];
-    let current = [];
+// Collect the [x, y] points for one series in plot order. Slots
+// where ``valueAt`` returns null are skipped so the surrounding
+// points connect directly. smoothPath then draws one curve that
+// glides over the gap rather than two segments with a break.
+function seriesLinePoints(spec, series, slotCount, xAt, yScale) {
+    const points = [];
     for (let i = 0; i < slotCount; i++) {
         const value = spec.valueAt(series.key, i);
-        if (value == null) {
-            if (current.length >= 2) segments.push(current);
-            current = [];
-            continue;
-        }
-        current.push([xAt(i), yScale(value)]);
+        if (value == null) continue;
+        points.push([xAt(i), yScale(value)]);
     }
-    if (current.length >= 2) segments.push(current);
-    return segments;
+    return points;
 }
 
 function attachHover(root, geometry, spec) {
