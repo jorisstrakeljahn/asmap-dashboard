@@ -11,3 +11,7 @@ dist/
 
 # Local ruff cache; the lint config lives in pyproject.toml.
 .ruff_cache/
+
+# Node + ESLint toolchain (only used by the lint-js CI job; the
+# dashboard ships zero JS dependencies and has no build step).
+node_modules/

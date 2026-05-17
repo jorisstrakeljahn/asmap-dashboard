@@ -22,9 +22,8 @@
 //
 // Returns a <span> exposing setBody(next) for late-binding copy.
 
-import { uniqueId } from "../utils/dom.js";
+import { SVG_NS, uniqueId } from "../utils/dom.js";
 
-const SVG_NS = "http://www.w3.org/2000/svg";
 const PANEL_GAP = 6;
 const VIEWPORT_MARGIN = 8;
 // 400 px gives multi-paragraph glossary popovers (the Top Movers

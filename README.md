@@ -69,8 +69,17 @@ Pass `--addrs nodes.txt` (one IP per line) to `diff` to also report how many of 
 
 ## Tests and lint
 
+Python (runtime + analysis pipeline):
+
 ```
 python -m pytest tests
 python -m ruff check
 python -m ruff format --check
+```
+
+JavaScript (static `web/` assets — Node is only needed for the linter, not for running the dashboard):
+
+```
+npm ci
+npm run lint
 ```

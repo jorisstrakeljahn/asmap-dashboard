@@ -3,7 +3,13 @@
 // path / area helpers. Shared by every chart so axis math and
 // curve geometry stay consistent across visualisations.
 
-export const SVG_NS = "http://www.w3.org/2000/svg";
+import { SVG_NS } from "../utils/dom.js";
+
+// Re-exported so existing chart code that imports SVG_NS from
+// this module keeps working unchanged. The single source of
+// truth lives in utils/dom.js alongside the other DOM API
+// constants and tiny helpers.
+export { SVG_NS };
 
 export function svg(name, attrs = {}) {
     const node = document.createElementNS(SVG_NS, name);

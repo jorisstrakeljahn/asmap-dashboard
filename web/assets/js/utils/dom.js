@@ -4,6 +4,14 @@
 // belongs in the component that uses it. The point of this
 // module is to remove duplication, not to grow an abstraction.
 
+// XML namespace required by createElementNS for every <svg> child
+// element. Lives here (and not next to the text symbols in
+// utils/symbols.js) because it is a DOM API constant, not a
+// rendered glyph — the consumers are charts and icon-building
+// components, all of which already import other DOM helpers from
+// this module.
+export const SVG_NS = "http://www.w3.org/2000/svg";
+
 let idCounter = 0;
 
 // Page-wide unique id for ARIA wiring (aria-labelledby,

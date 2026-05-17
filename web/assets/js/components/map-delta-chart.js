@@ -38,7 +38,7 @@ import { buildTooltipBody } from "../charts/chart-tooltip.js";
 import { formatDate, formatNumber } from "../format.js";
 import { mutedNote } from "../utils/dom.js";
 import { previousDiffable } from "../utils/diffs.js";
-import { unfilledProfile } from "../utils/variants.js";
+import { unfilledProfile } from "../utils/map-variants.js";
 import { createInfoTooltip } from "./info-tooltip.js";
 
 // Bars sit at their build's real release timestamp instead of in

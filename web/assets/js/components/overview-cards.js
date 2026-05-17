@@ -12,7 +12,7 @@
 //
 // All cards read the unfilled variant by default and fall back to
 // filled when unfilled was not published for a build (see
-// utils/variants.js for the rule). When the fallback fires, a small
+// utils/map-variants.js for the rule). When the fallback fires, a small
 // "filled fallback" badge appears on the card so the reader knows
 // the number is not from source data.
 
@@ -22,28 +22,22 @@ import {
     formatPercent,
     formatSignedNumber,
 } from "../format.js";
-import { tweenNumber } from "../utils/animate.js";
 import { pairDriftRatio } from "../utils/diffs.js";
 import { mutedNote } from "../utils/dom.js";
 import {
     pickPreferUnfilled,
     unfilledProfile,
-} from "../utils/variants.js";
+} from "../utils/map-variants.js";
 import { createInfoTooltip } from "./info-tooltip.js";
-
-// Metric keys used by the count-up tween: data-metric-key on each
-// headline node lets us match "the new Entries metric" to "the old
-// Entries metric" across a re-render so the tween reads from the
-// previous value instead of from zero. The three keys are stable
-// even when the underlying number changes type (e.g. drift goes
-// from "—" to "5.0 %") because the lookup also tracks whether the
-// previous value was tweenable at all.
-const METRIC_KEY_ENTRIES = "entries";
-const METRIC_KEY_UNIQUE_ASES = "unique-ases";
-const METRIC_KEY_DRIFT = "drift";
 
 /**
  * Render the three overview cards for the selected build.
+ *
+ * Each build pick paints the new numbers straight into the DOM:
+ * no count-up, no fade, no in-place mutation. The reader's eye
+ * stays on the static layout while the values switch — picking
+ * a different build feels like flipping a card over rather than
+ * watching three counters spin up.
  *
  * @param {HTMLElement} parent - card-row container.
  * @param {object} ctx
@@ -69,12 +63,6 @@ export function mount(parent, { current, previous, diffs }) {
         );
         return;
     }
-    // Snapshot the previous metric values BEFORE replaceChildren
-    // tears the old cards out of the DOM. Used by the count-up
-    // tween below; an absent key (first render, or the previous
-    // card had no numeric value) just means the new value is
-    // painted in place without animation.
-    const previousValues = readPreviousValues(parent);
 
     const previousPick = pickPreferUnfilled(previous);
     const row = document.createElement("div");
@@ -85,50 +73,6 @@ export function mount(parent, { current, previous, diffs }) {
         driftCard(current, previous, diffs),
     );
     parent.replaceChildren(row);
-
-    // After the new cards are in the document, tween every
-    // headline number from its previous value to the new one.
-    // Cards whose headline is non-numeric (e.g. an em-dash on a
-    // filled-only build) ship through with no tween because the
-    // node carries no data-metric-value.
-    applyTweens(parent, previousValues);
-}
-
-function readPreviousValues(parent) {
-    const out = {};
-    const nodes = parent.querySelectorAll("[data-metric-key]");
-    for (const node of nodes) {
-        const key = node.dataset.metricKey;
-        const raw = node.dataset.metricValue;
-        if (key && raw !== undefined) {
-            const num = Number(raw);
-            if (Number.isFinite(num)) out[key] = num;
-        }
-    }
-    return out;
-}
-
-function applyTweens(parent, previousValues) {
-    const nodes = parent.querySelectorAll("[data-metric-key]");
-    for (const node of nodes) {
-        const key = node.dataset.metricKey;
-        const raw = node.dataset.metricValue;
-        if (!key || raw === undefined) continue;
-        const to = Number(raw);
-        if (!Number.isFinite(to)) continue;
-        const from = previousValues[key];
-        // First render or non-numeric previous: paint directly.
-        if (!Number.isFinite(from) || from === to) continue;
-        const format = pickFormatter(key);
-        tweenNumber(node, { from, to, format });
-    }
-}
-
-function pickFormatter(key) {
-    if (key === METRIC_KEY_DRIFT) {
-        return (n) => formatPercent(n, 1);
-    }
-    return (n) => formatNumber(Math.round(n));
 }
 
 // Entries are the (prefix, ASN) tuples the binary trie resolves
@@ -148,10 +92,7 @@ function entriesCountCard(currentPick, previousPick) {
         source: currentPick.source,
     });
     card.append(
-        metricNumber(formatNumber(currentPick.profile.entries_count), {
-            key: METRIC_KEY_ENTRIES,
-            value: currentPick.profile.entries_count,
-        }),
+        metricNumber(formatNumber(currentPick.profile.entries_count)),
     );
     card.append(metricUnit("prefix \u2192 ASN mappings"));
     if (!previousPick) return card;
@@ -210,12 +151,7 @@ function driftCard(current, previous, diffs) {
         card.append(metricUnit("no precomputed diff"));
         return card;
     }
-    card.append(
-        metricNumber(formatPercent(result.ratio, 1), {
-            key: METRIC_KEY_DRIFT,
-            value: result.ratio,
-        }),
-    );
+    card.append(metricNumber(formatPercent(result.ratio, 1)));
     card.append(metricUnit(`${formatNumber(result.total_changes)} entries changed`));
     card.append(deltaLine(`vs ${formatDate(previous.released_at)}`));
     return card;
@@ -232,12 +168,7 @@ function uniqueAsesCard(currentPick, previousPick) {
         ],
         source: currentPick.source,
     });
-    card.append(
-        metricNumber(formatNumber(profile.unique_asns), {
-            key: METRIC_KEY_UNIQUE_ASES,
-            value: profile.unique_asns,
-        }),
-    );
+    card.append(metricNumber(formatNumber(profile.unique_asns)));
     card.append(metricUnit("autonomous systems"));
 
     // Auxiliary IPv4/IPv6 split sits between the headline and the
@@ -295,16 +226,10 @@ function fallbackBadge() {
     return badge;
 }
 
-function metricNumber(text, meta) {
+function metricNumber(text) {
     const node = document.createElement("p");
     node.className = "card__metric";
     node.textContent = text;
-    if (meta && meta.key) {
-        node.dataset.metricKey = meta.key;
-        if (Number.isFinite(meta.value)) {
-            node.dataset.metricValue = String(meta.value);
-        }
-    }
     return node;
 }
 

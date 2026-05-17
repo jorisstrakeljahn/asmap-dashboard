@@ -32,6 +32,24 @@ jobs:
 
       - run: python -m ruff format --check
 
+  lint-js:
+    # ESLint runs against the static web/ assets to catch obvious
+    # tipos and unused imports before a drive-by contributor opens
+    # a PR. The dashboard has no build step, so a single Node
+    # version is enough — pin to the active LTS.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
   pytest:
     runs-on: ubuntu-latest
     strategy:

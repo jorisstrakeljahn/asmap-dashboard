@@ -23,9 +23,7 @@
 // changes (the diff-explorer uses this so Map A can never pick
 // a map at-or-after Map B, and vice versa).
 
-import { uniqueId } from "../utils/dom.js";
-
-const SVG_NS = "http://www.w3.org/2000/svg";
+import { SVG_NS, uniqueId } from "../utils/dom.js";
 
 // CSS-driven panel max-height (--control-panel-max-height) and
 // gap (--control-panel-gap). The JS only needs these for the
