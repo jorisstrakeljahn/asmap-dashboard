@@ -75,6 +75,28 @@ export function mount(parent, payload) {
         return;
     }
 
+    // Only builds that published an unfilled (source-data) variant
+    // can participate in a diff: the pipeline computes diffs from
+    // unfilled-vs-unfilled exclusively, so a build without an
+    // unfilled .dat is guaranteed to have zero matching diff
+    // entries. We hide such builds from the selectors entirely
+    // rather than greying them out, because the disabled state in
+    // the dropdown is reserved for *conditionally* impossible
+    // pairs (A >= B) that react when the user moves the other
+    // side. A build without an unfilled variant is permanently
+    // impossible to diff, so a permanently-greyed row would be a
+    // UX dead-end. If the upstream backfills an unfilled variant
+    // later, the build re-appears automatically the next run.
+    const diffableMaps = payload.maps.filter((m) => m.unfilled?.present);
+    if (diffableMaps.length < 2) {
+        parent.replaceChildren(
+            mutedNote(
+                "Need at least two builds with an unfilled variant to compare.",
+            ),
+        );
+        return;
+    }
+
     const root = document.createElement("div");
     root.className = "diff-explorer";
 
@@ -82,7 +104,7 @@ export function mount(parent, payload) {
     results.className = "diff-explorer__results";
 
     const nameToReleaseDate = new Map(
-        payload.maps.map((m) => [m.name, m.released_at]),
+        diffableMaps.map((m) => [m.name, m.released_at]),
     );
 
     const refresh = (fromName, toName) => {
@@ -93,12 +115,12 @@ export function mount(parent, payload) {
         renderResults(results, payload.diffs, fromName, toName);
     };
 
-    const selectors = createSelectors(payload.maps, refresh);
+    const selectors = createSelectors(diffableMaps, refresh);
 
     root.append(selectors.elem, results);
     parent.replaceChildren(root);
 
-    const initial = resolveInitialSelection(payload.maps);
+    const initial = resolveInitialSelection(diffableMaps);
     selectors.setSelection(initial.a, initial.b);
 }
 
@@ -174,17 +196,39 @@ function createSelectors(maps, onChange) {
     // the constraint.
     const indexOf = (name) => maps.findIndex((m) => m.name === name);
 
-    const fire = () =>
+    // Recompute which options are disabled in each dropdown each
+    // time either side moves. Map A can only land on builds
+    // strictly older than Map B, and Map B only on builds
+    // strictly newer than Map A; greying out the impossible rows
+    // is more readable than silently bumping the counterpart and
+    // showing a "pick two different maps" notice after the fact.
+    const refreshDisabled = () => {
+        const aIdx = indexOf(fieldA.dropdown.getValue());
+        const bIdx = indexOf(fieldB.dropdown.getValue());
+        const disabledForA = [];
+        const disabledForB = [];
+        for (let i = 0; i < maps.length; i++) {
+            if (i >= bIdx) disabledForA.push(maps[i].name);
+            if (i <= aIdx) disabledForB.push(maps[i].name);
+        }
+        fieldA.dropdown.setDisabledValues(disabledForA);
+        fieldB.dropdown.setDisabledValues(disabledForB);
+    };
+
+    const fire = () => {
+        refreshDisabled();
         onChange(fieldA.dropdown.getValue(), fieldB.dropdown.getValue());
+    };
 
     const onAChange = (newA) => {
+        // The Map A dropdown now greys out every option at or
+        // after Map B, so a backwards-or-equal pair is no longer
+        // reachable through the UI. The clamp below stays as a
+        // belt-and-braces guard for programmatic setSelection()
+        // calls (e.g. permalinks) that bypass the dropdown.
         const aIdx = indexOf(newA);
         const bIdx = indexOf(fieldB.dropdown.getValue());
         if (bIdx <= aIdx) {
-            // Bump B forward; if A is the newest map, fall back to
-            // pinning B to the same map so the UI shows the
-            // "pick two different maps" notice instead of silently
-            // keeping a backward pair.
             const nextB = aIdx + 1 < maps.length ? maps[aIdx + 1].name : newA;
             fieldB.dropdown.setValue(nextB);
         }
@@ -194,8 +238,6 @@ function createSelectors(maps, onChange) {
         const bIdx = indexOf(newB);
         const aIdx = indexOf(fieldA.dropdown.getValue());
         if (aIdx >= bIdx) {
-            // Bump A backward; if B is the oldest map, pin A to
-            // the same map for the same reason as above.
             const nextA = bIdx - 1 >= 0 ? maps[bIdx - 1].name : newB;
             fieldA.dropdown.setValue(nextA);
         }

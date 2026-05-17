@@ -148,3 +148,32 @@
     --header-height: 69px;
     --chart-min-height: 240px;
 }
+
+/* Reduced-motion override. Users who opt into reduced motion at
+   the OS level (macOS System Settings -> Accessibility, Windows
+   Settings -> Ease of Access, GNOME Tweaks, etc.) get a near-
+   instant variant of every transition the dashboard runs. We do
+   not zero the durations to literally 0s because some animations
+   (notably the dropdown chevron rotation) rely on a non-zero
+   duration to fire transitionend listeners reliably across
+   browsers - 1 ms is short enough to be invisible while keeping
+   the event semantics intact. The same override also disables
+   the shimmer keyframe used by the loading skeleton, so a user
+   with reduced-motion preferences sees a static placeholder
+   instead of a moving gradient. */
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --motion-fast: 0.001s;
+        --motion-base: 0.001s;
+        --motion-slow: 0.001s;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001s !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001s !important;
+        scroll-behavior: auto !important;
+    }
+}

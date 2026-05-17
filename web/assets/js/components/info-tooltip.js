@@ -27,7 +27,12 @@ import { uniqueId } from "../utils/dom.js";
 const SVG_NS = "http://www.w3.org/2000/svg";
 const PANEL_GAP = 6;
 const VIEWPORT_MARGIN = 8;
-const PANEL_MAX_WIDTH = 320;
+// 400 px gives multi-paragraph glossary popovers (the Top Movers
+// explainer in particular) enough horizontal room to read in two
+// or three lines instead of seven or eight. Still clamped against
+// the viewport edge by placePopover so it can never bleed off
+// screen on narrow phones.
+const PANEL_MAX_WIDTH = 400;
 
 export function createInfoTooltip({
     text,
@@ -43,7 +48,41 @@ export function createInfoTooltip({
     renderBody(popover, body ?? text);
     root.append(trigger, popover);
 
+    // Two-stage open / close model:
+    //
+    //   open   — popover is currently visible (hover or click)
+    //   sticky — user committed to keeping it open via a click;
+    //            mouseleave no longer auto-closes
+    //
+    // The naive "click toggles open" pattern fights the hover-to-
+    // preview behaviour: a click on an already-hovered icon would
+    // close the popover the user was about to read, because the
+    // mouseenter handler had already opened it. Treating the
+    // sticky transition as a third state instead of a toggle
+    // makes the interaction predictable: hover previews, click
+    // pins, click again (or outside / ESC) dismisses.
     let open = false;
+    let sticky = false;
+
+    // Hover-intent timers. A 180 ms cold-open delay swallows mice
+    // that pass over the icon on their way to something else - the
+    // common case for a user dragging diagonally across the layout
+    // - so the popover does not flash open along the path. After
+    // a close the icon stays "warm" for 320 ms; re-entering inside
+    // that window opens immediately, the way Stripe / Linear do.
+    // Focus and explicit clicks bypass both timers because they
+    // express intent unambiguously.
+    const HOVER_OPEN_DELAY_MS = 180;
+    const HOVER_WARM_WINDOW_MS = 320;
+    let hoverOpenTimer = 0;
+    let warmUntil = 0;
+
+    function cancelPendingOpen() {
+        if (hoverOpenTimer) {
+            clearTimeout(hoverOpenTimer);
+            hoverOpenTimer = 0;
+        }
+    }
 
     function setOpen(next) {
         if (open === next) return;
@@ -57,18 +96,34 @@ export function createInfoTooltip({
             document.addEventListener("touchstart", handleOutside, true);
             document.addEventListener("keydown", handleKey, true);
             window.addEventListener("resize", placePopover);
-            window.addEventListener("scroll", placePopover, true);
+            // Outside-scroll dismisses the popover instead of
+            // re-positioning it. A popover that follows the icon
+            // through a page scroll loses the visual link to the
+            // metric it explains and clutters the chart area the
+            // user is actually trying to read. The popover itself
+            // is short enough never to need internal scrolling,
+            // so there is no inside-scroll case to protect.
+            window.addEventListener("scroll", handleOutsideScroll, true);
             // Two passes: the first reads a possibly-stale layout
             // (popover was hidden moments ago), the second rAF
             // reads the layout the browser has now committed.
             placePopover();
             requestAnimationFrame(placePopover);
         } else {
+            // Always drop the sticky bit on close, so the next
+            // hover-open starts in the preview state instead of
+            // arriving already pinned.
+            sticky = false;
+            // Stamp a "warm" window so a re-hover within the next
+            // few hundred ms feels instant. The next mouseenter
+            // checks this against Date.now() and skips the cold-
+            // open delay when it falls inside the window.
+            warmUntil = Date.now() + HOVER_WARM_WINDOW_MS;
             document.removeEventListener("mousedown", handleOutside, true);
             document.removeEventListener("touchstart", handleOutside, true);
             document.removeEventListener("keydown", handleKey, true);
             window.removeEventListener("resize", placePopover);
-            window.removeEventListener("scroll", placePopover, true);
+            window.removeEventListener("scroll", handleOutsideScroll, true);
             popover.style.top = "";
             popover.style.left = "";
         }
@@ -109,6 +164,10 @@ export function createInfoTooltip({
         if (!root.contains(ev.target)) setOpen(false);
     }
 
+    function handleOutsideScroll(ev) {
+        if (!root.contains(ev.target)) setOpen(false);
+    }
+
     function handleKey(ev) {
         if (ev.key === "Escape") {
             ev.preventDefault();
@@ -117,18 +176,66 @@ export function createInfoTooltip({
         }
     }
 
-    trigger.addEventListener("click", () => setOpen(!open));
-    // Hover / focus open without committing the click state, so a
-    // user who tabs onto the icon sees the same hint a mouse user
-    // would. The bound state is still controlled by click.
-    trigger.addEventListener("mouseenter", () => setOpen(true));
-    trigger.addEventListener("focus", () => setOpen(true));
+    trigger.addEventListener("click", () => {
+        // Click is unambiguous intent: cancel any pending cold
+        // open so the popover never re-opens half a second after
+        // the user already dismissed it with the same click.
+        cancelPendingOpen();
+        if (!open) {
+            // Closed -> open and immediately pin so mouseleave
+            // does not close what the click just asked for.
+            sticky = true;
+            setOpen(true);
+        } else if (!sticky) {
+            // Open via hover -> pin in place. Without this branch
+            // the click would toggle the popover closed, which is
+            // exactly the bug the sticky state exists to prevent.
+            sticky = true;
+        } else {
+            // Already pinned -> the click dismisses it.
+            setOpen(false);
+        }
+    });
+    // Hover-intent open. A passing mouse triggers a 180 ms timer
+    // that resolves only if the mouse is still on the icon when
+    // it fires. Within the warm window (set by the previous
+    // close) the timer is skipped entirely, so a user who just
+    // closed the popover and immediately re-hovers sees it open
+    // instantly. Already sticky => already open, nothing to do.
+    trigger.addEventListener("mouseenter", () => {
+        if (sticky || open) return;
+        if (Date.now() < warmUntil) {
+            setOpen(true);
+        } else {
+            cancelPendingOpen();
+            hoverOpenTimer = setTimeout(() => {
+                hoverOpenTimer = 0;
+                if (!sticky) setOpen(true);
+            }, HOVER_OPEN_DELAY_MS);
+        }
+    });
+    // Keyboard focus is intentional - skip the cold-open delay so
+    // a tabbing user sees the hint instantly.
+    trigger.addEventListener("focus", () => {
+        cancelPendingOpen();
+        if (!sticky) setOpen(true);
+    });
+    // Mouse leaves before the cold-open timer fires: cancel the
+    // pending open so a drag-by mouse never lights the popover.
+    trigger.addEventListener("mouseleave", () => {
+        cancelPendingOpen();
+    });
     root.addEventListener("mouseleave", () => {
+        cancelPendingOpen();
+        // While pinned the popover must survive the mouseleave;
+        // only the next click, outside-click or ESC dismisses it.
+        if (sticky) return;
         // Defer so a click immediately after a hover-open does not
         // race the close. If the user clicked, ``open`` was just set
-        // to false by the click handler and the deferred mouseleave
-        // is a no-op.
+        // by the click handler and the deferred mouseleave is a
+        // no-op when sticky is true.
         setTimeout(() => {
+            if (sticky) return;
             if (!root.matches(":hover") && document.activeElement !== trigger) {
                 setOpen(false);
             }

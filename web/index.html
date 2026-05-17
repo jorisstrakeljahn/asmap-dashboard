@@ -24,7 +24,6 @@
                 <a class="site-header__nav-link is-active" href="#maps" data-tab-link="maps" aria-current="page">Maps</a>
                 <a class="site-header__nav-link" href="#diff" data-tab-link="diff">Diff Explorer</a>
             </nav>
-            <span class="site-header__meta" data-last-build></span>
         </header>
 
         <main class="content">
@@ -39,10 +38,18 @@
                         </div>
                     </header>
                     <div class="section__toolbar">
-                        <div class="section__toolbar-control" data-build-selector></div>
+                        <div class="section__toolbar-control" data-build-selector>
+                            <div class="skeleton skeleton--control" aria-hidden="true"></div>
+                        </div>
                         <p class="section__toolbar-meta" data-build-staleness></p>
                     </div>
-                    <div class="section__body" data-overview></div>
+                    <div class="section__body" data-overview>
+                        <div class="skeleton-grid" aria-hidden="true">
+                            <div class="skeleton skeleton--card"></div>
+                            <div class="skeleton skeleton--card"></div>
+                            <div class="skeleton skeleton--card"></div>
+                        </div>
+                    </div>
                 </section>
 
                 <section class="section" aria-labelledby="history-title">
@@ -53,10 +60,18 @@
                         </div>
                         <div class="section__header-tools" data-history-range></div>
                     </header>
-                    <div class="section__body" data-drift-cumulative-chart></div>
-                    <div class="section__body" data-drift-step-chart></div>
-                    <div class="section__body" data-entries-chart></div>
-                    <div class="section__body" data-map-delta-chart></div>
+                    <div class="section__body" data-drift-cumulative-chart>
+                        <div class="skeleton skeleton--chart" aria-hidden="true"></div>
+                    </div>
+                    <div class="section__body" data-drift-step-chart>
+                        <div class="skeleton skeleton--chart" aria-hidden="true"></div>
+                    </div>
+                    <div class="section__body" data-entries-chart>
+                        <div class="skeleton skeleton--chart" aria-hidden="true"></div>
+                    </div>
+                    <div class="section__body" data-map-delta-chart>
+                        <div class="skeleton skeleton--chart" aria-hidden="true"></div>
+                    </div>
                 </section>
             </div>
 
@@ -68,7 +83,9 @@
                             <p class="section__lede">Compare any two ASmap builds</p>
                         </div>
                     </header>
-                    <div class="section__body" data-diff></div>
+                    <div class="section__body" data-diff>
+                        <div class="skeleton skeleton--diff" aria-hidden="true"></div>
+                    </div>
                 </section>
             </div>
         </main>

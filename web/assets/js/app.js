@@ -11,10 +11,18 @@ import * as asnNames from "./asn-names.js";
 import { initTabs } from "./tabs.js";
 import * as mapsTab from "./maps-tab.js";
 import * as diffTab from "./diff-tab.js";
-import { formatDate } from "./format.js";
 
 const METRICS_URL = "assets/data/metrics.json";
 const ASN_NAMES_URL = "assets/data/asn-names.json";
+
+// Snapshot of the static tab-panel markup before any tab module
+// has had a chance to swap in its rendered DOM. Captured once at
+// module load so we can put it back when the user clicks "Try
+// again" on the error banner: renderLoadError replaces every
+// child of <main> with the banner, and the tab modules expect
+// the original [data-overview], [data-diff], ... slots to exist
+// when they re-mount.
+let mainTemplate = null;
 
 // metrics.json stays byte-stable across runs whenever the upstream
 // .dat files haven't changed (see asmap_dashboard/metrics.py), so
@@ -31,13 +39,6 @@ async function loadMetrics() {
     }
     const data = await response.json();
     return { data, lastModified: response.headers.get("Last-Modified") };
-}
-
-function renderLastBuild(maps) {
-    const slot = document.querySelector("[data-last-build]");
-    if (!slot || !maps.length) return;
-    const latest = maps[maps.length - 1];
-    slot.textContent = `Last build ${formatDate(latest.released_at)}`;
 }
 
 // Render the footer's "Last update <UTC timestamp>" line. The line
@@ -67,6 +68,11 @@ function formatUtcStamp(date) {
 }
 
 async function init() {
+    if (mainTemplate === null) {
+        const main = document.querySelector("main.content");
+        mainTemplate = main ? main.innerHTML : "";
+    }
+
     let metrics;
     // Names load in parallel with metrics so the table can render
     // with labels in the same tick; a missing names file is non-
@@ -83,7 +89,6 @@ async function init() {
     }
 
     const { data: payload, lastModified } = metrics;
-    renderLastBuild(payload.maps);
     renderLastRefreshed(lastModified);
 
     mapsTab.mount(payload);
@@ -93,6 +98,20 @@ async function init() {
     // router still honours #diff for direct links and respects
     // hashchange events thereafter.
     initTabs({ defaultTab: "maps" });
+}
+
+// Re-run init() in place when the user clicks "Try again" on the
+// error banner. Restores the original tab-panel markup (the tab
+// modules need their [data-*] slots back) and re-runs the load.
+// We do not call location.reload() because a transient network
+// blip recovers in seconds and a reload throws away any scroll
+// position / tab selection the user had before the failure.
+async function retryInit() {
+    const main = document.querySelector("main.content");
+    if (main && mainTemplate !== null) {
+        main.innerHTML = mainTemplate;
+    }
+    await init();
 }
 
 // Render a visible error banner into <main> when the data fetch
@@ -118,8 +137,28 @@ function renderLoadError(error) {
         ? `${error.message}. The site usually recovers on the next daily refresh.`
         : "The metrics file is unreachable. The site usually recovers on the next daily refresh.";
 
+    // "Try again" runs init() in place rather than reloading the
+    // document. The button disables itself while the retry is
+    // pending so a frustrated double-click can't trigger two
+    // concurrent fetches that race each other.
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "load-error__retry";
+    retry.textContent = "Try again";
+    retry.addEventListener("click", async () => {
+        retry.disabled = true;
+        retry.textContent = "Retrying\u2026";
+        try {
+            await retryInit();
+        } catch (e) {
+            console.error(e);
+            retry.disabled = false;
+            retry.textContent = "Try again";
+        }
+    });
+
     main.replaceChildren(banner);
-    banner.append(title, body);
+    banner.append(title, body, retry);
 }
 
 init();

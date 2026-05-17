@@ -111,6 +111,20 @@
     font-weight: var(--font-weight-medium);
 }
 
+/* Disabled options stay in the list so the user can see "this
+   value exists, just not for this side", but read as muted and
+   are non-interactive. The is-highlighted / hover rules above
+   never fire on them because dropdown.js skips them in keyboard
+   nav and in the mouseenter handler. */
+.dropdown__option--disabled {
+    color: var(--color-text-subtle);
+    cursor: not-allowed;
+}
+
+.dropdown__option--disabled[aria-selected="true"] {
+    font-weight: var(--font-weight-regular);
+}
+
 /* Small variant, used for the Top Movers page-size picker so it
    sits comfortably inside the table header. min-width keeps two-
    digit values ("10") from sitting flush against the chevron. */

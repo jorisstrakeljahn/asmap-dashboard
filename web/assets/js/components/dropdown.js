@@ -9,10 +9,19 @@
 //
 // createDropdown({ options, value, onChange, ariaLabel |
 // ariaLabelledBy, size, placeholder }) returns an element exposing
-// getValue() and setValue(v); setValue does NOT fire onChange
-// (mirrors the native <select>.value = x semantic). ``placeholder``
-// is the label shown when ``value`` is null / unknown - useful for
-// "tap to pick"-style triggers that have no preselected option.
+// getValue(), setValue(v) and setDisabledValues(values).
+// setValue does NOT fire onChange (mirrors the native
+// <select>.value = x semantic). ``placeholder`` is the label
+// shown when ``value`` is null / unknown - useful for "tap to
+// pick"-style triggers that have no preselected option.
+//
+// Options may carry ``disabled: true`` so the panel renders them
+// as a muted, non-interactive line - clicks, Enter and Space all
+// no-op on disabled options, and ArrowUp / ArrowDown skip over
+// them. setDisabledValues(values) accepts an iterable so callers
+// can re-derive the disabled set whenever a sibling selector
+// changes (the diff-explorer uses this so Map A can never pick
+// a map at-or-after Map B, and vice versa).
 
 import { uniqueId } from "../utils/dom.js";
 
@@ -53,6 +62,10 @@ export function createDropdown({
     );
     panel.append(...optionEls);
 
+    const isOptionDisabled = (idx) => optionEls[idx]?.classList.contains(
+        "dropdown__option--disabled",
+    );
+
     root.append(trigger, panel);
 
     renderValueLabel();
@@ -83,6 +96,25 @@ export function createDropdown({
         el.scrollIntoView({ block: "nearest" });
     }
 
+    // Walks the option list in ``step`` direction (+1 / -1) until
+    // it finds an enabled option, starting one past ``fromIdx``.
+    // Returns -1 if every candidate in that direction is disabled,
+    // so the caller can leave the current highlight untouched.
+    function nextEnabledIdx(fromIdx, step) {
+        for (let i = fromIdx + step; i >= 0 && i < optionEls.length; i += step) {
+            if (!isOptionDisabled(i)) return i;
+        }
+        return -1;
+    }
+
+    function firstEnabledIdx() {
+        return nextEnabledIdx(-1, 1);
+    }
+
+    function lastEnabledIdx() {
+        return nextEnabledIdx(optionEls.length, -1);
+    }
+
     function setOpen(next) {
         if (state.open === next) return;
         state.open = next;
@@ -91,18 +123,35 @@ export function createDropdown({
         root.classList.toggle("is-open", next);
 
         if (next) {
-            setHighlight(Math.max(0, indexOfValue(options, state.value)));
+            // Prefer the currently selected option, but fall back
+            // to the first enabled option so the highlight never
+            // lands on a row the user cannot commit.
+            const selectedIdx = indexOfValue(options, state.value);
+            const highlightIdx =
+                selectedIdx >= 0 && !isOptionDisabled(selectedIdx)
+                    ? selectedIdx
+                    : firstEnabledIdx();
+            if (highlightIdx >= 0) setHighlight(highlightIdx);
             document.addEventListener("mousedown", handleOutsideMouseDown, true);
             document.addEventListener("touchstart", handleOutsideMouseDown, true);
             window.addEventListener("resize", placePanel);
-            window.addEventListener("scroll", placePanel, true);
+            // Outside-scroll dismisses the panel rather than
+            // re-positioning it. A panel that follows the trigger
+            // through a page scroll looks like it is glued to the
+            // user's cursor while the content underneath drifts
+            // past, which is the opposite of the native macOS /
+            // Linear / Vercel behaviour reviewers are used to.
+            // Inside-scroll of the panel itself (the listbox is
+            // overflow-auto) is ignored because its scroll events
+            // bubble up with target === panel.
+            window.addEventListener("scroll", handleOutsideScroll, true);
             placePanel();
         } else {
             trigger.removeAttribute("aria-activedescendant");
             document.removeEventListener("mousedown", handleOutsideMouseDown, true);
             document.removeEventListener("touchstart", handleOutsideMouseDown, true);
             window.removeEventListener("resize", placePanel);
-            window.removeEventListener("scroll", placePanel, true);
+            window.removeEventListener("scroll", handleOutsideScroll, true);
             panel.style.top = "";
             panel.style.bottom = "";
         }
@@ -110,7 +159,7 @@ export function createDropdown({
 
     function commit(idx) {
         const opt = options[idx];
-        if (!opt) return;
+        if (!opt || isOptionDisabled(idx)) return;
         const changed = opt.value !== state.value;
         state.value = opt.value;
         for (let i = 0; i < optionEls.length; i++) {
@@ -147,6 +196,15 @@ export function createDropdown({
         if (!root.contains(ev.target)) setOpen(false);
     }
 
+    // Scroll events from the panel's own overflow:auto bubble up
+    // with target === panel (or one of its option children), so
+    // the same root.contains() guard that protects outside-clicks
+    // protects inside-scrolls here too. Capture-phase listener so
+    // we still see scrolls from elements that stop propagation.
+    function handleOutsideScroll(ev) {
+        if (!root.contains(ev.target)) setOpen(false);
+    }
+
     // ── Wire events ──────────────────────────────────────────
 
     trigger.addEventListener("click", () => setOpen(!state.open));
@@ -155,33 +213,56 @@ export function createDropdown({
     for (const el of optionEls) {
         const idx = Number(el.dataset.idx);
         // Click (not mousedown) so the outside-mousedown listener
-        // does not run first and pre-close the panel.
+        // does not run first and pre-close the panel. ``commit``
+        // already short-circuits on disabled options, so a click
+        // on a muted row reads as "nothing happened" rather than
+        // as a failed selection.
         el.addEventListener("click", () => commit(idx));
-        el.addEventListener("mouseenter", () => setHighlight(idx));
+        el.addEventListener("mouseenter", () => {
+            // Skip the highlight transition on disabled rows so
+            // they never look like the next pick.
+            if (!isOptionDisabled(idx)) setHighlight(idx);
+        });
     }
 
     function handleTriggerKeydown(ev) {
         switch (ev.key) {
-            case "ArrowDown":
+            case "ArrowDown": {
                 ev.preventDefault();
-                if (!state.open) setOpen(true);
-                else setHighlight(Math.min(state.highlightedIdx + 1, options.length - 1));
+                if (!state.open) {
+                    setOpen(true);
+                } else {
+                    // nextEnabledIdx returns -1 when every option
+                    // below is disabled; in that case keep the
+                    // current highlight so the cursor never lands
+                    // on an unselectable row.
+                    const nextIdx = nextEnabledIdx(state.highlightedIdx, 1);
+                    if (nextIdx >= 0) setHighlight(nextIdx);
+                }
                 break;
-            case "ArrowUp":
+            }
+            case "ArrowUp": {
                 ev.preventDefault();
-                if (!state.open) setOpen(true);
-                else setHighlight(Math.max(state.highlightedIdx - 1, 0));
+                if (!state.open) {
+                    setOpen(true);
+                } else {
+                    const prevIdx = nextEnabledIdx(state.highlightedIdx, -1);
+                    if (prevIdx >= 0) setHighlight(prevIdx);
+                }
                 break;
+            }
             case "Home":
                 if (state.open) {
                     ev.preventDefault();
-                    setHighlight(0);
+                    const firstIdx = firstEnabledIdx();
+                    if (firstIdx >= 0) setHighlight(firstIdx);
                 }
                 break;
             case "End":
                 if (state.open) {
                     ev.preventDefault();
-                    setHighlight(options.length - 1);
+                    const lastIdx = lastEnabledIdx();
+                    if (lastIdx >= 0) setHighlight(lastIdx);
                 }
                 break;
             case "Enter":
@@ -216,6 +297,24 @@ export function createDropdown({
             optionEls[i].setAttribute("aria-selected", String(i === idx));
         }
         renderValueLabel();
+    };
+    // Atomic disabled-set update so callers can recompute the
+    // whole set in one pass per change (e.g. the diff-explorer
+    // recomputes "every map at or after the other side's value"
+    // when either selector fires). Accepts any iterable so a
+    // Set, Array or generator all work.
+    root.setDisabledValues = (values) => {
+        const disabled = new Set(values);
+        for (let i = 0; i < optionEls.length; i++) {
+            const el = optionEls[i];
+            const isDisabled = disabled.has(options[i].value);
+            el.classList.toggle("dropdown__option--disabled", isDisabled);
+            if (isDisabled) {
+                el.setAttribute("aria-disabled", "true");
+            } else {
+                el.removeAttribute("aria-disabled");
+            }
+        }
     };
 
     return root;
