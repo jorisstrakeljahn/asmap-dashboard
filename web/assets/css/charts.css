@@ -28,8 +28,16 @@
 .chart-tooltip {
     position: absolute;
     z-index: var(--z-tooltip);
+    /* width: max-content lets the tooltip size to the longest row
+       instead of clamping to a hardcoded width and forcing
+       awkward "440,509 entries (1.81\nMB)" line breaks inside a
+       single numeric value. min-width / max-width keep the tooltip
+       readable: never narrower than 200px so the title and label
+       columns don't collapse, never wider than 92vw on small
+       screens. */
+    width: max-content;
     min-width: 200px;
-    max-width: min(320px, 92vw);
+    max-width: min(420px, 92vw);
     padding: var(--space-3);
     border-radius: var(--radius);
     border: 1px solid var(--color-border);
@@ -61,6 +69,16 @@
     justify-content: space-between;
     gap: var(--space-4);
     margin-top: var(--space-2);
+}
+
+/* The value column carries numeric facts ("440,509 entries
+   (1.81 MB)", "−12,345 entries", "Aug 14, 2025"). Each of these
+   reads as one atomic unit, so we never want the renderer to
+   split them mid-value. The label column may still wrap if it
+   ever has to — that side is verbal and tolerates a soft break
+   far better than a number does. */
+.chart-tooltip__kv strong {
+    white-space: nowrap;
 }
 
 .chart-tooltip__muted {
@@ -140,7 +158,9 @@
 
 .chart__bar {
     fill: var(--color-accent);
-    transition: fill var(--motion-fast) var(--motion-ease);
+    transition:
+        fill var(--motion-fast) var(--motion-ease),
+        opacity var(--motion-fast) var(--motion-ease);
 }
 
 /* Hovered bar fades to the soft accent so the eye locks onto the
@@ -151,7 +171,51 @@
     fill: var(--color-accent-soft);
 }
 
-/* Map-size dual-line series. Filled (embedded) keeps the standard
+/* Stacked bar segments share the same .chart__bar reset but pick
+   up the category colour from a modifier so the step drift card
+   can stack Reassigned / Newly Mapped / Unmapped in the same
+   palette the cumulative line chart uses. */
+.chart__bar--reassigned {
+    fill: var(--color-accent);
+}
+
+.chart__bar--newly-mapped {
+    fill: var(--color-success);
+}
+
+.chart__bar--unmapped {
+    fill: var(--color-warning);
+}
+
+/* Hover affordance for a stacked column: brighten the active
+   stack and dim the rest. Opacity (instead of swapping every
+   segment to a single soft tone) preserves the category colours
+   inside the active stack so the tooltip's category readings
+   still match what the eye sees. */
+.chart__stack {
+    transition: opacity var(--motion-fast) var(--motion-ease);
+}
+
+.chart-shell:has(.chart__stack--active) .chart__stack {
+    opacity: 0.4;
+}
+
+.chart-shell:has(.chart__stack--active) .chart__stack--active {
+    opacity: 1;
+}
+
+/* Invisible per-slot hit target. Stretches the full plot height
+   so the user can hover anywhere in a column to surface its
+   tooltip — not just inside the drawn segments. ``pointer-events:
+   all`` makes the otherwise-invisible rect actually catch the
+   cursor. */
+.chart__bar-capture {
+    fill: transparent;
+    pointer-events: all;
+}
+
+/* Variant series shared by every dual-line chart that compares
+   filled and unfilled. Filled (embedded) keeps the standard
    accent so the "what Bitcoin Core ships" line reads as the
    primary metric. Unfilled (source) uses the soft accent token
    already in use for IPv6 in the overview split bar, so the

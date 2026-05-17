@@ -15,13 +15,14 @@
 // the headline drift figure the overview card shows for the same
 // pair.
 
+import { previousDiffable } from "../utils/diffs.js";
 import { unfilledProfile } from "../utils/variants.js";
 
 // Build one Point per chronological build slot.
 //
 //   - "cumulative" diffs each build against the oldest published
 //     build with an unfilled variant. Lines grow over time and
-//     answer "how outdated is an embedded asmap?".
+//     answer "how far has this build drifted from the baseline?".
 //   - "step" diffs each build against the last preceding build
 //     that has an unfilled variant. Highlights the character of
 //     each individual asmap-data release.
@@ -61,18 +62,11 @@ function stepPoints(sortedMaps, diffs) {
     // tooltip footer naming the actual reference build.
     return sortedMaps.map((map, index) => {
         if (!unfilledProfile(map)) return gapPoint(map, index);
-        const previous = lastDiffableBefore(sortedMaps, index);
+        const previous = previousDiffable(sortedMaps, map.name);
         if (!previous) return zeroPoint(map, index, null);
         const diff = directionalDiff(diffs, previous.name, map.name);
         return diff ? toPoint(map, index, diff, previous) : gapPoint(map, index);
     });
-}
-
-function lastDiffableBefore(sortedMaps, index) {
-    for (let i = index - 1; i >= 0; i--) {
-        if (unfilledProfile(sortedMaps[i])) return sortedMaps[i];
-    }
-    return null;
 }
 
 // Strict directional lookup. The pipeline emits each pair exactly

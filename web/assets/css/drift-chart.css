@@ -1,7 +1,8 @@
-/* Drift over time: stacked card with a mode switch in the header
-   and an inline legend above the plot. The plot itself reuses the
-   shared chart shell from charts.css. Everything below is the
-   chrome on top of it. */
+/* Drift card: cumulative and step each render one of these. The
+   header carries the title plus an info affordance, the legend
+   sits above the plot, and the plot itself reuses the shared
+   chart shell from charts.css. Everything below is the chrome on
+   top of it. */
 
 .drift-chart {
     display: flex;
@@ -15,16 +16,6 @@
     justify-content: space-between;
     gap: var(--space-3);
     flex-wrap: wrap;
-}
-
-/* Mode switch and the help affordance share the upper-right of
-   the card. Keeping them in a single flex group avoids the
-   "label / mode / info" three-way split that space-between would
-   produce on the bare header. */
-.drift-chart__controls {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-3);
 }
 
 .drift-chart__info {

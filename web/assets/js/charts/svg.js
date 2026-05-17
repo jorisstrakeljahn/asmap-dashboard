@@ -37,33 +37,99 @@ export function niceTicks(min, max, count = 5) {
     return ticks;
 }
 
-// Catmull-Rom -> cubic Bezier conversion. Given an ordered list of
-// [x, y] points, returns an SVG path "d" attribute that draws a
-// smooth curve through every point. The tension factor 6 is the
-// canonical value that turns Catmull-Rom into a uniform B-spline-ish
-// curve; lowering it would make corners sharper.
+// Monotone cubic interpolation (Fritsch-Carlson). Treats the
+// points as a function y = f(x) and emits an SVG path "d"
+// attribute that glides through every point without overshooting
+// the data — peaks stay peaks and troughs stay troughs, so the
+// curve never claims a value above (or below) what the input
+// actually carried.
 //
-// At the endpoints we mirror the neighbour so the curve doesn't
-// overshoot.
+// Why not plain Catmull-Rom? The previous implementation assumed
+// uniform parameter spacing, which broke as soon as the x axis
+// went from index-based to calendar-based: a wide gap (e.g. an
+// 8-month bridged segment) followed by a narrow one (a 4-week
+// step) yanked the tangent at the boundary point off-direction
+// and the curve developed a visible kink. Fritsch-Carlson sizes
+// every tangent from the real secant slopes between neighbours,
+// so non-uniform spacing produces a clean curve and a monotone
+// run of y values is rendered monotonically (no overshoot dips).
+//
+// Algorithm:
+//   1. delta[i] = secant slope between points i and i+1.
+//   2. m[i] = average of the two adjacent secants (Bessel
+//      tangent), with endpoints copying their only neighbour.
+//   3. At every local extremum (the two adjacent secants have
+//      opposite signs, or either one is zero), the tangent
+//      collapses to zero. Without this rule the curve would
+//      sail past a peak before turning back down, which is
+//      exactly the overshoot Fritsch & Carlson set out to
+//      prevent. Step 4 alone cannot fix it once the average
+//      points the wrong way.
+//   4. Fritsch-Carlson constraint: alpha = m[i]/delta[i],
+//      beta = m[i+1]/delta[i]. If alpha^2 + beta^2 > 9, scale
+//      both tangents down by 3 / sqrt(alpha^2 + beta^2). This
+//      bounds the slope inside a segment when neighbours are
+//      monotone but very steep.
+//   5. Emit one cubic Bezier per segment with control points
+//      offset along the segment's x axis by dx/3, matching the
+//      Hermite-to-Bezier conversion for the tangent at each
+//      endpoint.
 export function smoothPath(points) {
     if (points.length < 2) return "";
     if (points.length === 2) {
         return `M${points[0][0]},${points[0][1]} L${points[1][0]},${points[1][1]}`;
     }
 
+    const n = points.length;
+    const deltas = new Array(n - 1);
+    for (let i = 0; i < n - 1; i++) {
+        const dx = points[i + 1][0] - points[i][0];
+        const dy = points[i + 1][1] - points[i][1];
+        deltas[i] = dx === 0 ? 0 : dy / dx;
+    }
+
+    const tangents = new Array(n);
+    tangents[0] = deltas[0];
+    tangents[n - 1] = deltas[n - 2];
+    for (let i = 1; i < n - 1; i++) {
+        // Zero the tangent at local extrema. A non-positive
+        // product means the two surrounding secants point in
+        // opposite directions (peak / trough) or that one of
+        // them is flat, so flat tangent is the only choice that
+        // keeps the cubic inside [min, max] of the neighbours.
+        if (deltas[i - 1] * deltas[i] <= 0) {
+            tangents[i] = 0;
+        } else {
+            tangents[i] = (deltas[i - 1] + deltas[i]) / 2;
+        }
+    }
+
+    for (let i = 0; i < n - 1; i++) {
+        if (deltas[i] === 0) {
+            tangents[i] = 0;
+            tangents[i + 1] = 0;
+            continue;
+        }
+        const alpha = tangents[i] / deltas[i];
+        const beta = tangents[i + 1] / deltas[i];
+        const r = alpha * alpha + beta * beta;
+        if (r > 9) {
+            const scale = 3 / Math.sqrt(r);
+            tangents[i] = scale * alpha * deltas[i];
+            tangents[i + 1] = scale * beta * deltas[i];
+        }
+    }
+
     const out = [`M${points[0][0]},${points[0][1]}`];
-    for (let i = 0; i < points.length - 1; i++) {
-        const p0 = points[i - 1] || points[i];
-        const p1 = points[i];
-        const p2 = points[i + 1];
-        const p3 = points[i + 2] || p2;
-
-        const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
-        const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
-        const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
-        const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
-
-        out.push(`C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2[0]},${p2[1]}`);
+    for (let i = 0; i < n - 1; i++) {
+        const dx = points[i + 1][0] - points[i][0];
+        const cp1x = points[i][0] + dx / 3;
+        const cp1y = points[i][1] + (tangents[i] * dx) / 3;
+        const cp2x = points[i + 1][0] - dx / 3;
+        const cp2y = points[i + 1][1] - (tangents[i + 1] * dx) / 3;
+        out.push(
+            `C${cp1x},${cp1y} ${cp2x},${cp2y} ${points[i + 1][0]},${points[i + 1][1]}`,
+        );
     }
     return out.join(" ");
 }

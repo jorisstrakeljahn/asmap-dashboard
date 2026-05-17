@@ -17,20 +17,35 @@
 // the number is not from source data.
 
 import {
+    formatDate,
     formatNumber,
     formatPercent,
     formatSignedNumber,
 } from "../format.js";
 import { pairDriftRatio } from "../utils/diffs.js";
 import { mutedNote } from "../utils/dom.js";
-import { pickPreferUnfilled } from "../utils/variants.js";
+import {
+    pickPreferUnfilled,
+    unfilledProfile,
+} from "../utils/variants.js";
 import { createInfoTooltip } from "./info-tooltip.js";
 
-// Pure render: build the overview cards for ``current`` and the
-// chronologically preceding build ``previous`` (may be null for the
-// oldest map). ``diffs`` is the pair-diff array from metrics.json.
-// Only the drift card reads it. The other cards never need it.
-export function mount(parent, current, previous, diffs) {
+/**
+ * Render the three overview cards for the selected build.
+ *
+ * @param {HTMLElement} parent - card-row container.
+ * @param {object} ctx
+ * @param {object} ctx.current - the selected map record.
+ * @param {object|null} ctx.previous - the most recent preceding
+ *   build that has an unfilled variant (typically the immediate
+ *   chronological neighbour, but bridges across any filled-only
+ *   build in between). All three cards anchor their "vs previous"
+ *   readings on this same build so the row tells one consistent
+ *   "what changed against <date>?" story; the drift card spells
+ *   the date out on its delta line as the row's shared anchor.
+ * @param {Array} ctx.diffs - precomputed pair-diff records.
+ */
+export function mount(parent, { current, previous, diffs }) {
     if (!current) {
         parent.replaceChildren(mutedNote("No published maps found in metrics.json."));
         return;
@@ -55,45 +70,67 @@ export function mount(parent, current, previous, diffs) {
 
 // Entries are the (prefix, ASN) tuples the binary trie resolves
 // to at lookup time. They are the substantive size of a map.
-// File size in bytes is an encoding artefact and lives in the
-// History charts. Reviewers asking "how much did this map gain
-// or lose?" want this number, not kilobytes of compressed trie
-// data.
+// File size in bytes is an encoding artefact and rides along in
+// the entries-chart tooltip. Reviewers asking "how much did this
+// map gain or lose?" want this number, not kilobytes of
+// compressed trie data.
 function entriesCountCard(currentPick, previousPick) {
     const card = createCard("Entries", {
         info: [
             "Each entry maps an IP prefix to the autonomous system that announces it.",
             "Read from the unfilled (source data) variant when published, falling back to the filled variant otherwise.",
-            "On-disk file size is an encoding artefact and lives in the History charts.",
+            "The vs-previous delta is only shown when both sides come from the same encoding. Filled collapses adjacent same-AS prefixes (~12 %), so a mixed comparison would report that compression as if the map had grown or shrunk. In practice this only blanks the delta on the rare filled-only build whose comparable predecessor is unfilled.",
+            "On-disk file size rides along inside the entries-chart tooltip.",
         ],
         source: currentPick.source,
     });
     card.append(metricNumber(formatNumber(currentPick.profile.entries_count)));
     card.append(metricUnit("prefix \u2192 ASN mappings"));
-    if (previousPick) {
-        const delta =
-            currentPick.profile.entries_count -
-            previousPick.profile.entries_count;
-        card.append(deltaLine(`${formatSignedNumber(delta)} vs previous`));
+    if (!previousPick) return card;
+    // Skip the delta when the two sides come from different
+    // encodings. With ``previous`` now anchored on the last
+    // diffable predecessor (which is always unfilled when
+    // present), this branch only fires when ``current`` itself is
+    // filled-only — comparing filled-encoded entries (compressed)
+    // with unfilled-encoded ones (raw) would report the ~12 %
+    // fill compression as a phantom shrinkage.
+    if (currentPick.source !== previousPick.source) {
+        card.append(deltaLine("no comparable previous (encoding mismatch)"));
+        return card;
     }
+    const delta =
+        currentPick.profile.entries_count -
+        previousPick.profile.entries_count;
+    card.append(deltaLine(`${formatSignedNumber(delta)} vs previous`));
     return card;
 }
 
 // Drift-vs-previous reads from the precomputed diff list rather
 // than from the per-build profiles, so it inherits the variant
 // choice the pipeline made when computing diffs (currently
-// unfilled-vs-unfilled, see metrics.py). When the previous or
-// current build has no unfilled variant the precomputed diff is
-// missing and the card shows a quiet placeholder instead of an
-// unfounded number.
+// unfilled-vs-unfilled, see metrics.py). ``previous`` is the
+// most recent diffable predecessor (see previousDiffable() in
+// utils/diffs.js), shared with the other two cards so all three
+// compare against the same build. Its date sits on the delta
+// line as the row's anchor — the other cards say "vs previous"
+// without the date so the row does not repeat itself three times.
+// When the current build itself is filled-only no source-data
+// drift can be computed and the card says so quietly rather than
+// printing a misleading dash.
 function driftCard(current, previous, diffs) {
     const card = createCard("Drift vs previous", {
         info: [
-            "Share of mapping entries that differ between this build and the chronologically previous one.",
+            "Share of mapping entries that differ between this build and the most recent diffable predecessor.",
             "Computed from unfilled-vs-unfilled diffs to isolate real source-data drift from fill-heuristic shifts.",
             "A 5 % drift means roughly 1 in 20 lookups would now resolve to a different autonomous system.",
         ],
     });
+    if (!unfilledProfile(current)) {
+        card.append(metricNumber("\u2014"));
+        card.append(metricUnit("filled-only build"));
+        card.append(deltaLine("Source-data drift needs an unfilled variant."));
+        return card;
+    }
     if (!previous) {
         card.append(metricNumber("\u2014"));
         card.append(metricUnit("oldest published build"));
@@ -107,6 +144,7 @@ function driftCard(current, previous, diffs) {
     }
     card.append(metricNumber(formatPercent(result.ratio, 1)));
     card.append(metricUnit(`${formatNumber(result.total_changes)} entries changed`));
+    card.append(deltaLine(`vs ${formatDate(previous.released_at)}`));
     return card;
 }
 
@@ -116,6 +154,7 @@ function uniqueAsesCard(currentPick, previousPick) {
         info: [
             "Number of distinct autonomous systems referenced anywhere in the map.",
             "Filled and unfilled both reference the same ASes (filled adds prefixes, never new ASes), so the number is variant-independent.",
+            "The vs-previous delta is taken against the same predecessor as the drift card, so the three cards stay aligned on which build they are comparing against. The drift card spells the predecessor's date out on its delta line.",
             "The bar below shows the share of mapping entries that target IPv4 vs IPv6 prefixes.",
         ],
         source: currentPick.source,
