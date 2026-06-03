@@ -10,7 +10,9 @@
 
 /* Map A / Map B row: no surrounding card chrome so the Diff
    Explorer is not a box inside a box. Selects share the global
-   trigger style. */
+   trigger style. The IPv4 / IPv6 master toggle lives in the
+   section header next to the title (like History tab's drift
+   unit picker), so this row only carries the build pickers. */
 .diff-selectors {
     min-height: auto;
     border: none;
@@ -52,33 +54,58 @@
     gap: var(--space-5);
 }
 
+/* Match banner. One family at a time — the master toggle in
+   the toolbar above picks IPv4 or IPv6 and the block re-renders.
+   The block carries a big percent, a small caption naming the
+   family, and one detail line in the family native unit. */
 .match-banner {
     display: flex;
     flex-direction: column;
-    gap: var(--space-1);
-}
-
-.match-banner__row {
-    display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
     gap: var(--space-2);
 }
 
+.match-banner__family {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    column-gap: var(--space-3);
+    row-gap: var(--space-1);
+    align-items: baseline;
+}
+
+/* Headline number spans both rows on the left so the caption
+   and detail can stack on the right in a single column,
+   visually anchored against the percent. */
 .match-banner__headline {
+    grid-column: 1;
+    grid-row: 1 / span 2;
     font-size: var(--font-size-2xl);
     font-weight: var(--font-weight-semibold);
     color: var(--color-text-strong);
+    line-height: 1;
+}
+
+.match-banner__caption {
+    grid-column: 2;
+    grid-row: 1;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-uppercase);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-uppercase-tight);
+    font-weight: var(--font-weight-medium);
 }
 
 .match-banner__detail {
-    font-size: var(--font-size-base);
+    grid-column: 2;
+    grid-row: 2;
+    font-size: var(--font-size-sm);
     color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
 }
 
-/* Variant + date sub-caption. Sits one font size below the
-   headline row, in subtle text colour, so the reader's eye
-   picks up "95.0% match" first and then the metadata. */
+/* Variant sub caption. Sits below the family pair in subtle
+   text colour, so the reader eye picks up the match percentages
+   first and then the metadata. */
 .match-banner__variant {
     font-size: var(--font-size-sm);
     color: var(--color-text-subtle);
@@ -91,17 +118,6 @@
     gap: var(--space-4);
     padding-top: var(--space-3);
     border-top: 1px solid var(--color-divider);
-}
-
-/* Address-family sub-caption that sits below the bucket label.
-   Subtle font so the headline value and the coloured share still
-   carry the eye; the v4 / v6 split is meant as supporting context,
-   not as a primary number. */
-.classification-cell__family {
-    margin: 0;
-    font-size: var(--font-size-sm);
-    color: var(--color-text-subtle);
-    font-variant-numeric: tabular-nums;
 }
 
 .classification-cell__value {
