@@ -30,6 +30,32 @@ def test_extract_asns_collects_top_movers_and_counterparts():
     assert asn_names.extract_asns(metrics) == {7018, 2386, 174, 16509}
 
 
+def test_extract_asns_collects_network_top_ases():
+    """Operators in the network section are gathered alongside the diffs."""
+    metrics = {
+        "diffs": [
+            {"top_movers": [{"asn": 7018, "primary_counterpart": 0}]},
+        ],
+        "network": {
+            "sources": {
+                "kit": {
+                    "snapshots": [
+                        {"top_ases": [{"asn": 24940}, {"asn": 14061}]},
+                        {"top_ases": [{"asn": 14061}, {"asn": 0}]},
+                    ],
+                },
+                "bitnodes": {
+                    "snapshots": [
+                        {"top_ases": [{"asn": 16509}]},
+                    ],
+                },
+            },
+        },
+    }
+
+    assert asn_names.extract_asns(metrics) == {7018, 24940, 14061, 16509}
+
+
 def test_extract_asns_drops_zero_and_missing():
     """ASN 0 is the unmapped sentinel; missing fields must not crash."""
     metrics = {
