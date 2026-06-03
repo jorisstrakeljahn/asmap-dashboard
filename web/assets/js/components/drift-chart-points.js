@@ -9,16 +9,44 @@
 // the sorted map list so the chart's nearestIndex() hover handler
 // indexes both consistently.
 //
-// All ratios share the same denominator: max(entries_a, entries_b)
-// of the underlying diff. That matches the diff explorer's
-// match-rate banner and keeps "Total drift" in step mode equal to
-// the headline drift figure the overview card shows for the same
-// pair.
+// Every present point is rendered in one drift unit at a time
+// (IPv4 coverage, IPv6 coverage, or entries — see DRIFT_* in
+// utils/diffs.js). The unit selects which pipeline fields the
+// ratios are read from; the rest of the point shape stays
+// constant, so the chart renderer does not branch on unit.
 
-import { previousDiffable } from "../utils/diffs.js";
+import {
+    DRIFT_IPV4_COVERAGE,
+    DRIFT_IPV6_COVERAGE,
+    previousDiffable,
+} from "../utils/diffs.js";
 import { unfilledProfile } from "../utils/map-variants.js";
 
-// Build one Point per chronological build slot.
+// Per-unit accessor table: tells the point builder which pipeline
+// field is the bucket count and which two are the per-map totals
+// used as the shared denominator. Centralised so adding a new
+// unit (e.g. bitnodes-weighted coverage later) only needs one
+// entry here, not edits in every consumer.
+const UNIT_FIELDS = {
+    [DRIFT_IPV4_COVERAGE]: {
+        denominatorA: "ipv4_address_space_a",
+        denominatorB: "ipv4_address_space_b",
+        reassigned: "reassigned_ipv4_addresses",
+        newlyMapped: "newly_mapped_ipv4_addresses",
+        unmapped: "unmapped_ipv4_addresses",
+        total: "ipv4_addresses_changed",
+    },
+    [DRIFT_IPV6_COVERAGE]: {
+        denominatorA: "ipv6_address_space_a",
+        denominatorB: "ipv6_address_space_b",
+        reassigned: "reassigned_ipv6_addresses",
+        newlyMapped: "newly_mapped_ipv6_addresses",
+        unmapped: "unmapped_ipv6_addresses",
+        total: "ipv6_addresses_changed",
+    },
+};
+
+// Build one Point per chronological build slot for a single unit.
 //
 //   - "cumulative" diffs each build against the oldest published
 //     build with an unfilled variant. Lines grow over time and
@@ -26,15 +54,17 @@ import { unfilledProfile } from "../utils/map-variants.js";
 //   - "step" diffs each build against the last preceding build
 //     that has an unfilled variant. Highlights the character of
 //     each individual asmap-data release.
-//   - any other mode produces an all-gap result (defensive default
+//   - unknown modes produce an all-gap result (defensive default
 //     so a malformed caller still renders cleanly).
-export function computePoints(sortedMaps, diffs, mode) {
-    if (mode === "cumulative") return cumulativePoints(sortedMaps, diffs);
-    if (mode === "step") return stepPoints(sortedMaps, diffs);
+export function computePoints(sortedMaps, diffs, mode, unit) {
+    const fields = UNIT_FIELDS[unit];
+    if (!fields) return sortedMaps.map((map, index) => gapPoint(map, index));
+    if (mode === "cumulative") return cumulativePoints(sortedMaps, diffs, fields);
+    if (mode === "step") return stepPoints(sortedMaps, diffs, fields);
     return sortedMaps.map((map, index) => gapPoint(map, index));
 }
 
-function cumulativePoints(sortedMaps, diffs) {
+function cumulativePoints(sortedMaps, diffs, fields) {
     // Anchor on the oldest build that actually published an unfilled
     // variant. A filled-only build cannot contribute a diff and would
     // shift the anchor forward in time for everything after it, which
@@ -48,11 +78,13 @@ function cumulativePoints(sortedMaps, diffs) {
             return zeroPoint(map, index, baseline);
         }
         const diff = directionalDiff(diffs, baseline.name, map.name);
-        return diff ? toPoint(map, index, diff, baseline) : gapPoint(map, index);
+        return diff
+            ? toPoint(map, index, diff, baseline, fields)
+            : gapPoint(map, index);
     });
 }
 
-function stepPoints(sortedMaps, diffs) {
+function stepPoints(sortedMaps, diffs, fields) {
     // "Previous" means "previous build that can actually be diffed
     // against", which excludes filled-only builds. If we picked the
     // raw chronological neighbour, the build immediately after a
@@ -65,7 +97,9 @@ function stepPoints(sortedMaps, diffs) {
         const previous = previousDiffable(sortedMaps, map.name);
         if (!previous) return zeroPoint(map, index, null);
         const diff = directionalDiff(diffs, previous.name, map.name);
-        return diff ? toPoint(map, index, diff, previous) : gapPoint(map, index);
+        return diff
+            ? toPoint(map, index, diff, previous, fields)
+            : gapPoint(map, index);
     });
 }
 
@@ -82,23 +116,27 @@ function directionalDiff(diffs, fromName, toName) {
     );
 }
 
-function toPoint(map, index, diff, vs) {
-    const denom = Math.max(diff.entries_a, diff.entries_b);
-    const ratio = (n) => (denom ? n / denom : 0);
+function toPoint(map, index, diff, vs, fields) {
+    const denom = Math.max(diff[fields.denominatorA], diff[fields.denominatorB]);
+    const ratio = (value) => (denom ? value / denom : 0);
+    const reassigned = diff[fields.reassigned] || 0;
+    const newlyMapped = diff[fields.newlyMapped] || 0;
+    const unmapped = diff[fields.unmapped] || 0;
+    const total = diff[fields.total] || 0;
     return {
         present: true,
         map,
         index,
         vs,
         denominator: denom,
-        reassigned: diff.reassigned,
-        newly_mapped: diff.newly_mapped,
-        unmapped: diff.unmapped,
-        total_changes: diff.total_changes,
-        reassigned_ratio: ratio(diff.reassigned),
-        newly_ratio: ratio(diff.newly_mapped),
-        unmapped_ratio: ratio(diff.unmapped),
-        total_ratio: ratio(diff.total_changes),
+        reassigned,
+        newly_mapped: newlyMapped,
+        unmapped,
+        total_changes: total,
+        reassigned_ratio: ratio(reassigned),
+        newly_ratio: ratio(newlyMapped),
+        unmapped_ratio: ratio(unmapped),
+        total_ratio: ratio(total),
     };
 }
 

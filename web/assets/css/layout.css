@@ -106,6 +106,17 @@
     min-width: 0;
 }
 
+/* Control cluster on the right of a section header. Lays its
+   children (drift unit, history range, etc.) out as a row that
+   wraps on narrow viewports so the section header never tears
+   the controls apart vertically before the heading wraps too. */
+.section__header-tools {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
 /* Section toolbar: sits between the heading and the body when a
    section needs a control surface (e.g. the build picker that
    scopes the Overview cards). The control sits on the left so the

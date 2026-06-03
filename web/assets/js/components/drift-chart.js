@@ -7,20 +7,46 @@
 //     build and renders as a stacked bar per release; the total
 //     stack height equals "drift vs previous" on the overview.
 //
-// All ratios use total / max(entries_a, entries_b) so they
-// share a denominator with the diff explorer's match-rate banner.
+// Each render is in one drift unit at a time (IPv4 coverage or
+// IPv6 coverage — see DRIFT_* in utils/diffs.js). The unit
+// selects which pipeline fields the points read from and is
+// surfaced in the card header so the active currency is readable
+// at a glance; tooltips append a unit-aware suffix to each
+// "Total drift" row so the reader cannot mistake an IPv6 hover
+// reading for an IPv4 one.
 
 import { mountResponsiveChart } from "../charts/chart-base.js";
 import { buildTooltipBody } from "../charts/chart-tooltip.js";
 import { buildLineChart } from "../charts/line-chart.js";
 import { buildStackedBarChart } from "../charts/stacked-bar-chart.js";
-import { formatDate, formatNumber, formatPercent } from "../format.js";
+import {
+    FAMILY_IPV4,
+    FAMILY_IPV6,
+    familyUnitLabel,
+    formatCoverage,
+    formatDate,
+    formatPercent,
+} from "../format.js";
+import {
+    DRIFT_IPV4_COVERAGE,
+    DRIFT_IPV6_COVERAGE,
+} from "../utils/diffs.js";
 import { mutedNote } from "../utils/dom.js";
 import { t } from "../utils/i18n.js";
 import { unfilledProfile } from "../utils/map-variants.js";
 import { createChartLegend } from "./chart-legend.js";
 import { computePoints } from "./drift-chart-points.js";
 import { createInfoTooltip } from "./info-tooltip.js";
+
+const UNIT_KEYS = {
+    [DRIFT_IPV4_COVERAGE]: "history.driftUnit.ipv4_coverage",
+    [DRIFT_IPV6_COVERAGE]: "history.driftUnit.ipv6_coverage",
+};
+
+const UNIT_FAMILY = {
+    [DRIFT_IPV4_COVERAGE]: FAMILY_IPV4,
+    [DRIFT_IPV6_COVERAGE]: FAMILY_IPV6,
+};
 
 // Render order: three categories first, Total last so its
 // dashed overlay stays visually on top.
@@ -84,11 +110,16 @@ const MODE_KEYS = {
     step: "history.driftStep",
 };
 
-function presetFor(mode) {
+function presetFor(mode, unit) {
     const ns = MODE_KEYS[mode];
-    if (!ns) return null;
+    const unitNs = UNIT_KEYS[unit];
+    const family = UNIT_FAMILY[unit];
+    if (!ns || !unitNs || !family) return null;
     return {
         title: t(`${ns}.title`),
+        unitLabel: t(`${unitNs}.label`),
+        unitCountSuffix: familyUnitLabel(family),
+        family,
         info: t(`${ns}.info`),
         infoAria: t(`${ns}.infoAria`),
         ariaLabel: t(`${ns}.ariaLabel`),
@@ -96,12 +127,17 @@ function presetFor(mode) {
 }
 
 // One card per mount. The caller (maps-tab) mounts twice
-// (cumulative + step), with its own ``hidden`` Set per card.
+// (cumulative + step), with its own ``hidden`` Set per card and
+// a shared ``unit`` so the two cards always read the same
+// currency.
 export function mount(parent, maps, diffs, options = {}) {
     if (!parent) return;
-    const preset = presetFor(options.mode);
+    const unit = options.unit ?? DRIFT_IPV4_COVERAGE;
+    const preset = presetFor(options.mode, unit);
     if (!preset) {
-        throw new Error(`drift-chart: unknown mode ${options.mode}`);
+        throw new Error(
+            `drift-chart: unknown mode/unit combination (${options.mode}, ${unit})`,
+        );
     }
     const emptyMessage = t("history.emptyDrift");
     if (!Array.isArray(maps) || maps.length < 2) {
@@ -150,8 +186,10 @@ export function mount(parent, maps, diffs, options = {}) {
         draw: ({ width, height, layout }) =>
             buildChart(
                 sortedMaps,
-                computePoints(sortedMaps, diffs, options.mode),
+                computePoints(sortedMaps, diffs, options.mode, unit),
                 options.mode,
+                preset.family,
+                preset.unitCountSuffix,
                 state.hidden,
                 preset.ariaLabel,
                 width,
@@ -162,16 +200,29 @@ export function mount(parent, maps, diffs, options = {}) {
     });
 }
 
-// ---- Card header (label, info) ----------------------------------
+// ---- Card header (label, unit subtitle, info) -------------------
 
 function buildHeader(preset) {
     const header = document.createElement("div");
     header.className = "drift-chart__header";
 
+    const titleGroup = document.createElement("div");
+    titleGroup.className = "drift-chart__title";
+
     const label = document.createElement("span");
     label.className = "card__label uppercase-label";
     label.textContent = preset.title.toUpperCase();
-    header.append(label);
+    titleGroup.append(label);
+
+    // Subtitle calls out the currently active drift currency
+    // right next to the card label, so the reader can never
+    // mistake a coverage view for an entry view.
+    const unit = document.createElement("span");
+    unit.className = "drift-chart__unit muted";
+    unit.textContent = preset.unitLabel;
+    titleGroup.append(unit);
+
+    header.append(titleGroup);
 
     const info = createInfoTooltip({
         body: preset.info,
@@ -189,6 +240,8 @@ function buildChart(
     sortedMaps,
     points,
     mode,
+    family,
+    unitCountSuffix,
     hidden,
     ariaLabel,
     width,
@@ -239,7 +292,7 @@ function buildChart(
         tooltipBodyAt: (slotIndex) =>
             buildTooltipBody({
                 title: formatDate(sortedMaps[slotIndex].released_at),
-                rows: hoverRows(points[slotIndex], mode),
+                rows: hoverRows(points[slotIndex], mode, family, unitCountSuffix),
                 footer: footerFor(points[slotIndex], mode),
             }),
     };
@@ -278,11 +331,15 @@ function maxStackHeight(points, visibleSeries) {
     return best;
 }
 
-// Reading order: cumulative leads with Total; step surfaces it
+// Reading order: cumulative leads with Total. Step surfaces it
 // as a footer because the stack height already conveys it.
-// Hidden series still show up — the tooltip is the inspection
-// surface.
-function hoverRows(point, mode) {
+// Hidden series still show up. The tooltip is the inspection
+// surface. The Total row appends a family aware count so the
+// hover reading names what the percentage was computed against.
+// IPv4 renders as raw addresses, IPv6 as /32 NetGroup blocks so
+// the cell never grows into a 30 digit decimal that would push
+// the tooltip past the chart edge.
+function hoverRows(point, mode, family, unitCountSuffix) {
     const totalLabel = t("history.driftSeries.total");
     if (!point.present) {
         return [[totalLabel, t("history.driftSeries.noDiff")]];
@@ -291,26 +348,22 @@ function hoverRows(point, mode) {
     const rows = series.map((s) => {
         const pct = formatPercent(s.accessor(point), 1);
         if (s.key === "total") {
-            return [
-                s.label,
-                t("history.driftSeries.totalWithCount", {
-                    pct,
-                    count: formatNumber(point.total_changes),
-                }),
-            ];
+            return [s.label, formatTotalCell(point, family, unitCountSuffix)];
         }
         return [s.label, pct];
     });
     if (mode === "step") {
-        rows.push([
-            totalLabel,
-            t("history.driftSeries.totalWithCount", {
-                pct: formatPercent(point.total_ratio, 1),
-                count: formatNumber(point.total_changes),
-            }),
-        ]);
+        rows.push([totalLabel, formatTotalCell(point, family, unitCountSuffix)]);
     }
     return rows;
+}
+
+function formatTotalCell(point, family, unitCountSuffix) {
+    return t("history.driftSeries.totalWithCount", {
+        pct: formatPercent(point.total_ratio, 1),
+        count: formatCoverage(point.total_changes, family),
+        unit: unitCountSuffix,
+    });
 }
 
 function footerFor(point, mode) {

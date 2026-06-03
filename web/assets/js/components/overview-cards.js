@@ -9,7 +9,11 @@ import {
     formatPercent,
     formatSignedNumber,
 } from "../format.js";
-import { pairDriftRatio } from "../utils/diffs.js";
+import {
+    DRIFT_IPV4_COVERAGE,
+    DRIFT_IPV6_COVERAGE,
+    pairDriftRatio,
+} from "../utils/diffs.js";
 import { mutedNote } from "../utils/dom.js";
 import { t } from "../utils/i18n.js";
 import {
@@ -81,6 +85,18 @@ function entriesCountCard(currentPick, previousPick) {
 // the diffs were materialised. ``previous`` is the row's shared
 // anchor; the date prints here so the other two cards can stay
 // at "vs previous".
+//
+// The headline number is IPv4 coverage drift — the share of
+// IPv4 addresses whose ASN changed between the two builds. IPv4
+// is the dominant family for Bitcoin Core peer reachability, so
+// surfacing it as the headline answers the operational question
+// "how much of the routable IPv4 space has shifted ASN?" rather
+// than "how many trie leaves moved?", which would let IPv6
+// noise drown out real BGP shifts. IPv6 coverage rides along as
+// a secondary line because the two families have independent
+// peer-diversity meaning, but the trie-leaf "entries" reading is
+// deliberately not surfaced any more (it was the exact failure
+// mode the coverage view replaces).
 function driftCard(current, previous, diffs) {
     const card = createCard(t("overview.drift.label"), {
         info: t("overview.drift.info"),
@@ -97,17 +113,25 @@ function driftCard(current, previous, diffs) {
         card.append(metricUnit(t("overview.drift.oldestBuild")));
         return card;
     }
-    const result = pairDriftRatio(diffs, previous.name, current.name);
-    if (!result) {
+    const views = pairDriftRatio(diffs, previous.name, current.name);
+    if (!views) {
         card.append(metricNumber("\u2014"));
         card.append(metricUnit(t("overview.drift.noPrecomputed")));
         return card;
     }
-    card.append(metricNumber(formatPercent(result.ratio, 1)));
+    const headline = views[DRIFT_IPV4_COVERAGE];
+    card.append(metricNumber(formatPercent(headline.ratio, 1)));
     card.append(
         metricUnit(
-            t("overview.drift.entriesChanged", {
-                count: formatNumber(result.total_changes),
+            t("overview.drift.ipv4Changed", {
+                count: formatNumber(headline.changed),
+            }),
+        ),
+    );
+    card.append(
+        deltaLine(
+            t("overview.drift.secondaryViews", {
+                ipv6: formatPercent(views[DRIFT_IPV6_COVERAGE].ratio, 1),
             }),
         ),
     );
