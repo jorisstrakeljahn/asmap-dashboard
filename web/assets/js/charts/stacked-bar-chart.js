@@ -29,9 +29,12 @@ import {
     resolveTimeDomain,
 } from "./chart-base.js";
 import {
+    attachTouchInspect,
+    clientToSvg,
     createChartShell,
     hideTooltip,
     isTooltipVisible,
+    nearestIndex,
     placeTooltipNextFrame,
     positionTooltip,
     showTooltip,
@@ -50,6 +53,9 @@ const BAR_FILL_FRACTION = 0.7;
 // segments as one bar with three colours, not three pills
 // stacked on top of each other.
 const BAR_CORNER_RADIUS = 2;
+// Hover tolerance past the plot edge, matching the line chart, so a
+// touch resolve in the gutter still maps to the nearest column.
+const HOVER_BLEED = 12;
 
 // Render a stacked time-series bar chart and return its hover shell.
 //
@@ -277,6 +283,20 @@ function attachHover(root, geometry, spec, groups) {
         clearActive();
     };
 
+    // Shared by the per-slot mouse capture and the touch path so a
+    // tap highlights the same stack and shows the same tooltip a
+    // hover would.
+    const showSlot = (slotIndex, clientX, clientY) => {
+        clearActive();
+        const group = groups[slotIndex];
+        if (group) {
+            group.classList.add("chart__stack--active");
+            activeGroup = group;
+        }
+        showTooltip(tip, spec.tooltipBodyAt(slotIndex));
+        placeTooltipNextFrame(shell, tip, clientX, clientY);
+    };
+
     for (let i = 0; i < slotCount; i++) {
         const slotIndex = i;
         const capture = svg("rect", {
@@ -289,14 +309,7 @@ function attachHover(root, geometry, spec, groups) {
         root.append(capture);
 
         capture.addEventListener("mouseenter", (ev) => {
-            clearActive();
-            const group = groups[slotIndex];
-            if (group) {
-                group.classList.add("chart__stack--active");
-                activeGroup = group;
-            }
-            showTooltip(tip, spec.tooltipBodyAt(slotIndex));
-            placeTooltipNextFrame(shell, tip, ev.clientX, ev.clientY);
+            showSlot(slotIndex, ev.clientX, ev.clientY);
         });
         capture.addEventListener("mousemove", (ev) => {
             if (isTooltipVisible(tip)) {
@@ -306,6 +319,22 @@ function attachHover(root, geometry, spec, groups) {
         capture.addEventListener("mouseleave", hide);
     }
     shell.addEventListener("mouseleave", hide);
+
+    // Touch maps to the nearest column by x: the capture strips are
+    // narrow, so resolving against every slot is more forgiving than
+    // relying on a finger landing inside one strip.
+    attachTouchInspect(shell, {
+        resolve: (clientX, clientY) => {
+            const pt = clientToSvg(root, clientX, clientY);
+            if (!pt) return null;
+            if (pt.x < plot.left - HOVER_BLEED || pt.x > plot.right + HOVER_BLEED) {
+                return null;
+            }
+            return nearestIndex(pt.x, slotCount, xAt);
+        },
+        show: showSlot,
+        hide,
+    });
 
     return shell;
 }

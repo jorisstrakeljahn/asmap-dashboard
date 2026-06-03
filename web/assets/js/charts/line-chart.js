@@ -23,6 +23,7 @@ import {
     resolveTimeDomain,
 } from "./chart-base.js";
 import {
+    attachTouchInspect,
     clientToSvg,
     createChartShell,
     hideTooltip,
@@ -192,13 +193,13 @@ function attachHover(root, geometry, spec) {
         cursorLine.setAttribute("visibility", "hidden");
     };
 
-    const show = (idx, ev) => {
+    const show = (idx, clientX, clientY) => {
         const x = xAt(idx);
         cursorLine.setAttribute("x1", String(x));
         cursorLine.setAttribute("x2", String(x));
         cursorLine.setAttribute("visibility", "visible");
         showTooltip(tip, spec.tooltipBodyAt(idx));
-        placeTooltipNextFrame(shell, tip, ev.clientX, ev.clientY);
+        placeTooltipNextFrame(shell, tip, clientX, clientY);
     };
 
     shell.addEventListener("mousemove", (ev) => {
@@ -213,9 +214,25 @@ function attachHover(root, geometry, spec) {
             hide();
             return;
         }
-        show(nearestIndex(pt.x, slotCount, xAt), ev);
+        show(nearestIndex(pt.x, slotCount, xAt), ev.clientX, ev.clientY);
     });
     shell.addEventListener("mouseleave", hide);
+
+    // Touch resolves on the x axis only: a finger lands anywhere in
+    // a column, not on the 3 px dot, so the y-band check the mouse
+    // path uses would make most taps miss. Off-plot x dismisses.
+    attachTouchInspect(shell, {
+        resolve: (clientX, clientY) => {
+            const pt = clientToSvg(root, clientX, clientY);
+            if (!pt) return null;
+            if (pt.x < plot.left - HOVER_BLEED || pt.x > plot.right + HOVER_BLEED) {
+                return null;
+            }
+            return nearestIndex(pt.x, slotCount, xAt);
+        },
+        show,
+        hide,
+    });
 
     return shell;
 }

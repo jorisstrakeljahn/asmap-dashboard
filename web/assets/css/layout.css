@@ -56,6 +56,59 @@
     background: var(--color-text-strong);
 }
 
+/* Burger toggle. Hidden on desktop where the inline nav carries
+   navigation; the ≤720px media query flips it to inline-flex and
+   turns the nav into a dropdown panel anchored beneath it. */
+.site-header__burger {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: var(--control-height);
+    height: var(--control-height);
+    margin-left: auto;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--color-text-base);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+        border-color var(--motion-base) var(--motion-ease),
+        background var(--motion-base) var(--motion-ease);
+}
+
+.site-header__burger:hover {
+    border-color: var(--color-border-strong);
+}
+
+.site-header__burger:focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-accent);
+    outline-offset: var(--focus-ring-offset);
+}
+
+.site-header__burger-line {
+    transform-box: fill-box;
+    transform-origin: center;
+    transition:
+        transform var(--motion-slow) var(--motion-ease),
+        opacity var(--motion-fast) var(--motion-ease);
+}
+
+/* Hamburger → X while the panel is open: the outer bars rotate
+   onto the centre line and the middle bar fades out. */
+.site-header__burger[aria-expanded="true"] .site-header__burger-line--top {
+    transform: translateY(5px) rotate(45deg);
+}
+
+.site-header__burger[aria-expanded="true"] .site-header__burger-line--mid {
+    opacity: 0;
+}
+
+.site-header__burger[aria-expanded="true"] .site-header__burger-line--bot {
+    transform: translateY(-5px) rotate(-45deg);
+}
+
 .content {
     max-width: var(--content-max);
     margin: 0 auto;
@@ -113,8 +166,14 @@
 .section__header-tools {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: var(--space-3);
     flex-wrap: wrap;
+    /* Stay pinned to the right edge even after the header wraps the
+       tools onto their own line on a phone — keeps the IPv4/IPv6 and
+       time-range switches right-aligned instead of dropping flush
+       left under the heading. */
+    margin-left: auto;
 }
 
 /* Section toolbar: sits between the heading and the body when a
@@ -346,25 +405,51 @@
     }
 }
 
-/* Below 720px the logo + nav + meta line stops fitting on one
-   row. Drop the nav onto its own full-width row underneath the
-   logo, with the build-meta beside the logo. The grid layout
-   keeps the logo flush left, meta flush right, and nav spans
-   both columns on a second visual row. */
+/* Below 720px the inline nav collapses behind the burger so the
+   header stays a clean single row (logo left, burger right). The
+   nav re-renders as a dropdown panel anchored under the burger,
+   shown only while the burger reports aria-expanded="true" (the
+   `is-open` class is toggled by components/nav-menu.js). */
 @media (max-width: 720px) {
     .site-header {
-        flex-wrap: wrap;
-        height: auto;
-        row-gap: var(--space-2);
-        padding-top: var(--space-3);
-        padding-bottom: var(--space-3);
+        position: relative;
+        justify-content: space-between;
+    }
+    .site-header__burger {
+        display: inline-flex;
     }
     .site-header__nav {
-        order: 3;
-        flex: 0 0 100%;
+        position: absolute;
+        top: calc(100% + var(--space-1));
+        right: var(--space-4);
+        left: auto;
+        z-index: var(--z-popover);
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-1);
         margin: 0;
-        justify-content: center;
-        gap: var(--space-6);
+        min-width: 200px;
+        padding: var(--space-2);
+        border: 1px solid var(--color-border-strong);
+        border-radius: var(--radius);
+        background: var(--color-bg);
+        box-shadow: var(--shadow-popover);
+    }
+    .site-header__nav:not(.is-open) {
+        display: none;
+    }
+    .site-header__nav-link {
+        padding: var(--space-3);
+        border-radius: var(--radius-sm);
+    }
+    /* The sliding underline suits an inline row; in the stacked
+       panel an active item reads better as a filled row. */
+    .site-header__nav-link.is-active::after {
+        display: none;
+    }
+    .site-header__nav-link.is-active,
+    .site-header__nav-link:hover {
+        background: var(--color-divider);
     }
 }
 

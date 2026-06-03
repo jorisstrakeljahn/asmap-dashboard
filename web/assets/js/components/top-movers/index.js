@@ -40,8 +40,15 @@ export function mount(parent, diff, { family } = {}) {
 
     card.headerControls.append(
         viewModeSwitch(state, () => render(), saveShowNames),
-        cardInfoTooltip(),
     );
+    // Pin the info trigger to the card's top-right corner (like the
+    // overview cards) instead of trailing the view-mode switch. On a
+    // phone the header wraps and a switch-trailing icon drifted onto
+    // a second row, detached from the title; the corner anchor keeps
+    // it locked to the top edge at every width.
+    const info = cardInfoTooltip();
+    info.classList.add("info-tooltip--card-corner");
+    card.root.append(info);
     card.footer.append(
         pageSizeControl(state, () => render()),
         card.pagination,

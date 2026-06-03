@@ -2,6 +2,7 @@
 // payload to the tab modules.
 
 import * as asnNames from "./asn-names.js";
+import { initNavMenu } from "./components/nav-menu.js";
 import { initTabs } from "./tabs.js";
 import * as mapsTab from "./maps-tab.js";
 import * as diffTab from "./diff-tab.js";
@@ -152,5 +153,10 @@ function renderLoadError(error) {
     main.replaceChildren(banner);
     banner.append(title, body, retry);
 }
+
+// Wired once: the header markup is static and survives the in-place
+// retry (which only rebuilds main.content), so calling this here —
+// not inside init() — avoids double-binding the burger listeners.
+initNavMenu();
 
 init();
