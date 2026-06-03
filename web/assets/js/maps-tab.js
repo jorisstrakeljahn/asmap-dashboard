@@ -6,9 +6,14 @@ import * as overviewCards from "./components/overview-cards.js";
 import * as buildSelector from "./components/build-selector.js";
 import * as mapDeltaChart from "./components/map-delta-chart.js";
 import * as driftChart from "./components/drift-chart.js";
+import * as diversityChart from "./components/diversity-chart.js";
 import * as entriesChart from "./components/entries-chart.js";
 import { createModeSwitch } from "./components/mode-switch.js";
-import { previousDiffable } from "./utils/diffs.js";
+import {
+    DRIFT_IPV4_COVERAGE,
+    DRIFT_IPV6_COVERAGE,
+    previousDiffable,
+} from "./utils/diffs.js";
 import {
     DEFAULT_HISTORY_RANGE,
     resolveHistoryRange,
@@ -17,6 +22,16 @@ import { t, tPlural } from "./utils/i18n.js";
 
 // Bloomberg / TradingView convention for instant recognition.
 const HISTORY_RANGE_VALUES = ["1y", "3y", "5y", "max"];
+
+// Drift unit picker order. IPv4 first because it is the headline
+// view (Bitcoin Core peer diversity weighs IPv4 reachability most
+// directly), IPv6 second. The legacy entries view was dropped on
+// purpose: it weights a /8 the same as a /48 and is the exact
+// failure mode the coverage views were introduced to avoid.
+const DRIFT_UNIT_VALUES = [
+    DRIFT_IPV4_COVERAGE,
+    DRIFT_IPV6_COVERAGE,
+];
 
 function renderBuildStaleness(map) {
     const slot = document.querySelector("[data-build-staleness]");
@@ -63,6 +78,7 @@ export function mount(payload) {
         "[data-drift-cumulative-chart]",
     );
     const driftStepSlot = document.querySelector("[data-drift-step-chart]");
+    const diversitySlot = document.querySelector("[data-diversity-chart]");
     const entriesSlot = document.querySelector("[data-entries-chart]");
     const deltaSlot = document.querySelector("[data-map-delta-chart]");
 
@@ -73,6 +89,10 @@ export function mount(payload) {
     const entriesState = { hidden: new Set() };
 
     let historyRange = DEFAULT_HISTORY_RANGE;
+    // One unit selection drives both drift charts so the cumulative
+    // and step views can never disagree on which "currency" the
+    // user is reading. Per-card state would tempt mis-comparisons.
+    let driftUnit = DRIFT_IPV4_COVERAGE;
     const renderHistory = () => {
         const slice = resolveHistoryRange(maps, historyRange);
         const bounds = {
@@ -82,19 +102,39 @@ export function mount(payload) {
         driftChart.mount(driftCumulativeSlot, slice.maps, diffs, {
             ...bounds,
             mode: "cumulative",
+            unit: driftUnit,
             state: driftCumulativeState,
         });
         driftChart.mount(driftStepSlot, slice.maps, diffs, {
             ...bounds,
             mode: "step",
+            unit: driftUnit,
             state: driftStepState,
         });
+        diversityChart.mount(diversitySlot, slice.maps, bounds);
         entriesChart.mount(entriesSlot, slice.maps, {
             ...bounds,
             state: entriesState,
         });
         mapDeltaChart.mount(deltaSlot, slice.maps, bounds);
     };
+
+    const driftUnitSlot = document.querySelector("[data-drift-unit]");
+    if (driftUnitSlot) {
+        const picker = createModeSwitch({
+            options: DRIFT_UNIT_VALUES.map((value) => ({
+                value,
+                label: t(`history.driftUnit.${value}.label`),
+            })),
+            value: driftUnit,
+            onChange: (next) => {
+                driftUnit = next;
+                renderHistory();
+            },
+            ariaLabel: t("history.driftUnit.ariaLabel"),
+        });
+        driftUnitSlot.replaceChildren(picker);
+    }
 
     const historyRangeSlot = document.querySelector("[data-history-range]");
     if (historyRangeSlot) {

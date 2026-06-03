@@ -58,12 +58,18 @@
                             <h2 id="history-title" class="section__title" data-i18n="history.sectionTitle">History</h2>
                             <p class="section__lede" data-i18n="history.sectionLede">Per-release drift and entry-count trends across every published build</p>
                         </div>
-                        <div class="section__header-tools" data-history-range></div>
+                        <div class="section__header-tools">
+                            <div data-drift-unit></div>
+                            <div data-history-range></div>
+                        </div>
                     </header>
                     <div class="section__body" data-drift-cumulative-chart>
                         <div class="skeleton skeleton--chart" aria-hidden="true"></div>
                     </div>
                     <div class="section__body" data-drift-step-chart>
+                        <div class="skeleton skeleton--chart" aria-hidden="true"></div>
+                    </div>
+                    <div class="section__body" data-diversity-chart>
                         <div class="skeleton skeleton--chart" aria-hidden="true"></div>
                     </div>
                     <div class="section__body" data-entries-chart>
@@ -81,6 +87,9 @@
                         <div class="section__heading">
                             <h2 id="diff-title" class="section__title" data-i18n="diff.sectionTitle">Diff Explorer</h2>
                             <p class="section__lede" data-i18n="diff.sectionLede">Compare any two ASmap builds</p>
+                        </div>
+                        <div class="section__header-tools">
+                            <div data-diff-family></div>
                         </div>
                     </header>
                     <div class="section__body" data-diff>

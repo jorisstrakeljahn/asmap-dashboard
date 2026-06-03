@@ -18,6 +18,18 @@
     flex-wrap: wrap;
 }
 
+.drift-chart__title {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.drift-chart__unit {
+    font-size: 0.8125rem;
+    letter-spacing: 0.01em;
+}
+
 .drift-chart__info {
     display: inline-flex;
     align-items: center;

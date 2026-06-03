@@ -1,12 +1,34 @@
-// Shared lookup helper for the precomputed pair diffs in
+// Shared lookup helpers for the precomputed pair diffs in
 // metrics.json. Each pair is stored exactly once with from < to
 // chronologically; symmetric callers (drift, headline match-rate)
 // don't care which direction we found it in, so they can read the
-// raw record and use only the symmetric fields (entries_a / b,
-// total_changes). Asymmetric callers (Diff Explorer) own their own
-// inversion logic on top of this.
+// raw record and use only the symmetric fields. Asymmetric callers
+// (Diff Explorer) own their own inversion logic on top of this.
 
 import { unfilledProfile } from "./map-variants.js";
+
+// Drift unit keys. Two parallel "currencies" the pipeline records
+// for every diff:
+//
+//   DRIFT_IPV4_COVERAGE: IPv4 addresses whose ASN changed, divided
+//     by the larger of the two maps' IPv4 address space. The
+//     default headline metric — answers the operationally honest
+//     question "how much of the IPv4 routing has moved?".
+//   DRIFT_IPV6_COVERAGE: same for IPv6. Kept separate from v4
+//     because Bitcoin Core peer diversity treats the two families
+//     as independent dimensions and because the address spaces
+//     cannot be meaningfully summed (2^32 vs 2^128 means IPv4
+//     would round to noise inside a combined denominator).
+//
+// The legacy "entries" view (one row per trie leaf changed) is
+// intentionally not exposed in the UI any more: it weights a /8
+// the same as a /48 and is dominated by IPv6 trie geometry, which
+// is the exact failure mode the coverage views were introduced to
+// avoid. Reviewers who want the trie-leaf reading can still see
+// it via the asmap CLI, which prints the same numbers the
+// pipeline reads.
+export const DRIFT_IPV4_COVERAGE = "ipv4_coverage";
+export const DRIFT_IPV6_COVERAGE = "ipv6_coverage";
 
 export function findDiff(diffs, fromName, toName) {
     if (!Array.isArray(diffs)) return null;
@@ -17,20 +39,47 @@ export function findDiff(diffs, fromName, toName) {
     ) || null;
 }
 
-// Drift between two builds expressed as the share of mapping
-// entries that differ. Same denominator the diff explorer uses for
-// the headline match-rate, so a 5% drift here lines up with a 95%
-// match banner there. Returns null when the pair has no stored
-// diff.
+// Compute the two drift views for a single diff record. Returns
+// the shape every consumer (overview card, match banner, drift
+// chart points) reads from, so the headline match-rate, the
+// vs-previous card, and the chart can never disagree on what
+// "5% drift" means for the same pair.
+//
+// Each view exposes:
+//   ratio:        changed / max(map_a_total, map_b_total). Zero
+//                 when neither side has any of that resource (e.g.
+//                 a tiny map with no IPv6 entries returns
+//                 ipv6_coverage.ratio = 0 cleanly instead of NaN).
+//   changed:      raw count of the changing addresses so tooltips
+//                 can render exact figures.
+//   denominator:  what changed is divided by, for the same reason.
+export function driftViews(diff) {
+    return {
+        [DRIFT_IPV4_COVERAGE]: coverageView(
+            diff.ipv4_addresses_changed,
+            diff.ipv4_address_space_a,
+            diff.ipv4_address_space_b,
+        ),
+        [DRIFT_IPV6_COVERAGE]: coverageView(
+            diff.ipv6_addresses_changed,
+            diff.ipv6_address_space_a,
+            diff.ipv6_address_space_b,
+        ),
+    };
+}
+
+function coverageView(changed, totalA, totalB) {
+    const denominator = Math.max(totalA || 0, totalB || 0);
+    const ratio = denominator ? (changed || 0) / denominator : 0;
+    return { ratio, changed: changed || 0, denominator };
+}
+
+// Drift between two builds in both currencies. Returns null when
+// the pair has no stored diff (e.g. one side lacks an unfilled
+// variant).
 export function pairDriftRatio(diffs, fromName, toName) {
     const diff = findDiff(diffs, fromName, toName);
-    if (!diff) return null;
-    const denom = Math.max(diff.entries_a, diff.entries_b);
-    if (!denom) return 0;
-    return {
-        ratio: diff.total_changes / denom,
-        total_changes: diff.total_changes,
-    };
+    return diff ? driftViews(diff) : null;
 }
 
 // Find the most recent build before `name` whose unfilled variant
