@@ -267,24 +267,23 @@
             "sectionLede": "How the ASmap history behaves against observed Bitcoin nodes",
             "empty": "No observed node snapshots in metrics.json.",
             "sourceMeta": "Snapshot metrics from the {source} crawl, {date}.",
-            "sourceCompare": "{sources} is shown alongside for comparison in the Trends below.",
+            "sourceCompare": "{sources} is shown alongside as a frozen archive (its crawler no longer runs).",
             "nodes": {
                 "label": "Reachable nodes",
                 "unit": "clearnet peers observed",
                 "info": [
-                    "Distinct clearnet IP addresses the crawler reached in its most recent snapshot. Onion, I2P, and CJDNS peers are left out because they have no IP that ASmap can resolve to an autonomous system.",
-                    "Bitcoin nodes lean about four to one toward IPv4 over IPv6, which is why IPv4 is the headline address family throughout the dashboard."
+                    "Distinct clearnet IP addresses the crawler reached in its most recent snapshot. Onion, I2P, and CJDNS peers are left out because they have no IP that ASmap can resolve to an autonomous system."
                 ],
                 "infoAria": "About reachable nodes"
             },
             "concentration": {
                 "label": "AS concentration",
-                "unit": "of nodes in the largest operator",
-                "topAs": "{as}",
-                "context": "HHI {hhi} across {count} autonomous systems",
+                "unit": "Herfindahl-Hirschman index",
                 "info": [
-                    "The share of observed nodes that sit in the single biggest autonomous system, worked out from the ASmap lookup of each node's IP address. A lower number means no single operator dominates the reachable node set.",
-                    "An attacker who controls this one operator already sees this share of the network, so a falling number is a direct gain for decentralisation. Below it you also get the HHI index, which measures concentration across the whole set, and the total count of autonomous systems."
+                    "This is the Herfindahl-Hirschman index (HHI), a standard measure of how concentrated something is across the players in it. Here the players are the autonomous systems the observed nodes resolve to under the ASmap build in effect.",
+                    "It is computed by taking each autonomous system's share of all mapped nodes, squaring it (a 10 percent operator adds 0.01), and adding the squares together. Squaring is what makes it a concentration measure: a few large operators dominate the total while the long tail of small ones barely moves it.",
+                    "The index runs from near 0, when nodes are spread evenly across very many operators, up to 1, when every node sits in a single autonomous system. A lower number therefore means healthier peer diversity.",
+                    "HHI leads here instead of the single largest operator's share because that share can fall while concentration is just handed to the number-two operator. Summing over the whole distribution, HHI only drops when nodes genuinely spread across more operators. As a rule of thumb, 1 divided by the HHI is the effective number of equal-sized operators the network behaves like, so a low index like this one works out to several dozen."
                 ],
                 "infoAria": "About AS concentration"
             },
@@ -304,18 +303,16 @@
                 "basis": "from {drift} measured at the build that is {days} days old",
                 "noData": "needs more build history",
                 "info": [
-                    "How fast an aging embedded map drifts away from reality for today's node set, shown as a yearly rate. The headline is scaled to one year so it stays comparable. The line below shows the raw reading it came from.",
-                    "It is read off the decay curve at the build closest to one year old. Releases do not come out on a fixed schedule, so that build is rarely exactly 365 days old. Here the nearest one is about 398 days, so the raw drift is divided by its real age and scaled up to a full year.",
-                    "This feeds straight into the question of how often Bitcoin Core should ship a fresh asmap. A low yearly rate means an embedded map ages gracefully. A high one is a reason to refresh it more often."
+                    "The decay curve below, distilled into a single yearly rate: the share of today's node set an embedded map would mislocate after about a year of aging. Scaling to one year keeps it comparable between builds that are not spaced exactly a year apart.",
+                    "It is read off the decay curve at the build closest to one year old. Releases do not come out on a fixed schedule, so that build is rarely exactly 365 days old; the raw drift is divided by its real age and scaled up to a full year. The exact age is in the line below.",
+                    "This feeds straight into the question of how often Bitcoin Core should ship a fresh asmap. A low yearly rate means an embedded map ages gracefully, a high one is a reason to refresh more often. The rate here is low, so a shipped map stays close to reality for today's nodes well past its release."
                 ],
                 "infoAria": "About map staleness"
             }
         },
         "charts": {
             "sectionTitle": "Trends",
-            "sectionLede": "Each chart shows the available crawlers together. Click a legend entry to isolate one.",
-            "sourceNote": "{source} is the crawl that keeps running. {archive} is a frozen archive that ends on {date}. We keep it as a second line so the two can be cross checked, but it does not get new data.",
-            "sourceNoteSingle": "{source} is the ongoing crawl feeding these trends."
+            "sectionLede": "Each chart shows the available crawlers together. Click a legend entry to isolate one."
         },
         "decay": {
             "title": "Map decay for today's nodes",
@@ -328,13 +325,23 @@
                 "Each crawler is one line. Where they overlap, the map ages the same way no matter who observed the network, which is a good check that the two data sources tell the same story."
             ]
         },
-        "concentration": {
-            "title": "Largest operator node share over time",
-            "infoAria": "About largest operator share over time",
-            "ariaLabel": "Share of observed nodes in the single most present autonomous system over time, one line per crawler.",
+        "hhi": {
+            "title": "AS concentration (HHI) over time",
+            "infoAria": "About AS concentration over time",
+            "ariaLabel": "Herfindahl-Hirschman index of the observed node set across every snapshot, scored against the build in effect at each one. One line per crawler. Lower means more diverse.",
             "info": [
-                "The share of observed nodes that sit in the single biggest autonomous system at each snapshot, scored against the build that was in effect at that time. A lower number means the reachable node set is less dominated by any one operator.",
-                "The biggest operator is usually Hetzner (AS24940), but the top spot is sometimes taken by someone else, so the line follows whichever operator is largest at each point. A steady fall, here from roughly 14% down to 9%, is real decentralisation. Each crawler has its own line, so any gap between them would show up right away."
+                "The same Herfindahl-Hirschman index as the concentration card above, scored against the build in effect at each snapshot instead of only the latest one. Lower is more diverse, so a line falling toward the right means the observed network keeps spreading across more operators over time.",
+                "Each crawler is its own line. They track each other closely and both drift down over the period, so the shift toward a more diverse network holds no matter who observed it, which is the cross-check the KIT only operator breakdown below cannot make on its own."
+            ]
+        },
+        "concentration": {
+            "combinedLabel": "Top {count} combined",
+            "operatorsTitle": "Top operators by node share over time (KIT data)",
+            "operatorsInfoAria": "About the top operator breakdown",
+            "operatorsAria": "Node share of the five largest operators over time on the KIT crawl, with a dashed line summing the five.",
+            "operatorsInfo": [
+                "The node share of the five operators that are largest across the whole period, each as its own line, scored against the build in effect at each snapshot. The dashed line sums those five, a top-5 concentration ratio. KIT only, because this is the live crawl; the KIT and Bitnodes cross-check lives in the decay chart above.",
+                "A small, stable set of operators holds the top tier throughout, typically Hetzner, OVH, Google, and AWS, so their lines run roughly parallel rather than jumping around. The combined line drifting down over the period, while the effective operator count rises, is the diversity story: the top tier is loosening rather than the lead just changing hands."
             ]
         },
         "crosscheck": {

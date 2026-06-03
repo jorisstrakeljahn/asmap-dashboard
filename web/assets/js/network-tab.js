@@ -7,32 +7,33 @@
 //
 // Layout, top to bottom, follows the proposal's "reads as one answer"
 // order: a 2x2 snapshot hero, then two trend charts — the decay curve
-// (the update-cadence question) and the largest-operator share (the
+// (the update-cadence question) and the top-5 operator breakdown (the
 // decentralisation question) — and finally the ASN-attribution
 // agreement as a single data-quality stat that keeps the headline KPI
 // but reveals the exact per-snapshot counts (both crawlers) behind a
 // disclosure, so the figure is checkable rather than asserted. Earlier
-// iterations carried
-// a bucketing time series (near-constant, moved to the hero) and a raw
-// unique-AS-count "diversity" chart (dropped: the count is confounded
-// by how many nodes each crawler reaches, so two raw-count lines invite
-// a false comparison). The two surviving charts overlay KIT and
-// Bitnodes as toggleable lines because they plot normalised shares,
-// which are comparable across crawlers of different size.
+// iterations carried a bucketing time series (near-constant, moved to
+// the hero) and a raw unique-AS-count "diversity" chart (dropped: the
+// count is confounded by how many nodes each crawler reaches, so two
+// raw-count lines invite a false comparison).
 //
-// KIT is the ongoing crawl; the Bitnodes snapshots are a one-time
-// historical archive (b10c) that freezes once it ends. They are kept
-// as a frozen second line because two independent crawlers telling the
-// same story is the dashboard's strongest credibility signal, but they
-// are labelled "archive" in the legend and a Trends provenance note so
-// no reader mistakes the frozen line for a live feed.
+// The decay chart overlays KIT and Bitnodes as toggleable lines because
+// it plots a normalised drift share, comparable across crawlers of
+// different size. KIT is the ongoing crawl; the Bitnodes snapshots are a
+// one-time historical archive (b10c) that freezes once it ends, kept as
+// a frozen second line because two independent crawlers telling the same
+// story is the dashboard's strongest credibility signal, but labelled
+// "archive" in the legend so no reader mistakes the frozen line for a
+// live feed. The operator breakdown is
+// KIT only — five per-operator lines for a frozen second crawler would
+// clutter without adding a comparison the decay chart doesn't make.
 //
 // The Trends section carries a 1Y/3Y/5Y/Max range picker, mirroring
 // the Maps tab's History range. It windows the x-axis of the trend
 // charts; the hero and the data-quality stat stay on the latest data.
 
 import { formatDate, formatNumber } from "./format.js";
-import { labelFor } from "./asn-names.js";
+import { nameFor } from "./asn-names.js";
 import * as overview from "./components/network/overview.js";
 import { mountSeriesChart } from "./components/network/series-chart.js";
 import {
@@ -98,6 +99,7 @@ export function mount(payload) {
     // whatever series the reader has hidden.
     const states = {
         decay: { hidden: new Set() },
+        hhi: { hidden: new Set() },
         concentration: { hidden: new Set() },
     };
     const allTimestamps = collectTimestamps(network, presentSources);
@@ -106,13 +108,9 @@ export function mount(payload) {
     const renderTrends = () => {
         const bounds = rangeBounds(range, allTimestamps);
         mountDecayChart(network, presentSources, bounds, states.decay);
-        mountConcentrationChart(network, presentSources, bounds, states.concentration);
+        mountConcentrationChart(network, bounds, states.concentration);
+        mountHhiChart(network, presentSources, bounds, states.hhi);
     };
-
-    // Provenance note for the Trends: KIT is the live crawl, Bitnodes a
-    // frozen archive. Filled dynamically so the cutoff date tracks the
-    // data rather than a hard-coded string.
-    mountTrendsNote(network, presentSources, primary);
 
     // The data-quality stat summarises the whole series, so it is not
     // range-dependent and renders once outside renderTrends. It scores
@@ -177,82 +175,201 @@ function mountDecayChart(network, sources, bounds, state) {
     });
 }
 
-// ---- Largest-operator node share over time ----------------------
+// ---- AS concentration (HHI) over time ---------------------------
 
-// Plots the single most-present AS's node share rather than HHI: a
-// percentage reads far more intuitively than "HHI 0.02", and it is the
-// most legible driver of the concentration story. The #1 operator's
-// identity can change between snapshots, so this tracks whichever AS is
-// largest at each point — a valid concentration measure regardless.
-function mountConcentrationChart(network, sources, bounds, state) {
-    const timeline = clampTimeline(
-        snapshotTimeline(network, sources, topShare),
-        bounds.cutoff,
-    );
-    // Per-source lookup of the largest AS at each snapshot, so the
-    // tooltip can name who the share belongs to. The #1 operator can
-    // change between snapshots, and showing it for both crawlers makes
-    // it obvious whether they agree on who dominates.
-    const topBySource = topAsLookup(network, sources);
-    mountSeriesChart(document.querySelector("[data-network-concentration]"), {
-        title: t("network.concentration.title"),
-        info: t("network.concentration.info"),
-        infoAria: t("network.concentration.infoAria"),
-        ariaLabel: t("network.concentration.ariaLabel"),
+// The headline concentration trend: the same Herfindahl-Hirschman index
+// the hero card shows, scored against the build in effect at each
+// snapshot. Unlike the per-operator breakdown below (KIT only), HHI is a
+// single normalised number comparable across crawlers of different size,
+// so this overlays every source — restoring the KIT/Bitnodes
+// concentration cross-check the operator view can't make. Two
+// independent crawls tracing the same decline is the credibility signal.
+// The y-axis auto-scales (no zero floor): HHI lives in a narrow band, so
+// flooring at zero would flatten the very trend the chart exists to show.
+//
+// Points are bucketed by calendar day rather than exact timestamp:
+// each crawl runs at its own time of day, so KIT and Bitnodes snapshots
+// matched to the same map land hours apart and would otherwise sit on
+// adjacent slots with separate hovers. Collapsing them onto one slot
+// per day puts both crawlers in a single tooltip; the few-hour shift is
+// invisible at the ~monthly snapshot spacing, and genuinely different
+// days (the older best-effort matches) still stay apart.
+function mountHhiChart(network, sources, bounds, state) {
+    const slot = document.querySelector("[data-network-hhi]");
+    if (!slot) return;
+    const entries = sources.map((source) => ({
+        source,
+        points: network.sources[source].snapshots.map((sn) => ({
+            ts: toMs(sn.timestamp),
+            value: sn.hhi,
+        })),
+    }));
+    const timeline = clampTimeline(dayUnionTimeline(entries), bounds.cutoff);
+
+    mountSeriesChart(slot, {
+        title: t("network.hhi.title"),
+        info: t("network.hhi.info"),
+        infoAria: t("network.hhi.infoAria"),
+        ariaLabel: t("network.hhi.ariaLabel"),
         timestamps: timeline.timestamps,
         series: legendSeries(sources),
+        valueAt: timeline.valueAt,
+        yFormat: formatHhi,
+        domainStart: bounds.domainStart,
+        domainEnd: bounds.domainEnd,
+        tooltipTitleAt: (i) => snapshotTitle(timeline, i),
+        tooltipRowsAt: (i) => sourceRows(sources, timeline, i, formatHhi),
+        state,
+    });
+}
+
+// ---- Operator concentration over time ---------------------------
+
+// How many top operators the breakdown view tracks as individual lines.
+// Five is the conventional concentration cut (CR5) and keeps the chart
+// legible; the combined line sums exactly these five.
+const OPERATOR_LIMIT = 5;
+
+// Per-operator line styling, drawn from the shared categorical palette
+// (tokens.css --color-series-1..5) so the operators read as distinct
+// categories rather than a ranking. Indexed by rank within the period.
+const OPERATOR_STYLES = [1, 2, 3, 4, 5].map((n) => ({
+    lineClass: `chart__line--op${n}`,
+    dotClass: `chart__dot--op${n}`,
+    swatchClass: `chart-legend__swatch--op${n}`,
+}));
+
+// The concentration chart is the top-operator breakdown (KIT only): the
+// OPERATOR_LIMIT operators with the highest share over the whole period
+// as fixed named lines, plus a dashed combined (CR5) line. It is the
+// churn/diversity view — whether the combined top share is shrinking and
+// whether the top tier reshuffles. KIT only because it is the live crawl;
+// the KIT/Bitnodes cross-check lives in the decay chart above.
+//
+// Operator breakdown needs KIT, so without it there is nothing to plot
+// here and the chart slot stays empty (decay + cross-check still render).
+function mountConcentrationChart(network, bounds, state) {
+    const parent = document.querySelector("[data-network-concentration]");
+    if (!parent) return;
+    if (!network.sources.kit?.snapshots?.length) {
+        parent.replaceChildren();
+        return;
+    }
+    renderOperatorsView(parent, network, bounds, state);
+}
+
+// Top-operator breakdown (KIT only): the OPERATOR_LIMIT operators with
+// the highest share summed across the whole period, each as its own
+// fixed line, plus a dashed combined line that sums exactly those five.
+// An operator absent from a given snapshot's top list reports null, so
+// its line simply does not extend into periods where it was small.
+function renderOperatorsView(slot, network, bounds, state) {
+    const snapshots = network.sources.kit.snapshots;
+    const operators = topOperators(snapshots, OPERATOR_LIMIT);
+
+    // ts -> (asn -> share) for O(1) per-slot lookup.
+    const shareByTs = new Map();
+    for (const sn of snapshots) {
+        const shares = new Map();
+        for (const entry of sn.top_ases ?? []) shares.set(entry.asn, entry.share);
+        shareByTs.set(toMs(sn.timestamp), shares);
+    }
+    const timestamps = snapshots.map((sn) => toMs(sn.timestamp)).sort((a, b) => a - b);
+
+    const valueAt = (key, slot) => {
+        const shares = shareByTs.get(timestamps[slot]);
+        if (!shares) return null;
+        if (key === "combined") {
+            let sum = 0;
+            let any = false;
+            for (const asn of operators) {
+                const share = shares.get(asn);
+                if (share != null) {
+                    sum += share;
+                    any = true;
+                }
+            }
+            return any ? sum * 100 : null;
+        }
+        const share = shares.get(Number(key.slice(3)));
+        return share == null ? null : share * 100;
+    };
+    const timeline = clampTimeline({ timestamps, valueAt }, bounds.cutoff);
+
+    const operatorSeries = operators.map((asn, idx) => ({
+        key: `as-${asn}`,
+        label: operatorLabel(asn),
+        ...OPERATOR_STYLES[idx % OPERATOR_STYLES.length],
+    }));
+    // Combined (CR5) line leads the list so it reads first in the
+    // legend. It reuses the drift chart's neutral dashed "aggregate"
+    // styling so the eye reads it as a sum, not a sixth operator.
+    const series = [
+        {
+            key: "combined",
+            label: t("network.concentration.combinedLabel", { count: operators.length }),
+            lineClass: "chart__line--total",
+            dotClass: "chart__dot--total",
+            swatchClass: "chart-legend__swatch--total",
+        },
+        ...operatorSeries,
+    ];
+
+    mountSeriesChart(slot, {
+        title: t("network.concentration.operatorsTitle"),
+        info: t("network.concentration.operatorsInfo"),
+        infoAria: t("network.concentration.operatorsInfoAria"),
+        ariaLabel: t("network.concentration.operatorsAria"),
+        timestamps: timeline.timestamps,
+        series,
         valueAt: timeline.valueAt,
         yFormat: formatPercentNumber,
         yFloorZero: true,
         domainStart: bounds.domainStart,
         domainEnd: bounds.domainEnd,
         tooltipTitleAt: (i) => snapshotTitle(timeline, i),
-        tooltipRowsAt: (i) => concentrationRows(sources, timeline, topBySource, i),
+        tooltipRowsAt: (i) => operatorRows(series, timeline, i),
         state,
     });
 }
 
-// Map source -> (snapshot ms -> largest AS object), keyed on the same
-// timestamps the concentration timeline uses.
-function topAsLookup(network, sources) {
-    const bySource = new Map();
-    for (const source of sources) {
-        const byTs = new Map();
-        for (const sn of network.sources[source].snapshots) {
-            const top = sn.top_ases?.[0];
-            if (top) byTs.set(toMs(sn.timestamp), top);
+// The operators with the highest share summed over every snapshot.
+// Summing per-snapshot shares (rather than raw node counts) weights
+// each snapshot equally, so a single large crawl can't crown an
+// operator that was only briefly present.
+function topOperators(snapshots, limit) {
+    const totals = new Map();
+    for (const sn of snapshots) {
+        for (const entry of sn.top_ases ?? []) {
+            totals.set(entry.asn, (totals.get(entry.asn) ?? 0) + entry.share);
         }
-        bySource.set(source, byTs);
     }
-    return bySource;
+    return [...totals.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+        .map(([asn]) => asn);
 }
 
-// Tooltip rows for the concentration chart: each source's share with the
-// operator that holds it folded into the (wrappable) label column, e.g.
-// "KIT, AS24940 (Hetzner Online GmbH)" -> "8.7%". The percent stays the
-// atomic value so it never wraps; the long operator name rides the label.
-function concentrationRows(sources, timeline, topBySource, slot) {
-    const ts = timeline.timestamps[slot];
+// Legend/tooltip label for an operator line: the operator name when
+// known, falling back to the bare AS number. The name alone (not
+// "AS123 (Name)") keeps five entries readable on one legend row.
+function operatorLabel(asn) {
+    return nameFor(asn) ?? `AS${asn}`;
+}
+
+// One tooltip row per operator (and the combined line) that has a value
+// at this slot.
+function operatorRows(series, timeline, slot) {
     const rows = [];
-    for (const source of sources) {
-        const share = timeline.valueAt(source, slot);
-        if (share == null) continue;
-        const top = topBySource.get(source)?.get(ts);
-        const who = top ? labelFor(top.asn) : "";
-        const label = who ? `${sourceLabel(source)}, ${who}` : sourceLabel(source);
-        rows.push([label, formatPercentNumber(share)]);
+    for (const entry of series) {
+        const value = timeline.valueAt(entry.key, slot);
+        if (value == null) continue;
+        rows.push([entry.label, formatPercentNumber(value)]);
     }
     if (rows.length === 0) {
         return [[t("network.noSnapshot"), "\u2014"]];
     }
     return rows;
-}
-
-// Largest single AS's node share as a plain percent number (8.7 ->
-// "8.7%"). Null when a snapshot carries no AS breakdown.
-function topShare(snapshot) {
-    const top = snapshot.top_ases?.[0];
-    return top ? top.share * 100 : null;
 }
 
 // ---- ASN attribution agreement (data-quality stat) --------------
@@ -374,31 +491,6 @@ function cell(text, numeric = false) {
     return td;
 }
 
-// Trends provenance note: names the live crawl and flags Bitnodes as a
-// frozen archive with its last snapshot date, so the frozen second line
-// is never mistaken for a live feed.
-function mountTrendsNote(network, sources, primary) {
-    const slot = document.querySelector("[data-network-trends-note]");
-    if (!slot) return;
-    const archived = sources.filter((s) => s !== primary);
-    if (archived.length === 0) {
-        slot.textContent = t("network.charts.sourceNoteSingle", {
-            source: sourceLabel(primary),
-        });
-        return;
-    }
-    const lastTs = Math.max(
-        ...archived.flatMap((s) =>
-            network.sources[s].snapshots.map((sn) => toMs(sn.timestamp)),
-        ),
-    );
-    slot.textContent = t("network.charts.sourceNote", {
-        source: sourceLabel(primary),
-        archive: archived.map(sourceLabel).join(", "),
-        date: formatDate(new Date(lastTs)),
-    });
-}
-
 // ---- range helpers ----------------------------------------------
 
 // Every timestamp the trends can plot (snapshot times + decay build
@@ -441,6 +533,35 @@ function clampTimeline(timeline, cutoff) {
     };
 }
 
+// Like buildUnionTimeline, but keys slots by calendar day so points
+// from different crawlers that fall on the same day share one slot (and
+// therefore one hover) instead of landing on adjacent timestamps. The
+// representative timestamp for a day is the earliest point in it, so the
+// x-position and tooltip date stay real rather than snapping to midnight.
+function dayUnionTimeline(entries) {
+    const byDay = new Map();
+    for (const entry of entries) {
+        for (const point of entry.points) {
+            const day = Math.floor(point.ts / MS_PER_DAY);
+            let bucket = byDay.get(day);
+            if (!bucket) {
+                bucket = { ts: point.ts, values: new Map() };
+                byDay.set(day, bucket);
+            }
+            if (point.ts < bucket.ts) bucket.ts = point.ts;
+            if (point.value != null) bucket.values.set(entry.source, point.value);
+        }
+    }
+    const days = [...byDay.keys()].sort((a, b) => a - b);
+    return {
+        timestamps: days.map((d) => byDay.get(d).ts),
+        valueAt: (source, slot) => {
+            const value = byDay.get(days[slot])?.values.get(source);
+            return value == null ? null : value;
+        },
+    };
+}
+
 // ---- shared helpers ---------------------------------------------
 
 // Series descriptors for the trend charts, with the Bitnodes legend
@@ -456,18 +577,6 @@ function legendSeries(sources) {
         }
         return series;
     });
-}
-
-// Union timeline keyed on snapshot timestamps, one series per source.
-function snapshotTimeline(network, sources, accessor) {
-    const entries = sources.map((source) => ({
-        source,
-        points: network.sources[source].snapshots.map((sn) => ({
-            ts: toMs(sn.timestamp),
-            value: accessor(sn),
-        })),
-    }));
-    return buildUnionTimeline(entries);
 }
 
 function snapshotTitle(timeline, slot) {
@@ -497,4 +606,10 @@ function ageDays(referenceTs, slotMs) {
 // -> "3.8%"), unlike format.js formatPercent which expects a 0..1 ratio.
 function formatPercentNumber(value) {
     return `${value.toFixed(1)}%`;
+}
+
+// HHI is a 0..1 index that lives near 0.02; three decimals keep the
+// snapshot-to-snapshot movement legible on the axis and in tooltips.
+function formatHhi(value) {
+    return value.toFixed(3);
 }
