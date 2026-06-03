@@ -20,3 +20,26 @@ export function writeFlag(key, value) {
         /* storage disabled */
     }
 }
+
+// String setting with a whitelist guard. Returns ``fallback`` if
+// localStorage is unavailable, the key is unset, or the stored
+// value is not in the allowed set — that last branch keeps a
+// stale value from a removed picker option (or a future rename)
+// from leaking into the UI.
+export function readSetting(key, allowed, fallback) {
+    try {
+        const raw = localStorage.getItem(key);
+        if (raw !== null && allowed.includes(raw)) return raw;
+        return fallback;
+    } catch {
+        return fallback;
+    }
+}
+
+export function writeSetting(key, value) {
+    try {
+        localStorage.setItem(key, String(value));
+    } catch {
+        /* storage disabled */
+    }
+}

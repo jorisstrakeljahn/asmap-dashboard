@@ -13,7 +13,7 @@ import {
     stackedBar,
 } from "./breakdown.js";
 
-export function renderResults(parent, diffs, fromName, toName) {
+export function renderResults(parent, diffs, fromName, toName, family) {
     if (fromName === toName) {
         parent.replaceChildren(samePairMessage());
         return;
@@ -32,15 +32,15 @@ export function renderResults(parent, diffs, fromName, toName) {
     explainer.classList.add("info-tooltip--card-corner");
     card.append(
         explainer,
-        matchBanner(diff),
-        classificationRow(diff),
-        stackedBar(diff),
+        matchBanner(diff, family),
+        classificationRow(diff, family),
+        stackedBar(diff, family),
     );
     const roster = rosterDeltaRow(diff);
     if (roster) card.append(roster);
 
     const topMoversSlot = document.createElement("div");
-    topMoversTable.mount(topMoversSlot, diff);
+    topMoversTable.mount(topMoversSlot, diff, { family });
 
     parent.replaceChildren(card, topMoversSlot);
 }
