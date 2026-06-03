@@ -61,6 +61,18 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Write JSON to this path instead of stdout.",
     )
+    p_metrics.add_argument(
+        "--kit-dir",
+        type=Path,
+        default=None,
+        help="Directory of KIT dossier JSON files; adds the network section.",
+    )
+    p_metrics.add_argument(
+        "--bitnodes-dir",
+        type=Path,
+        default=None,
+        help="Directory of Bitnodes snapshot JSON files; adds the network section.",
+    )
 
     p_refresh = sub.add_parser(
         "refresh-asn-names",
@@ -116,7 +128,21 @@ def _run_diff(args: argparse.Namespace) -> int:
 
 
 def _run_metrics(args: argparse.Namespace) -> int:
-    return _emit_json(generate_dashboard_data(args.data_dir), args.out)
+    # Only the sources actually pointed at a directory are passed
+    # through, so ``metrics --data-dir X`` (no snapshot flags) keeps
+    # emitting the snapshot-free payload unchanged.
+    snapshot_sources = {
+        source: directory
+        for source, directory in (
+            ("kit", args.kit_dir),
+            ("bitnodes", args.bitnodes_dir),
+        )
+        if directory is not None
+    }
+    result = generate_dashboard_data(
+        args.data_dir, snapshot_sources=snapshot_sources or None
+    )
+    return _emit_json(result, args.out)
 
 
 def _run_refresh_asn_names(args: argparse.Namespace) -> int:

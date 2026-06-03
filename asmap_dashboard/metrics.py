@@ -39,6 +39,8 @@ from pathlib import Path
 from asmap_dashboard.analyze import analyze_loaded_map
 from asmap_dashboard.diff import diff_loaded_maps
 from asmap_dashboard.loader import LoadedMap, load_map
+from asmap_dashboard.network.metrics import build_network_section
+from asmap_dashboard.network.snapshots import discover_snapshots
 
 PathLike = str | Path
 FILLED_FILENAME_RE = re.compile(r"^(\d+)_asmap\.dat$")
@@ -136,7 +138,10 @@ def _to_iso_date(unix_ts: int) -> str:
     return datetime.fromtimestamp(unix_ts, tz=timezone.utc).date().isoformat()
 
 
-def generate_dashboard_data(data_dir: PathLike) -> dict:
+def generate_dashboard_data(
+    data_dir: PathLike,
+    snapshot_sources: dict[str, PathLike] | None = None,
+) -> dict:
     """Walk data_dir, profile every published variant, diff every pair.
 
     Returns a dict shaped like::
@@ -153,6 +158,15 @@ def generate_dashboard_data(data_dir: PathLike) -> dict:
           ],
           "diffs": [{from, to, total_changes, ...}, ...]
         }
+
+    When ``snapshot_sources`` is given (a ``{source_name: directory}``
+    map, e.g. ``{"kit": "...", "bitnodes": "..."}``), a ``network`` key
+    is added carrying the network-tap metrics for those observed-node
+    snapshots scored against this build history. The key is omitted
+    entirely when no sources are passed or none yield usable snapshots,
+    so the Maps/Diff payload stays byte-for-byte identical for callers
+    that do not opt in (the public deploy when KIT data is not yet
+    public, for instance).
 
     Builds are sorted chronologically by released_at. ``name`` is the
     variant-agnostic identifier (``<year>/<timestamp>``) so the
@@ -189,10 +203,21 @@ def generate_dashboard_data(data_dir: PathLike) -> dict:
     maps = [_build_entry(build, loaded, data_dir) for build in builds]
     diffs = _compute_pair_diffs(builds, loaded)
 
-    return {
+    payload: dict = {
         "maps": maps,
         "diffs": diffs,
     }
+
+    if snapshot_sources:
+        snapshots_by_source = {
+            source: discover_snapshots(directory, source)
+            for source, directory in snapshot_sources.items()
+        }
+        network = build_network_section(builds, loaded, snapshots_by_source)
+        if network:
+            payload["network"] = network
+
+    return payload
 
 
 def _compute_pair_diffs(
