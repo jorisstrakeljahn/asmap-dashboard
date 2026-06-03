@@ -10,11 +10,7 @@ name: pages
 #   - manual dispatch: ad-hoc rebuild
 on:
   push:
-    # feat/network-tap is a temporary preview trigger: it ships a
-    # committed metrics.json (KIT-derived, see the build steps below)
-    # so the network tab can be shown live before the raw dossiers are
-    # public. Drop it from this list once the data path is sorted.
-    branches: [main, feat/network-tap]
+    branches: [main]
   schedule:
     - cron: "0 0 * * *"
   workflow_dispatch:
