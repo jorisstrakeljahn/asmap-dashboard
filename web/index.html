@@ -15,12 +15,14 @@
     <link rel="stylesheet" href="assets/css/diff-explorer.css" />
     <link rel="stylesheet" href="assets/css/top-movers.css" />
     <link rel="stylesheet" href="assets/css/drift-chart.css" />
+    <link rel="stylesheet" href="assets/css/network.css" />
         <script type="module" src="assets/js/app.js"></script>
     </head>
     <body>
         <header class="site-header">
             <a class="site-header__logo" href="./" data-i18n="header.title">ASmap Dashboard</a>
             <nav class="site-header__nav" data-i18n-attr="aria-label:header.nav.primary" aria-label="Primary">
+                <a class="site-header__nav-link" href="#network" data-tab-link="network" data-network-nav hidden data-i18n="header.nav.network">Network</a>
                 <a class="site-header__nav-link is-active" href="#maps" data-tab-link="maps" aria-current="page" data-i18n="header.nav.maps">Maps</a>
                 <a class="site-header__nav-link" href="#diff" data-tab-link="diff" data-i18n="header.nav.diff">Diff Explorer</a>
             </nav>
@@ -78,6 +80,50 @@
                     <div class="section__body" data-map-delta-chart>
                         <div class="skeleton skeleton--chart" aria-hidden="true"></div>
                     </div>
+                </section>
+            </div>
+
+            <div class="tab-panel" data-tab-panel="network" hidden>
+                <section class="section" aria-labelledby="network-overview-title">
+                    <header class="section__header">
+                        <div class="section__heading">
+                            <h2 id="network-overview-title" class="section__title" data-i18n="network.overview.sectionTitle">Network</h2>
+                            <p class="section__lede" data-i18n="network.overview.sectionLede">How the ASmap history behaves against observed Bitcoin nodes</p>
+                        </div>
+                    </header>
+                    <div class="section__toolbar">
+                        <p class="section__toolbar-meta" data-network-source></p>
+                    </div>
+                    <div class="section__body" data-network-overview>
+                        <div class="skeleton-grid" aria-hidden="true">
+                            <div class="skeleton skeleton--card"></div>
+                            <div class="skeleton skeleton--card"></div>
+                            <div class="skeleton skeleton--card"></div>
+                            <div class="skeleton skeleton--card"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="section" aria-labelledby="network-charts-title">
+                    <header class="section__header">
+                        <div class="section__heading">
+                            <h2 id="network-charts-title" class="section__title" data-i18n="network.charts.sectionTitle">Trends</h2>
+                            <p class="section__lede" data-i18n="network.charts.sectionLede">Each chart shows the available crawlers together. Click a legend entry to isolate one.</p>
+                        </div>
+                        <div class="section__header-tools">
+                            <div data-network-range></div>
+                        </div>
+                    </header>
+                    <div class="section__toolbar">
+                        <p class="section__toolbar-meta" data-network-trends-note></p>
+                    </div>
+                    <div class="section__body" data-network-decay>
+                        <div class="skeleton skeleton--chart" aria-hidden="true"></div>
+                    </div>
+                    <div class="section__body" data-network-concentration>
+                        <div class="skeleton skeleton--chart" aria-hidden="true"></div>
+                    </div>
+                    <div class="section__body" data-network-crosscheck></div>
                 </section>
             </div>
 
