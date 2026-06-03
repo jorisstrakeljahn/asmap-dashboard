@@ -4,12 +4,11 @@
 // big metric + unit + delta line) so the two tabs feel of a piece.
 //
 //   1. Reachable nodes      observed clearnet peers, IPv4/IPv6 split
-//   2. AS concentration     HHI plus the single most-present AS
+//   2. AS concentration     HHI of the observed node set
 //   3. Peer-diversity buckets   ASmap AS buckets vs Core's defaults
 //   4. Map staleness        how far a ~1-year-old map drifts for
 //                           today's nodes (read off the decay curve)
 
-import { labelFor } from "../../asn-names.js";
 import { formatNumber, formatPercent } from "../../format.js";
 import { mutedNote } from "../../utils/dom.js";
 import { t } from "../../utils/i18n.js";
@@ -50,39 +49,19 @@ function nodesCard(snapshot) {
     return card;
 }
 
-// Leads with the largest operator's node share (a legible percentage)
-// rather than the raw HHI: "8.7%" answers "how dominant is the biggest
-// player?" at a glance, where "HHI 0.0199" needs a mental model. HHI
-// and the AS count ride along on the context line so the aggregate is
-// not lost.
+// Leads with the HHI itself rather than the single largest operator's
+// share: the largest-operator percentage can fall while concentration
+// is merely redistributed to the #2 operator, so HHI — summed over the
+// whole AS distribution — is the honest headline. What HHI is and how it
+// is computed lives in the info tooltip; the card stays to the bare
+// number so it reads at a glance.
 function concentrationCard(snapshot) {
     const card = createCard(t("network.overview.concentration.label"), {
         info: t("network.overview.concentration.info"),
         infoAria: t("network.overview.concentration.infoAria"),
     });
-    const top = snapshot.top_ases?.[0];
-    if (top) {
-        card.append(metricNumber(formatPercent(top.share, 1)));
-        card.append(metricUnit(t("network.overview.concentration.unit")));
-        card.append(
-            deltaLine(
-                t("network.overview.concentration.topAs", {
-                    as: labelFor(top.asn),
-                }),
-            ),
-        );
-    } else {
-        card.append(metricNumber("\u2014"));
-        card.append(metricUnit(t("network.overview.concentration.unit")));
-    }
-    card.append(
-        deltaLine(
-            t("network.overview.concentration.context", {
-                hhi: snapshot.hhi.toFixed(4),
-                count: formatNumber(snapshot.unique_asns),
-            }),
-        ),
-    );
+    card.append(metricNumber(snapshot.hhi.toFixed(3)));
+    card.append(metricUnit(t("network.overview.concentration.unit")));
     return card;
 }
 

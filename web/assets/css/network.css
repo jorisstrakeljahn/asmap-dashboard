@@ -87,6 +87,69 @@
     background: var(--color-success);
 }
 
+/* Per-operator series for the top-operator breakdown view. Drawn from
+   the shared categorical palette (tokens.css --color-series-1..5) so the
+   five operators read as distinct categories, not a ranked gradient. The
+   combined line reuses the drift chart's neutral dashed "--total"
+   styling (charts.css), so no class is defined for it here. */
+.chart__line--op1,
+.chart__dot--op1 {
+    stroke: var(--color-series-1);
+    fill: var(--color-series-1);
+}
+
+.chart__line--op2,
+.chart__dot--op2 {
+    stroke: var(--color-series-2);
+    fill: var(--color-series-2);
+}
+
+.chart__line--op3,
+.chart__dot--op3 {
+    stroke: var(--color-series-3);
+    fill: var(--color-series-3);
+}
+
+.chart__line--op4,
+.chart__dot--op4 {
+    stroke: var(--color-series-4);
+    fill: var(--color-series-4);
+}
+
+.chart__line--op5,
+.chart__dot--op5 {
+    stroke: var(--color-series-5);
+    fill: var(--color-series-5);
+}
+
+.chart__line--op1,
+.chart__line--op2,
+.chart__line--op3,
+.chart__line--op4,
+.chart__line--op5 {
+    fill: none;
+}
+
+.chart-legend__swatch--op1 {
+    background: var(--color-series-1);
+}
+
+.chart-legend__swatch--op2 {
+    background: var(--color-series-2);
+}
+
+.chart-legend__swatch--op3 {
+    background: var(--color-series-3);
+}
+
+.chart-legend__swatch--op4 {
+    background: var(--color-series-4);
+}
+
+.chart-legend__swatch--op5 {
+    background: var(--color-series-5);
+}
+
 /* Data-quality stat that closes the Trends section: a single KPI plus
    an explanatory sentence (the ASN-attribution agreement is near
    constant, so it is a stat, not a chart). The note is capped to a
