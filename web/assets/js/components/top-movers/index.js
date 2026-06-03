@@ -1,5 +1,11 @@
 // Top Movers card orchestrator. Builds the scaffold once and
 // re-runs render() on every state change.
+//
+// ``mount(parent, diff, { family })`` — the family is driven by
+// the Diff Explorer master toggle and decides which currency
+// the cells, sort, and share denominator speak. The card used
+// to host its own IPv4 / IPv6 picker; it now reads the value
+// from the parent and the picker is gone.
 
 import { mutedNote } from "../../utils/dom.js";
 import { t } from "../../utils/i18n.js";
@@ -17,14 +23,15 @@ import { clampPageIndex, renderPagination } from "./pagination.js";
 import { tableBody } from "./rows.js";
 import { sortMovers } from "./sort.js";
 import { createState, isFiltering, saveShowNames } from "./state.js";
+import { accessorsFor } from "./units.js";
 
-export function mount(parent, diff) {
+export function mount(parent, diff, { family } = {}) {
     if (!diff || !diff.top_movers.length) {
         parent.replaceChildren(mutedNote(t("topMovers.empty")));
         return;
     }
 
-    const state = createState();
+    const state = createState({ family });
     const card = buildCardScaffold();
 
     const filterInput = buildFilterInput(state, () => render());
@@ -43,10 +50,12 @@ export function mount(parent, diff) {
     parent.replaceChildren(card.root);
 
     function render() {
+        const active = pruneInactive(diff.top_movers, state.unit);
         const filtered = filterMovers(
-            diff.top_movers,
+            active,
             state.filterText,
             state.filterDirection,
+            state.unit,
         );
         clampPageIndex(state, filtered.length);
         card.tableWrap.replaceChildren(renderTable(filtered, diff, state, render));
@@ -65,20 +74,38 @@ export function mount(parent, diff) {
     render();
 }
 
+// Drop rows the active currency has nothing to say about. The
+// backend top_movers set is a union of the top-N rankings under
+// each currency, so a row that ranked in IPv6 but never moved
+// IPv4 arrives with zero IPv4 activity. Showing it under the
+// IPv4 picker means a long tail of em-dash directions and zero
+// shares, which obscures the real story. The union itself stays
+// in metrics.json; this is the per-currency view filter.
+function pruneInactive(rows, unit) {
+    const rowChanges = accessorsFor(unit).rowChanges;
+    return rows.filter((row) => rowChanges(row) > 0);
+}
+
 function renderTable(filteredMovers, diff, state, onChange) {
     if (!filteredMovers.length) {
         return mutedNote(t("topMovers.noMatches"));
     }
-    const sorted = sortMovers(filteredMovers, state.sortField, state.sortDir);
+    const sorted = sortMovers(
+        filteredMovers,
+        state.sortField,
+        state.sortDir,
+        state.unit,
+    );
     const start = state.pageIndex * state.pageSize;
     const rows = sorted.slice(start, start + state.pageSize);
+    const unitTotal = accessorsFor(state.unit).diffTotal(diff);
 
     const table = document.createElement("table");
     table.className = "top-movers__grid";
     if (!state.showNames) table.classList.add("top-movers__grid--no-names");
     table.append(
         tableHead(state, onChange),
-        tableBody(rows, diff.total_changes, start),
+        tableBody(rows, unitTotal, start, state.unit),
     );
     return table;
 }

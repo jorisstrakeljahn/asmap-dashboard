@@ -78,12 +78,12 @@
     border-color: transparent;
 }
 
-/* Lock the direction dropdown's trigger to a fixed width so
+/* Lock the direction dropdown trigger to a fixed width so
    short labels (Lost, Gained) don't shrink it and shift the
    filter input around. The floor matches the longest option
-   ("Exchanged ↔") plus the chevron. */
+   ("Exchanged") plus the chevron. */
 .top-movers__direction-dropdown .dropdown__trigger {
-    min-width: 9.5rem;
+    min-width: 8rem;
 }
 
 /* Clear-filter slot sits on the right of the toolbar; it stays
@@ -139,21 +139,18 @@
 
 /* Fixed table layout pins each column to the percentages declared
    below so the grid does not reflow when the user toggles
-   Compact / Detailed (which adds or removes the operator name
+   Compact and Detailed (which adds or removes the operator name
    under each AS number). Without this, a long operator name like
-   "Earthlink Telecommunications Equipment Trading & Services
+   "Earthlink Telecommunications Equipment Trading and Services
    DMCC" would push the AS column wide on that row and shove the
-   Changes / Direction columns over.
+   Moved and Direction columns over.
 
-   min-width keeps the grid legible on narrow viewports — the
-   table-wrap above provides horizontal scrolling once the card
-   gets narrower than 720px. The bump from 640 to 720 makes room
-   for the extra "Touched" column without squeezing the AS or
-   Direction columns below the threshold where a 5-digit ASN
-   plus operator name would wrap awkwardly. */
+   min-width keeps the grid legible on narrow viewports. The
+   table wrap above provides horizontal scrolling once the card
+   gets narrower than 640px. */
 .top-movers__grid {
     width: 100%;
-    min-width: 720px;
+    min-width: 640px;
     border-collapse: collapse;
     table-layout: fixed;
 }
@@ -227,29 +224,30 @@
 
 /* ── Columns ─────────────────────────────────────────────────── */
 
-/* Column widths (table-layout: fixed picks these up). Six columns
-   share the row: a narrow leading rank, the AS identity, three
-   numeric columns of equal width (Changes / Touched / % of all),
-   and the Direction column for the counterpart. The AS and
-   Direction columns get the widest allocation because both render
-   an asn-cell stack (Compact: 1 line, Detailed: 2 lines), or, on
-   the Direction side, an arrow followed by another asn-cell
-   stack. Equal-width numeric columns keep their headers and
-   right-aligned values visually flush. */
+/* Column widths (table-layout: fixed picks these up). Five
+   columns share the row. A narrow leading rank, the AS identity,
+   one Share column, and the Direction column for the counterpart.
+   The AS and Direction columns get the widest allocation because
+   both render an asn-cell stack. Compact mode shows one line,
+   Detailed mode shows two. On the Direction side an arrow is
+   followed by another asn-cell stack.
+
+   Raw moved counts and the touched ratio live in the row hover
+   tooltip so the grid stays scannable. */
 .top-movers__grid th.top-movers__rank {
     width: 4%;
 }
 
 .top-movers__grid th.top-movers__asn {
-    width: 30%;
+    width: 34%;
 }
 
 .top-movers__grid th.top-movers__num {
-    width: 11%;
+    width: 16%;
 }
 
 .top-movers__grid th.top-movers__direction {
-    width: 33%;
+    width: 46%;
 }
 
 .top-movers__grid th.top-movers__rank,
@@ -257,6 +255,17 @@
 .top-movers__grid th.top-movers__num,
 .top-movers__grid td.top-movers__num {
     text-align: right;
+}
+
+/* Pull the numeric columns slightly inward on the right so the
+   header label and the sort chevron do not kiss the next column,
+   and the digits underneath get a touch of breathing room
+   against the Direction cell. The extra padding only applies to
+   the numeric columns; the surrounding cells keep the standard
+   horizontal rhythm. */
+.top-movers__grid th.top-movers__num,
+.top-movers__grid td.top-movers__num {
+    padding-right: var(--space-5);
 }
 
 /* Row numbers ride along with each row purely as an orientation
