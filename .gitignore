@@ -21,3 +21,7 @@ node_modules/
 # used locally.
 /web/assets/data/*.json
 .firecrawl/
+
+# Local checkout of bitcoin-core/asmap-data used to run the pipeline; it
+# carries its own git history and is cloned fresh on deploy, never tracked.
+/asmap-data/
