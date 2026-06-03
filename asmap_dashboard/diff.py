@@ -6,40 +6,31 @@ import ipaddress
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from asmap_dashboard._prefix import is_ipv4_prefix
+from asmap_dashboard._prefix import (
+    ipv4_bucket_indices,
+    is_ipv4_prefix,
+    prefix_address_count,
+)
 from asmap_dashboard._vendor.asmap import ASMap, net_to_prefix
 from asmap_dashboard.loader import LoadedMap, PathLike, load_map
 
-
-def count_entries_per_asn(loaded: LoadedMap) -> Counter:
-    """Count prefix entries per ASN in the loaded trie, ignoring ASN 0.
-
-    Walks every (prefix, asn) tuple once. Pipelines that compare the
-    same map against many others should call this once per map and
-    pass the result to ``diff_loaded_maps`` via the
-    ``entries_per_asn_a`` / ``entries_per_asn_b`` kwargs to avoid
-    re-walking each trie on every pair.
-
-    ASN 0 is excluded because it is the asmap sentinel for "no
-    routing information"; counting it would conflate genuine AS
-    presence with coverage gaps.
-    """
-    counter: Counter[int] = Counter()
-    for _prefix, asn in loaded.asmap.to_entries():
-        if asn != 0:
-            counter[asn] += 1
-    return counter
-
-
-# Cap on how many top-mover ASes a single diff records. The cap
-# exists to bound metrics.json size: an uncapped diff at the high
-# end of the change distribution (~130k entry-level changes)
-# touches a few thousand distinct ASes, and the long-long tail
-# (ASes with one or two changes) carries no analytical value at
-# the diff-explorer tier. 100 is the smallest cap that still
-# resolves into the analytically meaningful population (the 100th
-# row on a 25k-changes diff sits around 20-50 changes) while
-# keeping the diffs portion of metrics.json well under 1 MB.
+# Cap on how many top-mover ASes a single diff records *per
+# currency*. A single AS that ranks in the top N by entries, by
+# IPv4 coverage and by IPv6 coverage shows up exactly once thanks
+# to the union below, so the actual upper bound on row count is
+# ``3 * TOP_MOVERS_LIMIT`` in the (rare) pathological case where
+# the three rankings disagree completely. Real diffs see heavy
+# overlap because the biggest ASes dominate every currency, so the
+# union typically lands closer to ``1.2 - 1.5 * TOP_MOVERS_LIMIT``.
+#
+# The cap exists to bound metrics.json size: an uncapped diff at
+# the high end of the change distribution touches a few thousand
+# distinct ASes and the long-long tail (ASes with one or two
+# changes) carries no analytical value at the diff-explorer tier.
+# 100 is the smallest cap that still resolves into the analytically
+# meaningful population (the 100th row on a 25k-changes diff sits
+# around 20-50 changes) while keeping the diffs portion of
+# metrics.json well under 1 MB even after the union.
 TOP_MOVERS_LIMIT = 100
 
 
@@ -64,9 +55,6 @@ def diff_loaded_maps(
     loaded_a: LoadedMap,
     loaded_b: LoadedMap,
     addrs_file: PathLike | None = None,
-    *,
-    entries_per_asn_a: Counter | None = None,
-    entries_per_asn_b: Counter | None = None,
 ) -> dict:
     """Compute an aggregated diff between two already-loaded ASmaps.
 
@@ -75,153 +63,182 @@ def diff_loaded_maps(
       newly_mapped: ASN 0 in map_a, real ASN in map_b
       unmapped:     real ASN in map_a, ASN 0 in map_b
 
-    Top movers are tracked with separate ``gained`` and ``lost`` counts
-    per AS so the frontend can render the direction of a change without
-    guessing. ``gained`` is the number of prefixes the AS picked up
-    going from map_a to map_b (either reassigned-from-elsewhere or
-    newly mapped); ``lost`` is the number it gave up (either reassigned
-    elsewhere or unmapped). The primary counterpart is the AS most
-    frequently exchanged with, picked from whichever direction has the
-    larger count, so a row showing only newly_mapped activity reports
-    its real source instead of an arbitrary 0.
+    Two parallel measurements are recorded for every bucket:
 
-    Each top-mover row also carries ``entries_in_a`` and
-    ``entries_in_b``: the total number of prefix entries the AS holds
-    on either side. The frontend uses ``changes / max(entries_in_a,
-    entries_in_b)`` to render the "Touched" significance multiplier,
-    which answers "did this diff barely scratch a huge AS, or rip
-    through a small one?". The multiplier can exceed 1.0 when the
-    trie's diff granularity is finer than the AS's leaf count (see
-    the frontend tooltip for the full explanation).
+      Entry-level fields (``reassigned``, ``reassigned_ipv4``, ...)
+      count distinct prefix records in the trie diff. Cheap to
+      compute, but treats a single /8 reassignment as one unit of
+      drift even though the same unit covers 16M IPs. Kept for
+      backwards compatibility and as a debug view.
 
-    ``entries_per_asn_a`` / ``entries_per_asn_b`` let the caller hand in
-    pre-computed per-asn counts to avoid re-walking each trie on every
-    pair in an all-pairs loop. When omitted, the diff falls back to
-    walking each trie once via ``count_entries_per_asn``.
+      Coverage fields (``reassigned_ipv4_addresses``,
+      ``reassigned_ipv6_addresses``, ...) weight every changed
+      prefix by the size of the address space it covers. This is
+      the metric the frontend surfaces as the headline drift
+      number, because it answers "how much of the IPv4 / IPv6
+      address space had its ASN assignment change?" rather than
+      "how many trie leaves moved?". The per-family split matters
+      for Bitcoin Core peer diversity, which treats v4 and v6 as
+      independent diversity dimensions.
+
+      The two views can diverge by an order of magnitude: many
+      small IPv6 reassignments inflate the entry count while
+      moving very little address space, and a single large IPv4
+      reassignment can dominate coverage while contributing one
+      entry.
+
+    Top movers are tracked in all three currencies (entries, IPv4
+    addresses, IPv6 addresses). Each row carries:
+
+      ``changes`` / ``gained`` / ``lost``
+          Entry-level counts.
+      ``ipv4_addresses_changed`` / ``_gained`` / ``_lost``
+          The same counts weighted by IPv4 prefix size.
+      ``ipv6_addresses_changed`` / ``_gained`` / ``_lost``
+          The same for IPv6.
+      ``primary_counterpart`` (per currency: also
+      ``ipv4_primary_counterpart``, ``ipv6_primary_counterpart``)
+          The single AS most frequently exchanged with under this
+          currency. Picked from whichever direction (gain vs loss)
+          contributed more under the same currency, so the arrow
+          rendered in the Top Movers table never points at an
+          arbitrary 0.
+      ``entries_in_a`` / ``entries_in_b``
+          Trie-leaf counts the AS holds on either side.
+      ``ipv4_addresses_in_a`` / ``ipv4_addresses_in_b``
+      ``ipv6_addresses_in_a`` / ``ipv6_addresses_in_b``
+          Per-AS coverage on either side. Denominator for the
+          "Touched" multiplier in the IPv4 / IPv6 Top Movers view.
+
+    The top_movers row set is the union of the top-``TOP_MOVERS_LIMIT``
+    ASes under each of the three currencies. This keeps every AS
+    that would rank in the user-visible table reachable regardless
+    of which currency the frontend picker selects, without the
+    payload blowing up: the three rankings overlap heavily on real
+    diffs, and ASes that fail to rank under any currency contribute
+    no information at the top-movers tier.
 
     When ``addrs_file`` is given it is read line by line as one IP per
     line (blank lines and lines starting with '#' are skipped) and a
     bitcoin_node_impact section is included that counts how many of
     those IPs would resolve to a different ASN under map_b vs map_a.
 
-    Each of the three classification buckets also carries a v4 / v6
-    split (``reassigned_ipv4`` / ``reassigned_ipv6`` and so on). The
-    split lets the frontend answer "are the changes mostly IPv4 or
-    IPv6?", which matters for Bitcoin Core peer diversity. The split
-    fields sum back to the bucket total; an assertion in the test
-    suite guards that invariant.
-
-    Returns a dict with these keys:
-        entries_a:           int, entry count of map_a.
-        entries_b:           int, entry count of map_b.
-        total_changes:       int, sum of the three classification buckets.
-        reassigned:          int.
-        reassigned_ipv4:     int, IPv4 share of ``reassigned``.
-        reassigned_ipv6:     int, IPv6 share of ``reassigned``.
-        newly_mapped:        int.
-        newly_mapped_ipv4:   int.
-        newly_mapped_ipv6:   int.
-        unmapped:            int.
-        unmapped_ipv4:       int.
-        unmapped_ipv6:       int.
-        as_total_a:          int, number of distinct autonomous systems
-                             that hold at least one prefix in map_a.
-        as_total_b:          int, same for map_b.
-        as_appeared:         int, count of ASes present in map_b but not
-                             in map_a. Peer-diversity signal: new ASes
-                             are new potential buckets for Bitcoin Core
-                             peer selection.
-        as_disappeared:      int, count of ASes present in map_a but not
-                             in map_b.
-        top_movers:          list of {"asn", "changes", "gained", "lost",
-                             "primary_counterpart", "entries_in_a",
-                             "entries_in_b"}.
-        bitcoin_node_impact: optional dict, present only when addrs_file is set.
+    Returns a dict with these keys (entry-level first, coverage second,
+    roster third, top movers, optional node impact):
+        entries_a:                     int, entry count of map_a.
+        entries_b:                     int, entry count of map_b.
+        total_changes:                 int, sum of the three buckets.
+        reassigned:                    int.
+        reassigned_ipv4:               int, IPv4 share of ``reassigned``.
+        reassigned_ipv6:               int, IPv6 share of ``reassigned``.
+        newly_mapped:                  int.
+        newly_mapped_ipv4:             int.
+        newly_mapped_ipv6:             int.
+        unmapped:                      int.
+        unmapped_ipv4:                 int.
+        unmapped_ipv6:                 int.
+        ipv4_address_space_a:          int, total IPv4 addresses
+                                       mapped in map_a (asn != 0).
+        ipv4_address_space_b:          int, same for map_b.
+        ipv4_bucket_space_a:           int, distinct /16 NetGroup
+                                       buckets covered by map_a.
+                                       Denominator of the diff
+                                       explorer match banner on
+                                       the IPv4 side.
+        ipv4_bucket_space_b:           int, same for map_b.
+        ipv4_buckets_changed:          int, distinct /16 NetGroup
+                                       buckets that carry at least
+                                       one changed prefix between
+                                       map_a and map_b.
+        ipv6_address_space_a:          int, total IPv6 addresses
+                                       mapped in map_a (asn != 0).
+        ipv6_address_space_b:          int, same for map_b.
+        reassigned_ipv4_addresses:     int, IPv4 addresses whose ASN
+                                       changed between maps.
+        reassigned_ipv6_addresses:     int, same for IPv6.
+        newly_mapped_ipv4_addresses:   int, IPv4 addresses that gained
+                                       an ASN (sentinel 0 -> real ASN).
+        newly_mapped_ipv6_addresses:   int, same for IPv6.
+        unmapped_ipv4_addresses:       int, IPv4 addresses that lost
+                                       their ASN (real ASN -> 0).
+        unmapped_ipv6_addresses:       int, same for IPv6.
+        ipv4_addresses_changed:        int, sum of the three IPv4
+                                       coverage buckets above.
+        ipv6_addresses_changed:        int, same for IPv6.
+        as_total_a:                    int, number of distinct ASes
+                                       that hold at least one prefix
+                                       in map_a.
+        as_total_b:                    int, same for map_b.
+        as_appeared:                   int, count of ASes present in
+                                       map_b but not in map_a. Peer-
+                                       diversity signal: new ASes are
+                                       new potential buckets for
+                                       Bitcoin Core peer selection.
+        as_disappeared:                int, count of ASes present in
+                                       map_a but not in map_b.
+        top_movers:                    list of per-AS rows; see field
+                                       breakdown above.
+        bitcoin_node_impact:           optional dict, present only
+                                       when addrs_file is set.
     """
     asmap_a = loaded_a.asmap
     asmap_b = loaded_b.asmap
 
-    if entries_per_asn_a is None:
-        entries_per_asn_a = count_entries_per_asn(loaded_a)
-    if entries_per_asn_b is None:
-        entries_per_asn_b = count_entries_per_asn(loaded_b)
-
-    diff_entries = asmap_a.diff(asmap_b)
-
-    reassigned = 0
-    reassigned_ipv4 = 0
-    newly_mapped = 0
-    newly_mapped_ipv4 = 0
-    unmapped = 0
-    unmapped_ipv4 = 0
-    gained_per_as: Counter[int] = Counter()
-    lost_per_as: Counter[int] = Counter()
-    gained_from: dict[int, Counter[int]] = defaultdict(Counter)
-    lost_to: dict[int, Counter[int]] = defaultdict(Counter)
-    for prefix, old_asn, new_asn in diff_entries:
+    buckets = _DiffBuckets()
+    activity = _PerAsActivity()
+    # ``changed_ipv4_buckets`` tracks every /16 NetGroup bucket
+    # touched by an IPv4 prefix change. ``len(...)`` becomes the
+    # IPv4 numerator in the diff explorer match banner — distinct
+    # peer-diversity buckets that carry a changed prefix.
+    changed_ipv4_buckets: set[int] = set()
+    for prefix, old_asn, new_asn in asmap_a.diff(asmap_b):
         if old_asn == new_asn:
             continue
         is_v4 = is_ipv4_prefix(prefix)
-        if old_asn == 0:
-            newly_mapped += 1
-            if is_v4:
-                newly_mapped_ipv4 += 1
-        elif new_asn == 0:
-            unmapped += 1
-            if is_v4:
-                unmapped_ipv4 += 1
-        else:
-            reassigned += 1
-            if is_v4:
-                reassigned_ipv4 += 1
-        if old_asn != 0:
-            lost_per_as[old_asn] += 1
-            lost_to[old_asn][new_asn] += 1
-        if new_asn != 0:
-            gained_per_as[new_asn] += 1
-            gained_from[new_asn][old_asn] += 1
+        addresses = prefix_address_count(prefix)
+        buckets.record(old_asn, new_asn, is_v4, addresses)
+        activity.record(old_asn, new_asn, is_v4, addresses)
+        if is_v4:
+            changed_ipv4_buckets.update(ipv4_bucket_indices(prefix))
 
-    changes_per_as: Counter[int] = Counter()
-    for asn, count in lost_per_as.items():
-        changes_per_as[asn] += count
-    for asn, count in gained_per_as.items():
-        changes_per_as[asn] += count
+    ranked_asns = activity.ranked_asns(TOP_MOVERS_LIMIT)
+    top_movers = [activity.row(asn, loaded_a, loaded_b) for asn in ranked_asns]
 
-    top_movers = [
-        _top_mover_row(
-            asn,
-            count,
-            gained_per_as,
-            lost_per_as,
-            gained_from,
-            lost_to,
-            entries_per_asn_a,
-            entries_per_asn_b,
-        )
-        for asn, count in changes_per_as.most_common(TOP_MOVERS_LIMIT)
-    ]
-
-    # AS roster delta. The Counter keys come straight from
-    # to_entries() walks of each trie, so an ASN with at least one
-    # leaf prefix shows up exactly once. Set arithmetic stays
-    # cheap because ASN-space is small (~100k entries even on the
-    # largest published map).
-    asns_a = set(entries_per_asn_a)
-    asns_b = set(entries_per_asn_b)
+    # AS roster delta. ``entries_per_asn`` keys are exactly the
+    # ASNs with at least one non-zero leaf in each map, which is
+    # the right population for the "Bitcoin Core peer-bucket count"
+    # signal (ASN 0 is not a real AS).
+    asns_a = set(loaded_a.entries_per_asn)
+    asns_b = set(loaded_b.entries_per_asn)
 
     result: dict = {
         "entries_a": loaded_a.entries_count,
         "entries_b": loaded_b.entries_count,
-        "total_changes": reassigned + newly_mapped + unmapped,
-        "reassigned": reassigned,
-        "reassigned_ipv4": reassigned_ipv4,
-        "reassigned_ipv6": reassigned - reassigned_ipv4,
-        "newly_mapped": newly_mapped,
-        "newly_mapped_ipv4": newly_mapped_ipv4,
-        "newly_mapped_ipv6": newly_mapped - newly_mapped_ipv4,
-        "unmapped": unmapped,
-        "unmapped_ipv4": unmapped_ipv4,
-        "unmapped_ipv6": unmapped - unmapped_ipv4,
+        "total_changes": buckets.total_changes(),
+        "reassigned": buckets.reassigned,
+        "reassigned_ipv4": buckets.reassigned_ipv4,
+        "reassigned_ipv6": buckets.reassigned - buckets.reassigned_ipv4,
+        "newly_mapped": buckets.newly_mapped,
+        "newly_mapped_ipv4": buckets.newly_mapped_ipv4,
+        "newly_mapped_ipv6": buckets.newly_mapped - buckets.newly_mapped_ipv4,
+        "unmapped": buckets.unmapped,
+        "unmapped_ipv4": buckets.unmapped_ipv4,
+        "unmapped_ipv6": buckets.unmapped - buckets.unmapped_ipv4,
+        "ipv4_address_space_a": loaded_a.ipv4_address_space,
+        "ipv4_address_space_b": loaded_b.ipv4_address_space,
+        "ipv4_bucket_space_a": loaded_a.ipv4_bucket_space,
+        "ipv4_bucket_space_b": loaded_b.ipv4_bucket_space,
+        "ipv4_buckets_changed": len(changed_ipv4_buckets),
+        "ipv6_address_space_a": loaded_a.ipv6_address_space,
+        "ipv6_address_space_b": loaded_b.ipv6_address_space,
+        "reassigned_ipv4_addresses": buckets.reassigned_ipv4_addresses,
+        "reassigned_ipv6_addresses": buckets.reassigned_ipv6_addresses,
+        "newly_mapped_ipv4_addresses": buckets.newly_mapped_ipv4_addresses,
+        "newly_mapped_ipv6_addresses": buckets.newly_mapped_ipv6_addresses,
+        "unmapped_ipv4_addresses": buckets.unmapped_ipv4_addresses,
+        "unmapped_ipv6_addresses": buckets.unmapped_ipv6_addresses,
+        "ipv4_addresses_changed": buckets.ipv4_addresses_changed(),
+        "ipv6_addresses_changed": buckets.ipv6_addresses_changed(),
         "as_total_a": len(asns_a),
         "as_total_b": len(asns_b),
         "as_appeared": len(asns_b - asns_a),
@@ -233,43 +250,234 @@ def diff_loaded_maps(
     return result
 
 
-def _top_mover_row(
-    asn: int,
-    count: int,
-    gained_per_as: Counter,
-    lost_per_as: Counter,
-    gained_from: dict,
-    lost_to: dict,
-    entries_per_asn_a: Counter,
-    entries_per_asn_b: Counter,
-) -> dict:
-    """Build one top_movers row with separate gained/lost counts.
+class _DiffBuckets:
+    """Mutable accumulator for the three change buckets, by family.
 
-    primary_counterpart is the most frequent partner AS in whichever
-    direction (gain or loss) contributed more changes for this row.
-    Ties favour the gain side.
-
-    entries_in_a / entries_in_b carry the per-AS prefix counts on
-    either side of the diff so the frontend can compute the
-    "Touched" multiplier without a second pass over the data.
+    Local to this module: the diff loop is the only producer, the
+    enclosing function is the only consumer. Pulling the running
+    totals out of the main function body shrinks ``diff_loaded_maps``
+    enough that the per-prefix loop reads as a single intent
+    ("classify and record"), not a bookkeeping ladder.
     """
-    gained = gained_per_as.get(asn, 0)
-    lost = lost_per_as.get(asn, 0)
-    if gained >= lost and gained_from[asn]:
-        primary = gained_from[asn].most_common(1)[0][0]
-    elif lost_to[asn]:
-        primary = lost_to[asn].most_common(1)[0][0]
-    else:
-        primary = 0
-    return {
-        "asn": asn,
-        "changes": count,
-        "gained": gained,
-        "lost": lost,
-        "primary_counterpart": primary,
-        "entries_in_a": entries_per_asn_a.get(asn, 0),
-        "entries_in_b": entries_per_asn_b.get(asn, 0),
-    }
+
+    def __init__(self) -> None:
+        self.reassigned = 0
+        self.reassigned_ipv4 = 0
+        self.newly_mapped = 0
+        self.newly_mapped_ipv4 = 0
+        self.unmapped = 0
+        self.unmapped_ipv4 = 0
+        self.reassigned_ipv4_addresses = 0
+        self.reassigned_ipv6_addresses = 0
+        self.newly_mapped_ipv4_addresses = 0
+        self.newly_mapped_ipv6_addresses = 0
+        self.unmapped_ipv4_addresses = 0
+        self.unmapped_ipv6_addresses = 0
+
+    def record(self, old_asn: int, new_asn: int, is_v4: bool, addresses: int) -> None:
+        if old_asn == 0:
+            self.newly_mapped += 1
+            if is_v4:
+                self.newly_mapped_ipv4 += 1
+                self.newly_mapped_ipv4_addresses += addresses
+            else:
+                self.newly_mapped_ipv6_addresses += addresses
+        elif new_asn == 0:
+            self.unmapped += 1
+            if is_v4:
+                self.unmapped_ipv4 += 1
+                self.unmapped_ipv4_addresses += addresses
+            else:
+                self.unmapped_ipv6_addresses += addresses
+        else:
+            self.reassigned += 1
+            if is_v4:
+                self.reassigned_ipv4 += 1
+                self.reassigned_ipv4_addresses += addresses
+            else:
+                self.reassigned_ipv6_addresses += addresses
+
+    def total_changes(self) -> int:
+        return self.reassigned + self.newly_mapped + self.unmapped
+
+    def ipv4_addresses_changed(self) -> int:
+        return (
+            self.reassigned_ipv4_addresses
+            + self.newly_mapped_ipv4_addresses
+            + self.unmapped_ipv4_addresses
+        )
+
+    def ipv6_addresses_changed(self) -> int:
+        return (
+            self.reassigned_ipv6_addresses
+            + self.newly_mapped_ipv6_addresses
+            + self.unmapped_ipv6_addresses
+        )
+
+
+class _PerAsActivity:
+    """Per-AS gained / lost counters in all three currencies.
+
+    Keeping the three currencies side by side here (instead of as
+    independent Counters scattered across the main function) means
+    the top-N union pass and the row builder both read from one
+    consistent source. Each ``record`` call increments exactly the
+    counters relevant to one diff entry; the unit picker in the
+    frontend later selects which set the user sees.
+    """
+
+    def __init__(self) -> None:
+        self._gained_entries: Counter[int] = Counter()
+        self._lost_entries: Counter[int] = Counter()
+        self._gained_ipv4: Counter[int] = Counter()
+        self._lost_ipv4: Counter[int] = Counter()
+        self._gained_ipv6: Counter[int] = Counter()
+        self._lost_ipv6: Counter[int] = Counter()
+        self._gained_from_entries: dict[int, Counter[int]] = defaultdict(Counter)
+        self._lost_to_entries: dict[int, Counter[int]] = defaultdict(Counter)
+        self._gained_from_ipv4: dict[int, Counter[int]] = defaultdict(Counter)
+        self._lost_to_ipv4: dict[int, Counter[int]] = defaultdict(Counter)
+        self._gained_from_ipv6: dict[int, Counter[int]] = defaultdict(Counter)
+        self._lost_to_ipv6: dict[int, Counter[int]] = defaultdict(Counter)
+
+    def record(self, old_asn: int, new_asn: int, is_v4: bool, addresses: int) -> None:
+        if old_asn != 0:
+            self._lost_entries[old_asn] += 1
+            self._lost_to_entries[old_asn][new_asn] += 1
+            if is_v4:
+                self._lost_ipv4[old_asn] += addresses
+                self._lost_to_ipv4[old_asn][new_asn] += addresses
+            else:
+                self._lost_ipv6[old_asn] += addresses
+                self._lost_to_ipv6[old_asn][new_asn] += addresses
+        if new_asn != 0:
+            self._gained_entries[new_asn] += 1
+            self._gained_from_entries[new_asn][old_asn] += 1
+            if is_v4:
+                self._gained_ipv4[new_asn] += addresses
+                self._gained_from_ipv4[new_asn][old_asn] += addresses
+            else:
+                self._gained_ipv6[new_asn] += addresses
+                self._gained_from_ipv6[new_asn][old_asn] += addresses
+
+    def ranked_asns(self, limit: int) -> list[int]:
+        """Return the union of the top ``limit`` ASes under each currency.
+
+        Ordering: entries-rank first, then v4-only newcomers, then
+        v6-only newcomers. The frontend sorts client-side per the
+        active currency, so this order is only the default rendering
+        when no sort is applied. Stable insertion via dict-from-keys
+        preserves the entries-first tie-breaker, which keeps the
+        legacy view byte-stable while the new fields ride alongside.
+        """
+        ordered: dict[int, None] = {}
+        for asn, count in self._total(
+            self._gained_entries, self._lost_entries
+        ).most_common(limit):
+            if count > 0:
+                ordered[asn] = None
+        for asn, count in self._total(self._gained_ipv4, self._lost_ipv4).most_common(
+            limit
+        ):
+            if count > 0:
+                ordered.setdefault(asn, None)
+        for asn, count in self._total(self._gained_ipv6, self._lost_ipv6).most_common(
+            limit
+        ):
+            if count > 0:
+                ordered.setdefault(asn, None)
+        return list(ordered)
+
+    @staticmethod
+    def _total(gained: Counter[int], lost: Counter[int]) -> Counter[int]:
+        """Per-AS total = gained + lost.
+
+        Lost is folded in first so that, on a tie, the losing AS
+        ranks ahead of the gaining one. This keeps the rendered
+        Top Movers order stable across the entries / IPv4 / IPv6
+        currencies: the AS that gave up the prefixes is the more
+        natural "headline" of a reassignment event, and surfacing
+        it first matches what every prior frontend release showed.
+        Counter+Counter would also drop zero rows, which we need
+        to keep for the union-top-N pass to see every active AS.
+        """
+        combined: Counter[int] = Counter()
+        for asn, count in lost.items():
+            combined[asn] += count
+        for asn, count in gained.items():
+            combined[asn] += count
+        return combined
+
+    def row(self, asn: int, loaded_a: LoadedMap, loaded_b: LoadedMap) -> dict:
+        """Build one top_movers row for ``asn`` with all three currencies populated.
+
+        The per-AS presence figures (``*_in_a`` / ``*_in_b``) come
+        straight from the loader caches, so the diff never re-walks
+        a trie to size the "Touched" denominator.
+        """
+        gained_entries = self._gained_entries.get(asn, 0)
+        lost_entries = self._lost_entries.get(asn, 0)
+        gained_ipv4 = self._gained_ipv4.get(asn, 0)
+        lost_ipv4 = self._lost_ipv4.get(asn, 0)
+        gained_ipv6 = self._gained_ipv6.get(asn, 0)
+        lost_ipv6 = self._lost_ipv6.get(asn, 0)
+        return {
+            "asn": asn,
+            "changes": gained_entries + lost_entries,
+            "gained": gained_entries,
+            "lost": lost_entries,
+            "primary_counterpart": _primary_counterpart(
+                gained_entries,
+                lost_entries,
+                self._gained_from_entries.get(asn),
+                self._lost_to_entries.get(asn),
+            ),
+            "entries_in_a": loaded_a.entries_per_asn.get(asn, 0),
+            "entries_in_b": loaded_b.entries_per_asn.get(asn, 0),
+            "ipv4_addresses_changed": gained_ipv4 + lost_ipv4,
+            "ipv4_addresses_gained": gained_ipv4,
+            "ipv4_addresses_lost": lost_ipv4,
+            "ipv4_primary_counterpart": _primary_counterpart(
+                gained_ipv4,
+                lost_ipv4,
+                self._gained_from_ipv4.get(asn),
+                self._lost_to_ipv4.get(asn),
+            ),
+            "ipv4_addresses_in_a": loaded_a.ipv4_addresses_per_asn.get(asn, 0),
+            "ipv4_addresses_in_b": loaded_b.ipv4_addresses_per_asn.get(asn, 0),
+            "ipv6_addresses_changed": gained_ipv6 + lost_ipv6,
+            "ipv6_addresses_gained": gained_ipv6,
+            "ipv6_addresses_lost": lost_ipv6,
+            "ipv6_primary_counterpart": _primary_counterpart(
+                gained_ipv6,
+                lost_ipv6,
+                self._gained_from_ipv6.get(asn),
+                self._lost_to_ipv6.get(asn),
+            ),
+            "ipv6_addresses_in_a": loaded_a.ipv6_addresses_per_asn.get(asn, 0),
+            "ipv6_addresses_in_b": loaded_b.ipv6_addresses_per_asn.get(asn, 0),
+        }
+
+
+def _primary_counterpart(
+    gained: int,
+    lost: int,
+    gained_from: Counter[int] | None,
+    lost_to: Counter[int] | None,
+) -> int:
+    """Return the single AS this row most frequently exchanged with.
+
+    The direction with the larger total (gained vs lost) wins so
+    the rendered arrow points at the real source / destination
+    rather than at an arbitrary 0 when one side is empty. Ties
+    favour the gain side: a row that gained and lost equally is
+    more naturally described by "where did it come from?".
+    """
+    if gained >= lost and gained_from:
+        return gained_from.most_common(1)[0][0]
+    if lost_to:
+        return lost_to.most_common(1)[0][0]
+    return 0
 
 
 def _node_impact(asmap_a: ASMap, asmap_b: ASMap, addrs_file: PathLike) -> dict:

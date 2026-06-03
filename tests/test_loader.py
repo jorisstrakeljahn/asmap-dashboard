@@ -63,3 +63,103 @@ def test_loaded_map_is_immutable(tmp_path):
 
     with pytest.raises(dataclasses.FrozenInstanceError):
         loaded.file_size_bytes = 0  # type: ignore[misc]
+
+
+def test_load_map_caches_entries_per_asn_excluding_sentinel(tmp_path):
+    """entries_per_asn carries every non-zero ASN exactly once with its count."""
+    path = write_asmap(
+        tmp_path / "mixed.dat",
+        [
+            (ipaddress.IPv4Network("1.0.0.0/8"), 100),
+            (ipaddress.IPv4Network("16.0.0.0/8"), 100),
+            (ipaddress.IPv4Network("64.0.0.0/8"), 0),
+            (ipaddress.IPv4Network("128.0.0.0/8"), 200),
+        ],
+    )
+
+    loaded = load_map(path)
+
+    assert dict(loaded.entries_per_asn) == {100: 2, 200: 1}
+    assert 0 not in loaded.entries_per_asn
+
+
+def test_load_map_caches_per_asn_address_space_split_by_family(tmp_path):
+    """ipv{4,6}_addresses_per_asn sum to the headline ipv{4,6}_address_space."""
+    path = write_asmap(
+        tmp_path / "split.dat",
+        [
+            (ipaddress.IPv4Network("1.0.0.0/8"), 100),
+            (ipaddress.IPv4Network("16.0.0.0/8"), 200),
+            (ipaddress.IPv6Network("2001::/16"), 100),
+            (ipaddress.IPv6Network("2a00::/16"), 300),
+        ],
+    )
+
+    loaded = load_map(path)
+
+    assert loaded.ipv4_addresses_per_asn[100] == 1 << (32 - 8)
+    assert loaded.ipv4_addresses_per_asn[200] == 1 << (32 - 8)
+    assert loaded.ipv6_addresses_per_asn[100] == 1 << (128 - 16)
+    assert loaded.ipv6_addresses_per_asn[300] == 1 << (128 - 16)
+    # Sum invariant: per-AS coverage and the headline drift
+    # denominator can never disagree on the same map.
+    assert sum(loaded.ipv4_addresses_per_asn.values()) == loaded.ipv4_address_space
+    assert sum(loaded.ipv6_addresses_per_asn.values()) == loaded.ipv6_address_space
+
+
+def test_load_map_per_asn_address_space_excludes_sentinel_zero(tmp_path):
+    """Per-AS coverage Counters must not carry an ASN-0 entry."""
+    path = write_asmap(
+        tmp_path / "with-zero.dat",
+        [
+            (ipaddress.IPv4Network("1.0.0.0/8"), 100),
+            (ipaddress.IPv4Network("2.0.0.0/8"), 0),
+            (ipaddress.IPv6Network("2a00::/16"), 0),
+        ],
+    )
+
+    loaded = load_map(path)
+
+    assert 0 not in loaded.ipv4_addresses_per_asn
+    assert 0 not in loaded.ipv6_addresses_per_asn
+    assert loaded.ipv4_address_space == 1 << (32 - 8)
+    assert loaded.ipv6_address_space == 0
+
+
+def test_load_map_counts_distinct_ipv4_bucket_space(tmp_path):
+    """ipv4_bucket_space counts each /16 NetGroup bucket once across the map.
+
+    Map: one /8 (covers 256 buckets, ASN 100), one /24 inside a
+    completely separate /16 (covers 1 bucket, ASN 200), one /20
+    inside one further /16 (covers 1 bucket, ASN 200), and an
+    ASN-0 /16 that must not contribute. Result: 256 + 1 + 1 = 258.
+    """
+    path = write_asmap(
+        tmp_path / "buckets.dat",
+        [
+            (ipaddress.IPv4Network("1.0.0.0/8"), 100),
+            (ipaddress.IPv4Network("16.0.0.0/24"), 200),
+            (ipaddress.IPv4Network("32.0.0.0/20"), 200),
+            (ipaddress.IPv4Network("48.0.0.0/16"), 0),
+        ],
+    )
+
+    loaded = load_map(path)
+
+    assert loaded.ipv4_bucket_space == 256 + 1 + 1
+
+
+def test_load_map_ipv4_bucket_space_dedups_overlapping_prefixes(tmp_path):
+    """Multiple prefixes that fall into the same /16 only count it once."""
+    path = write_asmap(
+        tmp_path / "overlap.dat",
+        [
+            (ipaddress.IPv4Network("10.0.0.0/24"), 100),
+            (ipaddress.IPv4Network("10.0.1.0/24"), 200),
+            (ipaddress.IPv4Network("10.0.2.0/24"), 300),
+        ],
+    )
+
+    loaded = load_map(path)
+
+    assert loaded.ipv4_bucket_space == 1

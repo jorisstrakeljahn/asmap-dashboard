@@ -125,3 +125,61 @@ def test_analyze_loaded_map_matches_analyze_map(tmp_path):
     )
 
     assert analyze_loaded_map(load_map(path)) == analyze_map(path)
+
+
+def test_address_space_sums_prefix_sizes_per_family(tmp_path):
+    """Two /8 IPv4 prefixes and one /16 IPv6 prefix sum to the expected totals."""
+    path = write_asmap(
+        tmp_path / "spaces.dat",
+        [
+            (ipaddress.IPv4Network("1.0.0.0/8"), 100),
+            (ipaddress.IPv4Network("2.0.0.0/8"), 200),
+            (ipaddress.IPv6Network("2001::/16"), 300),
+        ],
+    )
+
+    profile = analyze_map(path)
+
+    # Each /8 covers 2^(32-8) = 16 777 216 IPv4 addresses; the /16
+    # covers 2^(128-16) IPv6 addresses. The sums must match these
+    # bit-shift expectations exactly.
+    assert profile["ipv4_address_space"] == 2 * (1 << (32 - 8))
+    assert profile["ipv6_address_space"] == 1 << (128 - 16)
+
+
+def test_address_space_excludes_unmapped_prefixes(tmp_path):
+    """ASN 0 entries must not contribute to the address-space totals."""
+    path = write_asmap(
+        tmp_path / "with-zero.dat",
+        [
+            (ipaddress.IPv4Network("1.0.0.0/8"), 100),
+            (ipaddress.IPv4Network("2.0.0.0/8"), 0),
+            (ipaddress.IPv6Network("2001::/16"), 0),
+        ],
+    )
+
+    profile = analyze_map(path)
+
+    assert profile["ipv4_address_space"] == 1 << (32 - 8)
+    assert profile["ipv6_address_space"] == 0
+
+
+def test_address_space_handles_overriding_subprefix(tmp_path):
+    """A /24 override inside a /8 must not double-count its addresses.
+
+    Address-space measurement walks the flat (non-overlapping) trie,
+    so the addresses under the /24 belong to the /24's ASN and the
+    rest of the /8 belongs to the parent ASN; the totals must still
+    add up to exactly the parent /8 size.
+    """
+    path = write_asmap(
+        tmp_path / "override.dat",
+        [
+            (ipaddress.IPv4Network("1.0.0.0/8"), 100),
+            (ipaddress.IPv4Network("1.0.0.0/24"), 200),
+        ],
+    )
+
+    profile = analyze_map(path)
+
+    assert profile["ipv4_address_space"] == 1 << (32 - 8)

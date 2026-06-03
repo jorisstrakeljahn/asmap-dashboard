@@ -32,13 +32,12 @@ from __future__ import annotations
 
 import itertools
 import re
-from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
 from asmap_dashboard.analyze import analyze_loaded_map
-from asmap_dashboard.diff import count_entries_per_asn, diff_loaded_maps
+from asmap_dashboard.diff import diff_loaded_maps
 from asmap_dashboard.loader import LoadedMap, load_map
 
 PathLike = str | Path
@@ -242,21 +241,13 @@ def _compute_pair_diffs(
         for build in builds
         if build.unfilled_path is not None
     ]
-    # Pre-compute per-ASN prefix counts once per unfilled map. Each
-    # counter is reused N-1 times across the all-pairs diff loop, so
-    # caching here avoids walking every trie O(N) times for the
-    # "Touched" multipliers carried on each top_mover row.
-    entries_per_asn: dict[str, Counter[int]] = {
-        build.name: count_entries_per_asn(loaded_map) for build, loaded_map in diffable
-    }
+    # Per-ASN presence (entries, IPv4 addresses, IPv6 addresses) is
+    # cached on each LoadedMap at parse time, so the all-pairs diff
+    # loop reuses those caches O(N) times instead of re-walking the
+    # trie on every pair.
     out: list[dict] = []
     for (build_a, loaded_a), (build_b, loaded_b) in itertools.combinations(diffable, 2):
-        diff = diff_loaded_maps(
-            loaded_a,
-            loaded_b,
-            entries_per_asn_a=entries_per_asn[build_a.name],
-            entries_per_asn_b=entries_per_asn[build_b.name],
-        )
+        diff = diff_loaded_maps(loaded_a, loaded_b)
         diff["from"] = build_a.name
         diff["to"] = build_b.name
         diff["variant"] = "unfilled"
