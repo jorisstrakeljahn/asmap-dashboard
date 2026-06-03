@@ -20,3 +20,4 @@ node_modules/
 # bitcoin-core/asmap-data + bgp.tools; see README for the regen commands
 # used locally.
 /web/assets/data/*.json
+.firecrawl/
