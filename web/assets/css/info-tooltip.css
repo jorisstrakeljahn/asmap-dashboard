@@ -72,12 +72,20 @@
    for the absolute anchor to land in the right coordinate
    system. Gap from the edge matches the card padding rhythm so
    the icon reads as part of the card chrome rather than as
-   floating chrome. */
+   floating chrome.
+
+   No z-index on purpose: being position:absolute already paints
+   the trigger above the card's in-flow content, and adding a
+   z-index here would make this element a stacking context that
+   traps its own fixed-position popover. A trapped popover paints
+   below a later card's card-corner icon (which would establish
+   its own sibling context), so the icon shows through the open
+   popover. Leaving z-index auto lets the popover (z-popover) rise
+   to the nearest shared context and cover sibling icons. */
 .info-tooltip--card-corner {
     position: absolute;
     top: var(--space-3);
     right: var(--space-3);
-    z-index: 1;
 }
 
 /* Fixed-position so any overflow:auto ancestor (e.g. the
