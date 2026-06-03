@@ -1,14 +1,20 @@
 name: pages
 
-# The dashboard's data layer (metrics.json, asn-names.json) is generated
-# fresh on every deploy from bitcoin-core/asmap-data + bgp.tools and is
-# not committed. Triggers:
+# The dashboard's data layer (metrics.json, asn-names.json) is normally
+# generated fresh on every deploy from bitcoin-core/asmap-data + bgp.tools
+# and is not committed. Exception: a branch may commit the payload to
+# preview data CI cannot reproduce (the KIT-derived network tab); the
+# build steps below detect that and deploy it as-is. Triggers:
 #   - push to main: redeploy when web/, the pipeline, or the workflow changes
 #   - daily cron: pick up new asmap-data builds and ASN-name updates
 #   - manual dispatch: ad-hoc rebuild
 on:
   push:
-    branches: [main]
+    # feat/network-tap is a temporary preview trigger: it ships a
+    # committed metrics.json (KIT-derived, see the build steps below)
+    # so the network tab can be shown live before the raw dossiers are
+    # public. Drop it from this list once the data path is sorted.
+    branches: [main, feat/network-tap]
   schedule:
     - cron: "0 0 * * *"
   workflow_dispatch:
@@ -38,10 +44,26 @@ jobs:
       - name: Install asmap_dashboard
         run: pip install -e .
 
+      # When the branch ships a committed payload (the network-tap
+      # preview, whose KIT-derived metrics cannot be regenerated in CI
+      # because the raw dossiers are not public), deploy it as-is and
+      # skip the asmap-data rebuild. Deleting the committed JSON restores
+      # the normal fresh-every-deploy path with no other change.
+      - name: Detect committed payload
+        id: payload
+        run: |
+          if [ -f web/assets/data/metrics.json ]; then
+            echo "committed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Clone bitcoin-core/asmap-data
+        if: steps.payload.outputs.committed == 'false'
         run: git clone --depth=1 https://github.com/bitcoin-core/asmap-data.git /tmp/asmap-data
 
       - name: Generate metrics.json
+        if: steps.payload.outputs.committed == 'false'
         run: |
           python -m asmap_dashboard metrics \
             --data-dir /tmp/asmap-data \
@@ -50,6 +72,7 @@ jobs:
       - name: Refresh ASN names from bgp.tools
         # Non-fatal: if bgp.tools is unreachable we still ship metrics.json
         # and the dashboard falls back to bare AS<num> labels.
+        if: steps.payload.outputs.committed == 'false'
         continue-on-error: true
         run: |
           python -m asmap_dashboard refresh-asn-names \
