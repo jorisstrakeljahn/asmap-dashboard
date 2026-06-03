@@ -16,6 +16,9 @@
     justify-content: space-between;
     gap: var(--space-3);
     flex-wrap: wrap;
+    /* Reserve room on the right for the corner-pinned info trigger
+       so the view-mode switch never slides under the icon. */
+    padding-right: var(--space-6);
 }
 
 .top-movers__header-controls {
@@ -23,14 +26,6 @@
     align-items: center;
     gap: var(--space-3);
     flex-wrap: wrap;
-}
-
-/* Info trigger rides at the right edge of the header so it lines
-   up with the corner-pinned info icons on cards without controls. */
-.top-movers__info {
-    display: inline-flex;
-    align-items: center;
-    margin-left: var(--space-1);
 }
 
 /* ── Toolbar ─────────────────────────────────────────────────── */
@@ -432,6 +427,11 @@
     .top-movers__filter-input {
         min-width: 0;
         width: 100%;
+        /* 16px floor: keeps iOS Safari from zooming the viewport when
+           the search field takes focus (it auto-zooms sub-16px
+           inputs). The token base is already 16px on phones; this
+           overrides the field's own --font-size-sm declaration. */
+        font-size: var(--font-size-base);
     }
     .top-movers__clear-slot {
         margin-left: 0;
@@ -453,5 +453,120 @@
     .top-movers__grid th,
     .top-movers__grid td {
         padding: var(--space-2);
+    }
+}
+
+/* Below 640px the 640px-wide fixed grid would force a horizontal
+   scroll that hides the Direction column — the most informative
+   one — off the right edge. Instead of scrolling sideways, the
+   table reflows into a stack of one card per row: the AS identity
+   and its share sit on the top line, the direction flow spans a
+   full-width second line beneath them. The header row is not
+   dropped (that would kill column sorting); it collapses into a
+   compact sort bar so the sort buttons survive on touch. */
+@media (max-width: 640px) {
+    /* No scroll container needed once the grid stops being 640px
+       wide; the info-tooltip popover is position:fixed anyway, so
+       nothing depended on the clip. */
+    .top-movers__table {
+        overflow-x: visible;
+    }
+
+    .top-movers__grid {
+        display: block;
+        min-width: 0;
+    }
+
+    .top-movers__grid thead,
+    .top-movers__grid tbody {
+        display: block;
+    }
+
+    /* Header → sort bar. The three sortable headers line up as
+       inline sort buttons above the cards; the rank header has no
+       label and is dropped. */
+    .top-movers__grid thead tr {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-2) var(--space-4);
+        padding: 0 0 var(--space-2);
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .top-movers__grid thead th {
+        width: auto;
+        padding: 0;
+        border: 0;
+        white-space: nowrap;
+    }
+
+    .top-movers__grid thead th.top-movers__rank {
+        display: none;
+    }
+
+    .top-movers__grid thead th.top-movers__num {
+        padding-right: 0;
+    }
+
+    /* Body rows → stacked cards. Rank is orientation-only and the
+       row order already conveys it, so it drops out on mobile to
+       keep each card focused on AS / share / direction. */
+    .top-movers__grid tbody tr {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+            "as share"
+            "direction direction";
+        column-gap: var(--space-3);
+        row-gap: var(--space-2);
+        padding: var(--space-3) 0;
+        border-bottom: 1px solid var(--color-divider);
+    }
+
+    .top-movers__grid tbody td {
+        display: block;
+        width: auto;
+        padding: 0;
+        border: 0;
+    }
+
+    .top-movers__grid tbody td.top-movers__rank {
+        display: none;
+    }
+
+    .top-movers__grid tbody td.top-movers__asn {
+        grid-area: as;
+    }
+
+    .top-movers__grid tbody td.top-movers__num {
+        grid-area: share;
+        text-align: right;
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-strong);
+    }
+
+    .top-movers__grid tbody td.top-movers__direction {
+        grid-area: direction;
+    }
+
+    /* Name the direction line inline. The sort bar names columns
+       at the top, but each card's third line sits far from it, so
+       a quiet uppercase tag keeps "↗ AS6057" unambiguous. */
+    .top-movers__grid tbody td.top-movers__direction::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 2px;
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-medium);
+        letter-spacing: var(--letter-uppercase-tight);
+        text-transform: uppercase;
+        color: var(--color-text-uppercase);
+    }
+
+    /* Inactive direction (em-dash fallback) reads as a muted note
+       rather than a lone glyph floating under the label. */
+    .top-movers__grid tbody td.top-movers__direction--inactive {
+        color: var(--color-text-subtle);
     }
 }

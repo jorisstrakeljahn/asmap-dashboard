@@ -124,6 +124,10 @@ function directionCell(row, unit) {
     const lost = accessors.rowLost(row);
     const counterpart = accessors.rowPrimaryCounterpart(row);
     const td = cell("", "top-movers__direction");
+    // Drives the inline "Direction" tag the stacked mobile card
+    // shows via td.top-movers__direction::before; ignored on the
+    // wide table where the column header carries the label.
+    td.dataset.label = t("topMovers.columns.direction");
 
     if (gained === 0 && lost === 0) {
         td.textContent = EM_DASH;

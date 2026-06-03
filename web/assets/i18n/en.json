@@ -19,7 +19,8 @@
             "primary": "Primary",
             "maps": "Maps",
             "diff": "Diff Explorer",
-            "network": "Network"
+            "network": "Network",
+            "menuAria": "Toggle navigation menu"
         }
     },
 

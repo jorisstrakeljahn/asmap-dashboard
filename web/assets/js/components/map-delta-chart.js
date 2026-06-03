@@ -17,9 +17,12 @@ import {
     resolveTimeDomain,
 } from "../charts/chart-base.js";
 import {
+    attachTouchInspect,
+    clientToSvg,
     createChartShell,
     hideTooltip,
     isTooltipVisible,
+    nearestIndex,
     placeTooltipNextFrame,
     positionTooltip,
     showTooltip,
@@ -39,6 +42,9 @@ const MIN_BAR_WIDTH = 3;
 const MAX_BAR_WIDTH = 14;
 const BAR_FILL_FRACTION = 0.7;
 const BAR_CORNER_RADIUS = 2;
+// Hover tolerance past the plot edge so a touch resolve in the
+// gutter still maps to the nearest bar, matching the shared charts.
+const HOVER_BLEED = 12;
 
 export function mount(parent, maps, options = {}) {
     if (!parent || !Array.isArray(maps) || maps.length === 0) return;
@@ -143,6 +149,42 @@ function buildChart(rows, maps, width, height, layout, options) {
         clearActive();
     };
 
+    const bodyFor = (row) =>
+        buildTooltipBody({
+            title: formatDate(row.released_at),
+            rows: [
+                [
+                    t("history.mapDeltaChart.deltaLabel"),
+                    t("history.mapDeltaChart.deltaUnit", {
+                        value: formatSignedDelta(row.delta),
+                    }),
+                ],
+                [
+                    t("history.mapDeltaChart.entriesPrevThis"),
+                    t("history.mapDeltaChart.entriesTransition", {
+                        prev: formatNumber(row.prev_entries),
+                        curr: formatNumber(row.entries),
+                    }),
+                ],
+            ],
+            footer: t("history.mapDeltaChart.vsDate", {
+                date: formatDate(row.previous_released_at),
+            }),
+        });
+
+    // Shared by the per-bar mouse handler and the touch path so a
+    // tap highlights the same bar and shows the same tooltip.
+    const bars = [];
+    const showRow = (i, clientX, clientY) => {
+        clearActive();
+        const bar = bars[i];
+        if (!bar) return;
+        bar.classList.add("chart__bar--active");
+        activeBar = bar;
+        showTooltip(tip, bodyFor(rows[i]));
+        placeTooltipNextFrame(shell, tip, clientX, clientY);
+    };
+
     rows.forEach((row, i) => {
         const top = yScale(Math.max(0, row.delta));
         const bottom = yScale(Math.min(0, row.delta));
@@ -155,36 +197,10 @@ function buildChart(rows, maps, width, height, layout, options) {
             class: "chart__bar",
         });
         root.append(bar);
+        bars.push(bar);
 
         bar.addEventListener("mouseenter", (ev) => {
-            clearActive();
-            bar.classList.add("chart__bar--active");
-            activeBar = bar;
-            showTooltip(
-                tip,
-                buildTooltipBody({
-                    title: formatDate(row.released_at),
-                    rows: [
-                        [
-                            t("history.mapDeltaChart.deltaLabel"),
-                            t("history.mapDeltaChart.deltaUnit", {
-                                value: formatSignedDelta(row.delta),
-                            }),
-                        ],
-                        [
-                            t("history.mapDeltaChart.entriesPrevThis"),
-                            t("history.mapDeltaChart.entriesTransition", {
-                                prev: formatNumber(row.prev_entries),
-                                curr: formatNumber(row.entries),
-                            }),
-                        ],
-                    ],
-                    footer: t("history.mapDeltaChart.vsDate", {
-                        date: formatDate(row.previous_released_at),
-                    }),
-                }),
-            );
-            placeTooltipNextFrame(shell, tip, ev.clientX, ev.clientY);
+            showRow(i, ev.clientX, ev.clientY);
         });
         bar.addEventListener("mousemove", (ev) => {
             if (isTooltipVisible(tip)) {
@@ -194,6 +210,21 @@ function buildChart(rows, maps, width, height, layout, options) {
         bar.addEventListener("mouseleave", hide);
     });
     shell.addEventListener("mouseleave", hide);
+
+    // Touch maps to the nearest bar by x. Bars are thin, so a finger
+    // rarely lands exactly on one; nearest-by-x is far more forgiving.
+    attachTouchInspect(shell, {
+        resolve: (clientX, clientY) => {
+            const pt = clientToSvg(root, clientX, clientY);
+            if (!pt) return null;
+            if (pt.x < plot.left - HOVER_BLEED || pt.x > plot.right + HOVER_BLEED) {
+                return null;
+            }
+            return nearestIndex(pt.x, rows.length, xAt);
+        },
+        show: showRow,
+        hide,
+    });
 
     const ticks = pickTimeAxisTicks(
         domainStart,

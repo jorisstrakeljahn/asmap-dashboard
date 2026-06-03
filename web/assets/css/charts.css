@@ -92,6 +92,12 @@
     width: 100%;
     height: auto;
     margin-top: var(--space-2);
+    /* Let a vertical drag scroll the page while a horizontal drag
+       scrubs the series for its tooltip (see attachTouchInspect in
+       chart-interaction.js). Without this the browser claims every
+       touch gesture for panning and the tap-to-inspect path never
+       fires on a touchscreen. */
+    touch-action: pan-y;
 }
 
 .chart__grid,
@@ -384,4 +390,17 @@ button.chart-legend__item:focus-visible {
 
 .chart-legend__item--off > span:last-child {
     text-decoration: line-through;
+}
+
+/* Coarse-pointer (finger) target growth for the clickable legend
+   toggles. The mouse variant stays tight (2px 4px) so the legend
+   reads as a label row; a finger needs more, so on touch the
+   buttons gain vertical padding and a ~36px min height. Charts
+   like the Network operator breakdown carry up to six of these,
+   so they're a primary touch control, not just chrome. */
+@media (pointer: coarse) {
+    button.chart-legend__item {
+        padding: var(--space-2) var(--space-2);
+        min-height: 36px;
+    }
 }

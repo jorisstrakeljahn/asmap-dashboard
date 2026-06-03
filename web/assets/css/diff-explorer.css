@@ -211,16 +211,28 @@
     .diff-selectors__row {
         flex-direction: column;
         align-items: stretch;
-        gap: var(--space-3);
+        gap: var(--space-2);
     }
     .diff-selectors__arrow {
-        padding: 0;
+        /* Plain glyph, centred between the stacked pickers. rotate()
+           turns the → into a ↓ for the vertical layout. */
         align-self: center;
+        padding: 0;
+        color: var(--color-text-muted);
+        font-size: var(--font-size-base);
+        line-height: 1;
         transform: rotate(90deg);
     }
+    /* Keep the three counts side by side instead of stacking them
+       into a tall column — three short numbers fit a phone row and
+       the compact grid kills the dead vertical space the stack left
+       under the match banner. */
     .classification-row {
-        grid-template-columns: 1fr;
-        gap: var(--space-3);
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-2);
+    }
+    .classification-cell__value {
+        font-size: var(--font-size-lg);
     }
     .stacked-bar__segment {
         font-size: 10px;

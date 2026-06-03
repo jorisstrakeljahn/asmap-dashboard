@@ -133,3 +133,66 @@ export function placeTooltipNextFrame(shell, tip, clientX, clientY) {
         );
     });
 }
+
+// Touch / pen "tap and scrub" support for charts. Every chart's
+// hover plumbing is mouse-only (mousemove / mouseenter), so on a
+// device with no hover pointer the tooltip — the only surface that
+// carries exact values, dates, and ratios — was unreachable. This
+// adds that missing path without disturbing the mouse handlers.
+//
+// The caller wires the same show / hide it already uses for mouse:
+//   resolve(clientX, clientY) -> slot index, or null when the point
+//       is outside the plotted area (a tap there dismisses).
+//   show(idx, clientX, clientY) -> paint + position the tooltip
+//       (and any active-segment highlight) for that slot.
+//   hide() -> clear the tooltip.
+//
+// The chart SVG sets ``touch-action: pan-y`` (see charts.css), so a
+// vertical drag still scrolls the page while a horizontal drag
+// scrubs the series. preventDefault only fires once a scrub is
+// under way, so the page's vertical scroll is never swallowed. The
+// tooltip stays put after the finger lifts (a tap reads, a second
+// tap in the gutter dismisses), which matches how a reader expects
+// a tapped value to behave on a touchscreen.
+export function attachTouchInspect(shell, { resolve, show, hide }) {
+    let scrubbing = false;
+    const point = (ev) =>
+        ev.touches?.[0] ?? ev.changedTouches?.[0] ?? null;
+
+    shell.addEventListener(
+        "touchstart",
+        (ev) => {
+            const p = point(ev);
+            if (!p) return;
+            const idx = resolve(p.clientX, p.clientY);
+            if (idx == null) {
+                hide();
+                scrubbing = false;
+                return;
+            }
+            scrubbing = true;
+            show(idx, p.clientX, p.clientY);
+        },
+        { passive: true },
+    );
+
+    shell.addEventListener(
+        "touchmove",
+        (ev) => {
+            if (!scrubbing) return;
+            const p = point(ev);
+            if (!p) return;
+            const idx = resolve(p.clientX, p.clientY);
+            if (idx == null) return;
+            if (ev.cancelable) ev.preventDefault();
+            show(idx, p.clientX, p.clientY);
+        },
+        { passive: false },
+    );
+
+    const end = () => {
+        scrubbing = false;
+    };
+    shell.addEventListener("touchend", end);
+    shell.addEventListener("touchcancel", end);
+}

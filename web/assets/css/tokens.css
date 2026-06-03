@@ -149,6 +149,29 @@
     --chart-min-height: 240px;
 }
 
+/* Mobile typography + control scale. Phones get a larger base so
+   body text clears the ~16px comfort floor (and text inputs avoid
+   iOS Safari's sub-16px focus auto-zoom), supplementary text lands
+   at 14px, and micro-labels never drop below 12px — matching the
+   widely cited mobile-readability minimums. Line height opens up to
+   1.5 for the smaller reading distance, and the form-control
+   geometry grows toward a 44px touch target. Centralised here so
+   every component scales from a single source instead of carrying
+   its own per-file mobile overrides. */
+@media (max-width: 640px) {
+    :root {
+        --font-size-xs: 12px;
+        --font-size-sm: 14px;
+        --font-size-base: 16px;
+        --font-size-lg: 20px;
+
+        --line-normal: 1.5;
+
+        --control-height: 44px;
+        --control-height-sm: 40px;
+    }
+}
+
 /* Reduced-motion override. Users who opt into reduced motion at
    the OS level (macOS System Settings -> Accessibility, Windows
    Settings -> Ease of Access, GNOME Tweaks, etc.) get a near-
