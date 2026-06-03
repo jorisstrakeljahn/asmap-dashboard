@@ -23,14 +23,14 @@ const DIRECTION_FILTER_RANKS = {
     unmapped: 4,
 };
 
-export function filterMovers(movers, filterText, filterDirection) {
+export function filterMovers(movers, filterText, filterDirection, unit) {
     const needle = filterText.trim().toLowerCase();
     const directionRankWanted = DIRECTION_FILTER_RANKS[filterDirection] ?? null;
     if (!needle && directionRankWanted === null) return movers;
     return movers.filter((row) => {
         if (
             directionRankWanted !== null &&
-            directionRank(row) !== directionRankWanted
+            directionRank(row, unit) !== directionRankWanted
         ) {
             return false;
         }

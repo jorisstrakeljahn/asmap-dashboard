@@ -4,48 +4,48 @@
 
 import { SVG_NS } from "../../utils/dom.js";
 import { t } from "../../utils/i18n.js";
+import { accessorsFor } from "./units.js";
 
-// labelKey: i18n path resolved at render time so a locale swap
-//   repaints headers without rebuilding the array.
-// defaultDir: flip direction on first click. Numeric columns
-//   land big-first ("desc"); ordinal columns a-first ("asc").
-const TABLE_COLUMNS = [
-    { labelKey: null, className: "top-movers__rank" },
-    {
-        labelKey: "topMovers.columns.as",
-        className: "top-movers__asn",
-        sortable: true,
-        field: "asn",
-        defaultDir: "asc",
-    },
-    {
-        labelKey: "topMovers.columns.changes",
-        className: "top-movers__num",
-        sortable: true,
-        field: "changes",
-        defaultDir: "desc",
-    },
-    {
-        labelKey: "topMovers.columns.touched",
-        className: "top-movers__num",
-        sortable: true,
-        field: "touched",
-        defaultDir: "desc",
-    },
-    { labelKey: "topMovers.columns.shareOfAll", className: "top-movers__num" },
-    {
-        labelKey: "topMovers.columns.direction",
-        className: "top-movers__direction",
-        sortable: true,
-        field: "direction",
-        defaultDir: "asc",
-    },
-];
+// labelKey resolves at render time so a locale swap repaints
+// headers without rebuilding the array. The Share column reads
+// its key off the accessor bundle so the header renames with the
+// currency picker. defaultDir flips direction on first click.
+// Numeric columns land big first (desc), ordinal columns asc.
+//
+// Raw moved counts live in the row hover tooltip so the grid
+// stays scannable.
+function tableColumns(unit) {
+    const accessors = accessorsFor(unit);
+    return [
+        { labelKey: null, className: "top-movers__rank" },
+        {
+            labelKey: "topMovers.columns.as",
+            className: "top-movers__asn",
+            sortable: true,
+            field: "asn",
+            defaultDir: "asc",
+        },
+        {
+            labelKey: accessors.shareDenominatorKey,
+            className: "top-movers__num",
+            sortable: true,
+            field: "share",
+            defaultDir: "desc",
+        },
+        {
+            labelKey: "topMovers.columns.direction",
+            className: "top-movers__direction",
+            sortable: true,
+            field: "direction",
+            defaultDir: "asc",
+        },
+    ];
+}
 
 export function tableHead(state, onChange) {
     const thead = document.createElement("thead");
     const tr = document.createElement("tr");
-    for (const column of TABLE_COLUMNS) {
+    for (const column of tableColumns(state.unit)) {
         tr.append(headerCell(column, state, onChange));
     }
     thead.append(tr);
