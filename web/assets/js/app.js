@@ -5,6 +5,7 @@ import * as asnNames from "./asn-names.js";
 import { initTabs } from "./tabs.js";
 import * as mapsTab from "./maps-tab.js";
 import * as diffTab from "./diff-tab.js";
+import * as networkTab from "./network-tab.js";
 import { applyDomTranslations, loadStrings, t } from "./utils/i18n.js";
 
 const METRICS_URL = "assets/data/metrics.json";
@@ -85,7 +86,22 @@ async function init() {
     mapsTab.mount(payload);
     diffTab.mount(payload);
 
+    // The Network tab is opt-in: it only renders when metrics.json
+    // carries a ``network`` section (i.e. snapshot data was passed at
+    // generation time). When absent, its nav entry stays hidden so the
+    // public deploy never shows an empty tab.
+    const hasNetwork = networkTab.mount(payload);
+    revealNetworkNav(hasNetwork);
+
     initTabs({ defaultTab: "maps" });
+}
+
+// Show the Network nav link only when the tab actually mounted.
+// The link ships ``hidden`` in the static markup so a payload
+// without a network section never flashes an empty tab.
+function revealNetworkNav(hasNetwork) {
+    const link = document.querySelector("[data-network-nav]");
+    if (link) link.hidden = !hasNetwork;
 }
 
 // In-place retry (not location.reload()) so a transient blip
