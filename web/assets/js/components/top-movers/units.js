@@ -8,10 +8,12 @@
 //
 // Field bindings come straight from the backend rows produced by
 // ``_PerAsActivity.row`` in asmap_dashboard/diff.py, which writes
-// the same three currencies side by side on every top_movers
-// entry. Adding a currency later (e.g. bitnodes-weighted
-// coverage) is one entry in this table plus the matching backend
-// row fields; the rest of the component does not branch on unit.
+// the IPv4 and IPv6 coverage fields side by side on every
+// top_movers entry (plus the family-agnostic ``changes`` entry
+// total the row tooltip shows). Adding a currency later (e.g.
+// bitnodes-weighted coverage) is one entry in this table plus the
+// matching backend row fields; the rest of the component does not
+// branch on unit.
 
 import { FAMILY_IPV4, FAMILY_IPV6 } from "../../format.js";
 import { DRIFT_IPV4_COVERAGE, DRIFT_IPV6_COVERAGE } from "../../utils/diffs.js";

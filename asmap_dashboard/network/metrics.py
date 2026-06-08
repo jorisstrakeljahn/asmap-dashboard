@@ -13,12 +13,11 @@ a reviewer can trace every number back to a public input:
      comparing different populations is what makes a naive churn series
      look non-monotonic.
 
-  2. AS concentration (HHI), global and per country
+  2. AS concentration (HHI)
      Bucket each snapshot's nodes by the ASN the *in-effect* build
      resolves, then compute the Herfindahl-Hirschman index over those
      buckets. Low HHI = peers spread across many ASes = healthier peer
-     diversity. The per-country split reuses the crawler-provided country
-     and is emitted only for snapshots that carry it.
+     diversity.
 
   3. Bucketing effectiveness
      Count the distinct peer-diversity buckets the same node set falls
@@ -56,16 +55,12 @@ from asmap_dashboard.loader import LoadedMap
 from asmap_dashboard.netgroup import default_netgroup
 from asmap_dashboard.network.snapshots import Node, Snapshot
 
-# A country breakdown past the long tail carries no signal (single-node
-# countries dominate the count), so the per-country list is capped the
-# same way the per-map top-AS roster is.
-TOP_COUNTRIES_LIMIT = 20
 TOP_ASES_LIMIT = 15
 
-# A snapshot only feeds the cross-check / per-country views when enough
-# of its nodes carry the crawler annotation; below this the sample is
-# too thin to be worth a (misleading) number. Expressed as a share of
-# clearnet nodes so it scales with snapshot size.
+# A snapshot only feeds the cross-check view when enough of its nodes
+# carry the crawler annotation; below this the sample is too thin to
+# be worth a (misleading) number. Expressed as a share of clearnet
+# nodes so it scales with snapshot size.
 ANNOTATION_COVERAGE_FLOOR = 0.5
 
 SECONDS_PER_DAY = 86_400
@@ -83,7 +78,6 @@ class _Build:
     name: str
     timestamp: int
     asmap: ASMap
-    variant: str
 
 
 def _ip_to_prefix(ip: str) -> list[bool]:
@@ -120,9 +114,7 @@ class _PreparedNode:
     """
 
     prefix: list[bool]
-    version: int
     asn: int | None
-    country: str | None
     ip: str
 
 
@@ -136,9 +128,7 @@ def _prepare_nodes(nodes: tuple[Node, ...]) -> list[_PreparedNode]:
         prepared.append(
             _PreparedNode(
                 prefix=prefix,
-                version=node.version,
                 asn=node.asn,
-                country=node.country,
                 ip=node.ip,
             )
         )
@@ -173,12 +163,17 @@ def _hhi(counts: Counter[int]) -> float:
 
 
 def _snapshot_metrics(snapshot: Snapshot, build: _Build) -> dict:
-    """Score one snapshot's nodes against the build in effect at its time."""
+    """Score one snapshot's nodes against the build in effect at its time.
+
+    The emitted dict only carries the fields the frontend renders
+    (overview cards, HHI / operators series, cross-check table).
+    Per-family node splits, skip diagnostics, and the matched-build
+    echo used to ride along but were never consumed; they can be
+    re-derived from the raw snapshots if a future view needs them.
+    """
     prepared = _prepare_nodes(snapshot.nodes)
 
     asn_counts: Counter[int] = Counter()
-    nodes_ipv4 = 0
-    nodes_ipv6 = 0
     unmapped = 0
     # Two bucket vocabularies over the identical node set: what Core
     # buckets into with this asmap loaded vs. with no asmap at all.
@@ -188,16 +183,8 @@ def _snapshot_metrics(snapshot: Snapshot, build: _Build) -> dict:
     cross_compared = 0
     cross_agree = 0
     annotated = 0
-    # Per-country: ASN distribution per crawler-reported country.
-    by_country_asns: dict[str, Counter[int]] = {}
-    country_present = 0
 
     for node in prepared:
-        if node.version == 4:
-            nodes_ipv4 += 1
-        else:
-            nodes_ipv6 += 1
-
         asn = _lookup_asn(build.asmap, node.prefix)
         default_group = default_netgroup(node.ip)
         default_buckets.add(default_group)
@@ -217,29 +204,14 @@ def _snapshot_metrics(snapshot: Snapshot, build: _Build) -> dict:
                 if node.asn == asn:
                     cross_agree += 1
 
-        if node.country:
-            country_present += 1
-            if asn:
-                by_country_asns.setdefault(node.country, Counter())[asn] += 1
-
     clearnet = len(prepared)
     mapped = clearnet - unmapped
 
-    result: dict = {
+    return {
         "source": snapshot.source,
         "label": snapshot.label,
         "timestamp": snapshot.timestamp,
-        "matched_build": build.name,
-        "matched_build_variant": build.variant,
-        "matched_build_age_days": _age_days(build.timestamp, snapshot.timestamp),
-        "observed_total": snapshot.observed_total,
-        "onion_skipped": snapshot.onion_skipped,
-        "unresolved_skipped": snapshot.unresolved_skipped,
         "nodes_clearnet": clearnet,
-        "nodes_ipv4": nodes_ipv4,
-        "nodes_ipv6": nodes_ipv6,
-        "nodes_mapped": mapped,
-        "nodes_unmapped": unmapped,
         "unique_asns": len(asn_counts),
         "hhi": round(_hhi(asn_counts), 6),
         "top_ases": _top_ases(asn_counts, mapped),
@@ -249,9 +221,7 @@ def _snapshot_metrics(snapshot: Snapshot, build: _Build) -> dict:
             "reduction_ratio": _ratio(len(default_buckets), len(asmap_buckets)),
         },
         "cross_check": _cross_check(cross_compared, cross_agree, annotated, clearnet),
-        "by_country": _by_country(by_country_asns, country_present, clearnet),
     }
-    return result
 
 
 def _top_ases(asn_counts: Counter[int], mapped: int) -> list[dict]:
@@ -282,35 +252,6 @@ def _cross_check(
         "agree": agree,
         "agreement_pct": round(100 * agree / compared, 4) if compared else 0.0,
     }
-
-
-def _by_country(
-    by_country_asns: dict[str, Counter[int]], country_present: int, clearnet: int
-) -> list[dict] | None:
-    """Per-country node count and within-country HHI for the top countries.
-
-    Returns ``None`` when the snapshot carries no usable country data,
-    matching the cross-check coverage gate so the two annotation-derived
-    views appear and disappear together.
-    """
-    if clearnet == 0 or country_present / clearnet < ANNOTATION_COVERAGE_FLOOR:
-        return None
-    ranked = sorted(
-        by_country_asns.items(),
-        key=lambda item: (-sum(item[1].values()), item[0]),
-    )
-    out: list[dict] = []
-    for country, counts in ranked[:TOP_COUNTRIES_LIMIT]:
-        nodes = sum(counts.values())
-        out.append(
-            {
-                "country": country,
-                "nodes": nodes,
-                "unique_asns": len(counts),
-                "hhi": round(_hhi(counts), 6),
-            }
-        )
-    return out
 
 
 def _decay_curve(snapshot: Snapshot, builds: list[_Build], reference: _Build) -> dict:
@@ -388,7 +329,6 @@ def build_network_section(
         return {}
 
     return {
-        "reference_build": reference.name,
         "reference_timestamp": reference.timestamp,
         "sources": sources_out,
     }
@@ -408,13 +348,11 @@ def _prepare_builds(builds: list, loaded: dict) -> list[_Build]:
         if path is None:
             continue
         loaded_map: LoadedMap = loaded[path]
-        variant = "unfilled" if build.unfilled_path is not None else "filled"
         out.append(
             _Build(
                 name=build.name,
                 timestamp=build.timestamp,
                 asmap=loaded_map.asmap,
-                variant=variant,
             )
         )
     out.sort(key=lambda b: b.timestamp)

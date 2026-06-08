@@ -87,24 +87,26 @@ def diff_loaded_maps(
       reassignment can dominate coverage while contributing one
       entry.
 
-    Top movers are tracked in all three currencies (entries, IPv4
-    addresses, IPv6 addresses). Each row carries:
+    Top movers are ranked in all three currencies (entries, IPv4
+    addresses, IPv6 addresses) but each row only carries the fields
+    the frontend renders:
 
-      ``changes`` / ``gained`` / ``lost``
-          Entry-level counts.
+      ``changes``
+          Entry-level total (gained + lost trie leaves, both
+          families). Surfaces in the row hover tooltip as "prefix
+          entries changed"; the per-direction entry counts and the
+          entry-level counterpart used to ride along but were
+          never rendered, so they are not emitted any more.
       ``ipv4_addresses_changed`` / ``_gained`` / ``_lost``
-          The same counts weighted by IPv4 prefix size.
+          Entry counts weighted by IPv4 prefix size.
       ``ipv6_addresses_changed`` / ``_gained`` / ``_lost``
           The same for IPv6.
-      ``primary_counterpart`` (per currency: also
-      ``ipv4_primary_counterpart``, ``ipv6_primary_counterpart``)
-          The single AS most frequently exchanged with under this
-          currency. Picked from whichever direction (gain vs loss)
-          contributed more under the same currency, so the arrow
-          rendered in the Top Movers table never points at an
+      ``ipv4_primary_counterpart`` / ``ipv6_primary_counterpart``
+          The single AS most address space was exchanged with under
+          that family. Picked from whichever direction (gain vs
+          loss) contributed more under the same family, so the
+          arrow rendered in the Top Movers table never points at an
           arbitrary 0.
-      ``entries_in_a`` / ``entries_in_b``
-          Trie-leaf counts the AS holds on either side.
       ``ipv4_addresses_in_a`` / ``ipv4_addresses_in_b``
       ``ipv6_addresses_in_a`` / ``ipv6_addresses_in_b``
           Per-AS coverage on either side. Denominator for the
@@ -124,9 +126,10 @@ def diff_loaded_maps(
     those IPs would resolve to a different ASN under map_b vs map_a.
 
     Returns a dict with these keys (entry-level first, coverage second,
-    roster third, top movers, optional node impact):
-        entries_a:                     int, entry count of map_a.
-        entries_b:                     int, entry count of map_b.
+    roster third, top movers, optional node impact). The per-map entry
+    counts are not repeated here: the frontend reads them off the maps[]
+    profiles, which are keyed by the same build names as ``from`` /
+    ``to``.
         total_changes:                 int, sum of the three buckets.
         reassigned:                    int.
         reassigned_ipv4:               int, IPv4 share of ``reassigned``.
@@ -212,8 +215,6 @@ def diff_loaded_maps(
     asns_b = set(loaded_b.entries_per_asn)
 
     result: dict = {
-        "entries_a": loaded_a.entries_count,
-        "entries_b": loaded_b.entries_count,
         "total_changes": buckets.total_changes(),
         "reassigned": buckets.reassigned,
         "reassigned_ipv4": buckets.reassigned_ipv4,
@@ -327,14 +328,16 @@ class _PerAsActivity:
     """
 
     def __init__(self) -> None:
+        # Entry-level counters only feed the row's combined
+        # ``changes`` figure and the entries leg of the top-N union
+        # ranking; per-direction entry fields are not emitted, so no
+        # entry-level counterpart map is kept.
         self._gained_entries: Counter[int] = Counter()
         self._lost_entries: Counter[int] = Counter()
         self._gained_ipv4: Counter[int] = Counter()
         self._lost_ipv4: Counter[int] = Counter()
         self._gained_ipv6: Counter[int] = Counter()
         self._lost_ipv6: Counter[int] = Counter()
-        self._gained_from_entries: dict[int, Counter[int]] = defaultdict(Counter)
-        self._lost_to_entries: dict[int, Counter[int]] = defaultdict(Counter)
         self._gained_from_ipv4: dict[int, Counter[int]] = defaultdict(Counter)
         self._lost_to_ipv4: dict[int, Counter[int]] = defaultdict(Counter)
         self._gained_from_ipv6: dict[int, Counter[int]] = defaultdict(Counter)
@@ -343,7 +346,6 @@ class _PerAsActivity:
     def record(self, old_asn: int, new_asn: int, is_v4: bool, addresses: int) -> None:
         if old_asn != 0:
             self._lost_entries[old_asn] += 1
-            self._lost_to_entries[old_asn][new_asn] += 1
             if is_v4:
                 self._lost_ipv4[old_asn] += addresses
                 self._lost_to_ipv4[old_asn][new_asn] += addresses
@@ -352,7 +354,6 @@ class _PerAsActivity:
                 self._lost_to_ipv6[old_asn][new_asn] += addresses
         if new_asn != 0:
             self._gained_entries[new_asn] += 1
-            self._gained_from_entries[new_asn][old_asn] += 1
             if is_v4:
                 self._gained_ipv4[new_asn] += addresses
                 self._gained_from_ipv4[new_asn][old_asn] += addresses
@@ -409,7 +410,7 @@ class _PerAsActivity:
         return combined
 
     def row(self, asn: int, loaded_a: LoadedMap, loaded_b: LoadedMap) -> dict:
-        """Build one top_movers row for ``asn`` with all three currencies populated.
+        """Build one top_movers row for ``asn``.
 
         The per-AS presence figures (``*_in_a`` / ``*_in_b``) come
         straight from the loader caches, so the diff never re-walks
@@ -424,16 +425,6 @@ class _PerAsActivity:
         return {
             "asn": asn,
             "changes": gained_entries + lost_entries,
-            "gained": gained_entries,
-            "lost": lost_entries,
-            "primary_counterpart": _primary_counterpart(
-                gained_entries,
-                lost_entries,
-                self._gained_from_entries.get(asn),
-                self._lost_to_entries.get(asn),
-            ),
-            "entries_in_a": loaded_a.entries_per_asn.get(asn, 0),
-            "entries_in_b": loaded_b.entries_per_asn.get(asn, 0),
             "ipv4_addresses_changed": gained_ipv4 + lost_ipv4,
             "ipv4_addresses_gained": gained_ipv4,
             "ipv4_addresses_lost": lost_ipv4,

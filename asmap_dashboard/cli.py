@@ -99,7 +99,7 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _emit_json(result: object, out_path: Path | None) -> int:
+def _emit_json(result: object, out_path: Path | None, *, compact: bool = False) -> int:
     """Serialise ``result`` to ``out_path`` or stdout, return exit code 0.
 
     Shared by every subcommand that produces a JSON payload (analyze,
@@ -107,8 +107,18 @@ def _emit_json(result: object, out_path: Path | None) -> int:
     caller. ``sort_keys=True`` and a trailing newline keep the output
     byte-stable across runs so reruns against the same input only
     diff when the payload actually changed.
+
+    ``compact`` drops the indentation entirely. The metrics payload is
+    fetched by the browser on every dashboard load and the pretty-
+    printed form is ~25 % larger on the wire for zero reader value (the
+    file is far too big to scan by eye anyway); the analyze / diff
+    subcommands keep the indented form because their output is meant
+    to be read in a terminal.
     """
-    payload = json.dumps(result, indent=2, sort_keys=True) + "\n"
+    if compact:
+        payload = json.dumps(result, separators=(",", ":"), sort_keys=True) + "\n"
+    else:
+        payload = json.dumps(result, indent=2, sort_keys=True) + "\n"
     if out_path is not None:
         out_path = Path(out_path)
         out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -142,7 +152,7 @@ def _run_metrics(args: argparse.Namespace) -> int:
     result = generate_dashboard_data(
         args.data_dir, snapshot_sources=snapshot_sources or None
     )
-    return _emit_json(result, args.out)
+    return _emit_json(result, args.out, compact=True)
 
 
 def _run_refresh_asn_names(args: argparse.Namespace) -> int:
