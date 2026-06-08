@@ -47,12 +47,20 @@
        the accent so single-line charts stay tonally consistent with
        the rest of the dashboard. The remaining hues are spaced
        around the colour wheel so they read as distinct categories
-       at a glance, not as ordered rankings. */
+       at a glance, not as ordered rankings. Ten slots because the
+       network operator breakdown assigns one stable colour per
+       operator that ever enters a snapshot's top five, and that
+       union runs to about ten across the current history. */
     --color-series-1: var(--color-accent);
     --color-series-2: #db2777;
     --color-series-3: #d97706;
     --color-series-4: #0891b2;
     --color-series-5: #059669;
+    --color-series-6: #dc2626;
+    --color-series-7: #7c3aed;
+    --color-series-8: #65a30d;
+    --color-series-9: #0f766e;
+    --color-series-10: #64748b;
 
     /* Text drawn on top of a saturated --color-accent /
        --color-success / --color-neutral fill (e.g. the stacked

@@ -338,14 +338,15 @@
             ]
         },
         "concentration": {
-            "combinedLabel": "Top {count} combined",
-            "operatorsTitle": "Top operators by node share over time (KIT data)",
-            "operatorsInfoAria": "About the top operator breakdown",
-            "operatorsAria": "Node share of the five largest operators over time on the KIT crawl, with a dashed line summing the five.",
-            "operatorsInfo": [
-                "The node share of the five operators that are largest across the whole period, each as its own line, scored against the build in effect at each snapshot. The dashed line sums those five, a top-5 concentration ratio. KIT only, because this is the live crawl; the KIT and Bitnodes cross-check lives in the decay chart above.",
-                "A small, stable set of operators holds the top tier throughout, typically Hetzner, OVH, Google, and AWS, so their lines run roughly parallel rather than jumping around. The combined line drifting down over the period, while the effective operator count rises, is the diversity story: the top tier is loosening rather than the lead just changing hands."
-            ]
+  "combinedLabel": "Top {count} combined",
+  "operatorsTitle": "Top 5 operators per snapshot (KIT data)",
+  "operatorsInfoAria": "About the top operator breakdown",
+  "operatorsAria": "Stacked bars, one per KIT snapshot, segmented into that snapshot's five largest operators by node share. The bar height is the combined top-5 share. Hover a bar for the operator names.",
+  "operatorsInfo": [
+   "One bar per snapshot, split into the five operators that actually held the largest node share at that point in time, scored against the build in effect. The bar height is the combined top-5 share, so a shrinking bar means the top tier as a whole is losing grip on the network.",
+   "The top five are re-elected for every snapshot. That matters: summing a fixed set of five across the whole period would quietly understate the combined share whenever a rising operator enters the tier. Each operator keeps the same colour in every bar it appears in, so a colour vanishing or appearing along the way is exactly the tier reshuffling. Hover a bar to see who its five are.",
+   "KIT only, because this is the live crawl; the KIT and Bitnodes cross-check lives in the decay chart above. The familiar names, typically Hetzner, OVH, Google, and AWS, hold the tier throughout, and the slow decline of the bar heights while the effective operator count rises is the diversity story: the top tier is loosening rather than the lead just changing hands."
+  ]
         },
         "crosscheck": {
             "label": "ASN attribution agreement",

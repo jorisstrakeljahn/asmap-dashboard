@@ -1,21 +1,27 @@
 // Declarative builder for the contents of a chart tooltip so each
 // chart only has to describe what to show, not how to wire up the
-// DOM. ``rows`` is an array of [label, value] tuples; values stay
-// as plain strings so the tooltip can never accidentally inject
-// HTML from a data field.
+// DOM. ``rows`` is an array of [label, value, swatchClass?] tuples;
+// label and value stay as plain strings so the tooltip can never
+// accidentally inject HTML from a data field. The optional third
+// element renders a small colour dot before the label, used by
+// charts whose tooltip is the only place a colour gets named (the
+// operator breakdown has no static legend).
 
 export function buildTooltipBody({ title, rows = [], footer }) {
     const frag = document.createDocumentFragment();
 
     if (title) frag.append(textNode("div", "chart-tooltip__title", title));
 
-    for (const [label, value] of rows) {
+    for (const [label, value, swatchClass] of rows) {
         const row = document.createElement("div");
         row.className = "chart-tooltip__kv";
-        row.append(
-            textNode("span", null, label),
-            textNode("strong", null, value),
-        );
+        const labelNode = textNode("span", null, label);
+        if (swatchClass) {
+            labelNode.prepend(
+                textNode("span", `chart-tooltip__swatch ${swatchClass}`, ""),
+            );
+        }
+        row.append(labelNode, textNode("strong", null, value));
         frag.append(row);
     }
 

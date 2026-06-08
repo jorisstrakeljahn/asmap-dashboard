@@ -88,6 +88,19 @@
     word-break: break-word;
 }
 
+/* Colour dot that buildTooltipBody prepends to a row's label when
+   the caller passes a swatch class. Reuses the legend swatch colour
+   classes for the fill, so a tooltip dot and a legend swatch for the
+   same series can never drift apart. */
+.chart-tooltip__swatch {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: var(--space-2);
+    border-radius: 2px;
+    vertical-align: baseline;
+}
+
 .chart {
     width: 100%;
     height: auto;
