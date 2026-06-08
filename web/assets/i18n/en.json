@@ -278,10 +278,11 @@
                 "infoAria": "About reachable nodes"
             },
             "concentration": {
-                "label": "AS concentration",
-                "unit": "Herfindahl-Hirschman index",
-                "info": [
-                    "This is the Herfindahl-Hirschman index (HHI), a standard measure of how concentrated something is across the players in it. Here the players are the autonomous systems the observed nodes resolve to under the ASmap build in effect.",
+   "label": "AS concentration",
+   "unit": "Herfindahl-Hirschman index",
+   "info": [
+    "The most intuitive reading: pick two observed nodes at random, and this number is the chance they sit in the same autonomous system. At 0.02 that chance is 2 percent.",
+    "Formally it is the Herfindahl-Hirschman index (HHI), a standard measure of how concentrated something is across the players in it. Here the players are the autonomous systems the observed nodes resolve to under the ASmap build in effect.",
                     "It is computed by taking each autonomous system's share of all mapped nodes, squaring it (a 10 percent operator adds 0.01), and adding the squares together. Squaring is what makes it a concentration measure: a few large operators dominate the total while the long tail of small ones barely moves it.",
                     "The index runs from near 0, when nodes are spread evenly across very many operators, up to 1, when every node sits in a single autonomous system. A lower number therefore means healthier peer diversity.",
                     "HHI leads here instead of the single largest operator's share because that share can fall while concentration is just handed to the number-two operator. Summing over the whole distribution, HHI only drops when nodes genuinely spread across more operators. As a rule of thumb, 1 divided by the HHI is the effective number of equal-sized operators the network behaves like, so a low index like this one works out to several dozen."
@@ -330,8 +331,9 @@
             "title": "AS concentration (HHI) over time",
             "infoAria": "About AS concentration over time",
             "ariaLabel": "Herfindahl-Hirschman index of the observed node set across every snapshot, scored against the build in effect at each one. One line per crawler. Lower means more diverse.",
-            "info": [
-                "The same Herfindahl-Hirschman index as the concentration card above, scored against the build in effect at each snapshot instead of only the latest one. Lower is more diverse, so a line falling toward the right means the observed network keeps spreading across more operators over time.",
+  "info": [
+   "Pick two observed nodes at random, and this index is the chance they sit in the same autonomous system — at 0.02 that chance is 2 percent.",
+   "It is the same Herfindahl-Hirschman index as the concentration card above, scored against the build in effect at each snapshot instead of only the latest one. Lower is more diverse, so a line falling toward the right means the observed network keeps spreading across more operators over time.",
                 "Each crawler is its own line. They track each other closely and both drift down over the period, so the shift toward a more diverse network holds no matter who observed it, which is the cross-check the KIT only operator breakdown below cannot make on its own."
             ]
         },
