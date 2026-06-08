@@ -65,6 +65,11 @@ export function formatIpv6Blocks(value) {
         return "—";
     }
     const blocks = Number(big >> IPV6_NETGROUP_BITS);
+    // The shift floors to whole /32 blocks. An AS that moved only a
+    // few /48s would read "0 blocks" while the table lists it as an
+    // active mover — "<1" keeps the two statements consistent.
+    // A true zero (nothing moved / no footprint) still renders "0".
+    if (blocks === 0 && big > 0n) return "<1";
     return numberFormatter.format(blocks);
 }
 
