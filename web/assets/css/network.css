@@ -87,47 +87,53 @@
     background: var(--color-success);
 }
 
-/* Per-operator series for the top-operator breakdown view. Drawn from
-   the shared categorical palette (tokens.css --color-series-1..5) so the
-   five operators read as distinct categories, not a ranked gradient. The
-   combined line reuses the drift chart's neutral dashed "--total"
-   styling (charts.css), so no class is defined for it here. */
-.chart__line--op1,
-.chart__dot--op1 {
-    stroke: var(--color-series-1);
+/* Per-operator colours for the top-operator breakdown bars. Drawn
+   from the shared categorical palette (tokens.css --color-series-*)
+   so operators read as distinct categories, not a ranked gradient.
+   Each operator that ever enters a snapshot's top five keeps one
+   colour across every bar, so the eye can follow an operator through
+   the tier reshuffles. The bar class paints the SVG stack segment;
+   the swatch class paints the matching dot in the hover tooltip
+   (this chart carries no static legend — the per-period top five
+   changes, so identity lives in the tooltip). */
+.chart__bar--op1 {
     fill: var(--color-series-1);
 }
 
-.chart__line--op2,
-.chart__dot--op2 {
-    stroke: var(--color-series-2);
+.chart__bar--op2 {
     fill: var(--color-series-2);
 }
 
-.chart__line--op3,
-.chart__dot--op3 {
-    stroke: var(--color-series-3);
+.chart__bar--op3 {
     fill: var(--color-series-3);
 }
 
-.chart__line--op4,
-.chart__dot--op4 {
-    stroke: var(--color-series-4);
+.chart__bar--op4 {
     fill: var(--color-series-4);
 }
 
-.chart__line--op5,
-.chart__dot--op5 {
-    stroke: var(--color-series-5);
+.chart__bar--op5 {
     fill: var(--color-series-5);
 }
 
-.chart__line--op1,
-.chart__line--op2,
-.chart__line--op3,
-.chart__line--op4,
-.chart__line--op5 {
-    fill: none;
+.chart__bar--op6 {
+    fill: var(--color-series-6);
+}
+
+.chart__bar--op7 {
+    fill: var(--color-series-7);
+}
+
+.chart__bar--op8 {
+    fill: var(--color-series-8);
+}
+
+.chart__bar--op9 {
+    fill: var(--color-series-9);
+}
+
+.chart__bar--op10 {
+    fill: var(--color-series-10);
 }
 
 .chart-legend__swatch--op1 {
@@ -148,6 +154,26 @@
 
 .chart-legend__swatch--op5 {
     background: var(--color-series-5);
+}
+
+.chart-legend__swatch--op6 {
+    background: var(--color-series-6);
+}
+
+.chart-legend__swatch--op7 {
+    background: var(--color-series-7);
+}
+
+.chart-legend__swatch--op8 {
+    background: var(--color-series-8);
+}
+
+.chart-legend__swatch--op9 {
+    background: var(--color-series-9);
+}
+
+.chart-legend__swatch--op10 {
+    background: var(--color-series-10);
 }
 
 /* Data-quality stat that closes the Trends section: a single KPI plus
