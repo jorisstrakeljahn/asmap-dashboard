@@ -25,7 +25,7 @@ def _asmap(entries):
 
 
 def _build(name, ts, entries):
-    return _Build(name=name, timestamp=ts, asmap=_asmap(entries), variant="unfilled")
+    return _Build(name=name, timestamp=ts, asmap=_asmap(entries))
 
 
 def _snapshot(ts, nodes):
@@ -66,19 +66,16 @@ def test_snapshot_metrics_counts_mapping_hhi_and_bucketing():
     result = _snapshot_metrics(snap, BUILD2)
 
     assert result["nodes_clearnet"] == 3
-    assert result["nodes_mapped"] == 2
-    assert result["nodes_unmapped"] == 1
     assert result["unique_asns"] == 2
     # Two ASes with one node each -> HHI = 0.5^2 + 0.5^2 = 0.5.
     assert result["hhi"] == 0.5
-    assert result["matched_build"] == BUILD2.name
     # Three distinct /16 default groups; ASmap keeps two AS buckets plus
     # the default-group fallback for the unmapped node = three buckets.
     assert result["bucketing"]["default_groups"] == 3
     assert result["bucketing"]["asmap_groups"] == 3
 
 
-def test_snapshot_metrics_cross_check_and_country_when_annotated():
+def test_snapshot_metrics_cross_check_when_annotated():
     snap = _snapshot(1710000001, NODES)
 
     result = _snapshot_metrics(snap, BUILD2)
@@ -89,12 +86,9 @@ def test_snapshot_metrics_cross_check_and_country_when_annotated():
         "agree": 2,
         "agreement_pct": 100.0,
     }
-    assert result["by_country"] == [
-        {"country": "DE", "nodes": 2, "unique_asns": 2, "hhi": 0.5},
-    ]
 
 
-def test_snapshot_metrics_hides_annotated_views_when_coverage_thin():
+def test_snapshot_metrics_hides_cross_check_when_coverage_thin():
     # No node carries crawler whois (Bitnodes' compact form).
     bare = [Node(ip="1.1.1.1", version=4, asn=None, country=None)]
     snap = _snapshot(1710000001, bare)
@@ -102,7 +96,6 @@ def test_snapshot_metrics_hides_annotated_views_when_coverage_thin():
     result = _snapshot_metrics(snap, BUILD2)
 
     assert result["cross_check"] is None
-    assert result["by_country"] is None
 
 
 def test_decay_curve_is_anchored_on_reference_and_fixed_node_set():

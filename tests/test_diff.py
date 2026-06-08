@@ -92,18 +92,23 @@ def test_top_movers_ranked_with_primary_counterpart(tmp_path):
 
     assert result["total_changes"] == 3
     top = result["top_movers"]
+    eighth = 1 << (32 - 8)
     assert top[0]["asn"] == 100 and top[0]["changes"] == 3
-    assert top[0]["lost"] == 3 and top[0]["gained"] == 0
-    assert top[0]["primary_counterpart"] == 999
-    assert top[1]["asn"] == 999 and top[1]["primary_counterpart"] == 100
-    assert top[1]["gained"] == 3 and top[1]["lost"] == 0
+    assert top[0]["ipv4_addresses_lost"] == 3 * eighth
+    assert top[0]["ipv4_addresses_gained"] == 0
+    assert top[0]["ipv4_primary_counterpart"] == 999
+    assert top[1]["asn"] == 999 and top[1]["ipv4_primary_counterpart"] == 100
+    assert top[1]["ipv4_addresses_gained"] == 3 * eighth
+    assert top[1]["ipv4_addresses_lost"] == 0
     # AS100 holds three /8 prefixes in map A and one (128.0.0.0/8)
     # in map B; AS999 is absent from A and holds three /8 prefixes
-    # in B. The presence counts ride along on each row so the
+    # in B. The presence coverage rides along on each row so the
     # frontend can render the "Touched" multiplier without a second
     # walk.
-    assert top[0]["entries_in_a"] == 3 and top[0]["entries_in_b"] == 0
-    assert top[1]["entries_in_a"] == 0 and top[1]["entries_in_b"] == 3
+    assert top[0]["ipv4_addresses_in_a"] == 3 * eighth
+    assert top[0]["ipv4_addresses_in_b"] == 0
+    assert top[1]["ipv4_addresses_in_a"] == 0
+    assert top[1]["ipv4_addresses_in_b"] == 3 * eighth
 
 
 def test_bitcoin_node_impact_filters_to_addrs(tmp_path):
@@ -162,8 +167,6 @@ def test_empty_maps_diff_to_no_changes(tmp_path):
 
     result = diff_maps(a, b)
 
-    assert result["entries_a"] == 0
-    assert result["entries_b"] == 0
     assert result["total_changes"] == 0
     assert result["top_movers"] == []
 
@@ -191,9 +194,9 @@ def test_newly_mapped_asn_appears_in_top_movers_with_gained_only(tmp_path):
     row = result["top_movers"][0]
     assert row["asn"] == 555
     assert row["changes"] == 2
-    assert row["gained"] == 2
-    assert row["lost"] == 0
-    assert row["primary_counterpart"] == 0
+    assert row["ipv4_addresses_gained"] == 2 * (1 << (32 - 8))
+    assert row["ipv4_addresses_lost"] == 0
+    assert row["ipv4_primary_counterpart"] == 0
 
 
 def test_top_movers_record_gain_and_loss_for_reassigned_pair(tmp_path):
@@ -216,10 +219,13 @@ def test_top_movers_record_gain_and_loss_for_reassigned_pair(tmp_path):
     result = diff_maps(a, b)
 
     by_asn = {row["asn"]: row for row in result["top_movers"]}
-    assert by_asn[100]["gained"] == 0 and by_asn[100]["lost"] == 2
-    assert by_asn[200]["gained"] == 2 and by_asn[200]["lost"] == 0
-    assert by_asn[100]["primary_counterpart"] == 200
-    assert by_asn[200]["primary_counterpart"] == 100
+    eighth = 1 << (32 - 8)
+    assert by_asn[100]["ipv4_addresses_gained"] == 0
+    assert by_asn[100]["ipv4_addresses_lost"] == 2 * eighth
+    assert by_asn[200]["ipv4_addresses_gained"] == 2 * eighth
+    assert by_asn[200]["ipv4_addresses_lost"] == 0
+    assert by_asn[100]["ipv4_primary_counterpart"] == 200
+    assert by_asn[200]["ipv4_primary_counterpart"] == 100
 
 
 def test_diff_loaded_maps_matches_diff_maps(tmp_path):
@@ -507,8 +513,8 @@ def test_diff_carries_ipv4_bucket_space_for_both_sides(tmp_path):
     assert result["ipv4_bucket_space_b"] == 512
 
 
-def test_top_mover_row_carries_coverage_in_all_three_currencies(tmp_path):
-    """Every top_movers row exposes entry, IPv4 and IPv6 totals side by side."""
+def test_top_mover_row_carries_coverage_in_both_families(tmp_path):
+    """Every top_movers row exposes the entry total plus IPv4 and IPv6 coverage."""
     a = write_asmap(
         tmp_path / "a.dat",
         [
@@ -530,7 +536,6 @@ def test_top_mover_row_carries_coverage_in_all_three_currencies(tmp_path):
     # AS100 lost a /8 IPv4 and a /16 IPv6 to AS200.
     losing = rows[100]
     assert losing["changes"] == 2
-    assert losing["lost"] == 2 and losing["gained"] == 0
     assert losing["ipv4_addresses_lost"] == 1 << (32 - 8)
     assert losing["ipv4_addresses_gained"] == 0
     assert losing["ipv4_addresses_changed"] == 1 << (32 - 8)
@@ -624,8 +629,6 @@ def test_top_mover_per_as_presence_matches_loader_caches(tmp_path):
     rows = {row["asn"]: row for row in result["top_movers"]}
     # AS100 in A: two IPv4 /8s + one IPv6 /16. In B: one IPv4 /8 +
     # one IPv6 /16 (the second /8 was reassigned to AS200).
-    assert rows[100]["entries_in_a"] == 3
-    assert rows[100]["entries_in_b"] == 2
     assert rows[100]["ipv4_addresses_in_a"] == 2 * (1 << (32 - 8))
     assert rows[100]["ipv4_addresses_in_b"] == 1 << (32 - 8)
     assert rows[100]["ipv6_addresses_in_a"] == 1 << (128 - 16)
@@ -674,16 +677,15 @@ def test_top_mover_ipv6_dominant_as_appears_via_union_ranking(tmp_path):
     assert {200, 300, 888, 777} <= asns_in_top
 
 
-def test_top_mover_primary_counterpart_can_differ_per_currency(tmp_path):
-    """primary_counterpart, ipv4_primary_counterpart and ipv6_primary_counterpart
-    pick the most-exchanged partner per currency.
+def test_top_mover_primary_counterpart_is_address_weighted(tmp_path):
+    """ipv4_primary_counterpart picks the partner by address space, not entries.
 
     AS100 reassigns:
       - 10 IPv4 /24 prefixes to AS200 (10 entries, 10*256 = 2560 v4 addr)
       - 1 IPv4 /8 to AS300 (1 entry, 2^24 = 16M v4 addr)
 
-    Entry view: AS200 wins (10 vs 1).
-    IPv4 view:  AS300 wins (16M dwarfs 2560).
+    AS200 receives far more entries, but AS300 receives ~6500x the
+    address space — the rendered counterpart must be AS300.
     """
     a_entries = [(ipaddress.IPv4Network(f"10.{i}.0.0/24"), 100) for i in range(10)]
     a_entries.append((ipaddress.IPv4Network("64.0.0.0/8"), 100))
@@ -696,7 +698,6 @@ def test_top_mover_primary_counterpart_can_differ_per_currency(tmp_path):
     result = diff_maps(a, b)
     losing = next(row for row in result["top_movers"] if row["asn"] == 100)
 
-    assert losing["primary_counterpart"] == 200
     assert losing["ipv4_primary_counterpart"] == 300
 
 
