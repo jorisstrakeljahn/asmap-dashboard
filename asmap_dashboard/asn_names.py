@@ -37,17 +37,25 @@ USER_AGENT = (
 def extract_asns(metrics: dict) -> set[int]:
     """Return every ASN referenced in a metrics payload.
 
-    Walks the diffs (``top_movers[*].asn`` plus ``primary_counterpart``)
-    and the network section (``network.sources[*].snapshots[*].top_ases``),
+    Walks the diffs (``top_movers[*].asn`` plus the per-family
+    ``ipv4_primary_counterpart`` / ``ipv6_primary_counterpart`` the
+    Direction column actually renders — the per-family pick can
+    differ from the row's own ASN ranking, so collecting only the
+    row ASNs would leave counterpart cells unlabeled) and the
+    network section (``network.sources[*].snapshots[*].top_ases``),
     so operator labels are fetched for the Top Movers table and the
     network tab's operator breakdown alike. ASN 0 is a sentinel for
-    "unmapped" and is dropped so it never asks bgp.tools for a name that
-    does not exist.
+    "unmapped" and is dropped so it never asks bgp.tools for a name
+    that does not exist.
     """
     wanted: set[int] = set()
     for diff in metrics.get("diffs", []):
         for row in diff.get("top_movers", []):
-            for key in ("asn", "primary_counterpart"):
+            for key in (
+                "asn",
+                "ipv4_primary_counterpart",
+                "ipv6_primary_counterpart",
+            ):
                 value = row.get(key)
                 if value:
                     wanted.add(int(value))

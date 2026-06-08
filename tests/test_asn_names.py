@@ -10,31 +10,45 @@ from asmap_dashboard import asn_names
 
 
 def test_extract_asns_collects_top_movers_and_counterparts():
-    """Every asn and primary_counterpart in any diff ends up in the set."""
+    """Every asn and per-family counterpart in any diff ends up in the set.
+
+    The Direction column renders ipv4_primary_counterpart /
+    ipv6_primary_counterpart, and the two can differ for the same
+    row, so both must be collected for the labels to cover every
+    AS the table can show.
+    """
     metrics = {
         "diffs": [
             {
                 "top_movers": [
-                    {"asn": 7018, "primary_counterpart": 2386},
-                    {"asn": 174, "primary_counterpart": 0},
+                    {
+                        "asn": 7018,
+                        "ipv4_primary_counterpart": 2386,
+                        "ipv6_primary_counterpart": 3356,
+                    },
+                    {
+                        "asn": 174,
+                        "ipv4_primary_counterpart": 0,
+                        "ipv6_primary_counterpart": 0,
+                    },
                 ],
             },
             {
                 "top_movers": [
-                    {"asn": 7018, "primary_counterpart": 16509},
+                    {"asn": 7018, "ipv4_primary_counterpart": 16509},
                 ],
             },
         ],
     }
 
-    assert asn_names.extract_asns(metrics) == {7018, 2386, 174, 16509}
+    assert asn_names.extract_asns(metrics) == {7018, 2386, 3356, 174, 16509}
 
 
 def test_extract_asns_collects_network_top_ases():
     """Operators in the network section are gathered alongside the diffs."""
     metrics = {
         "diffs": [
-            {"top_movers": [{"asn": 7018, "primary_counterpart": 0}]},
+            {"top_movers": [{"asn": 7018, "ipv4_primary_counterpart": 0}]},
         ],
         "network": {
             "sources": {
@@ -60,7 +74,15 @@ def test_extract_asns_drops_zero_and_missing():
     """ASN 0 is the unmapped sentinel; missing fields must not crash."""
     metrics = {
         "diffs": [
-            {"top_movers": [{"asn": 0, "primary_counterpart": 0}]},
+            {
+                "top_movers": [
+                    {
+                        "asn": 0,
+                        "ipv4_primary_counterpart": 0,
+                        "ipv6_primary_counterpart": 0,
+                    }
+                ]
+            },
             {"top_movers": [{"asn": 174}]},
             {"top_movers": [{}]},
         ],
@@ -136,8 +158,8 @@ def test_refresh_writes_subset_and_about_section(tmp_path):
                 "diffs": [
                     {
                         "top_movers": [
-                            {"asn": 174, "primary_counterpart": 7018},
-                            {"asn": 16509, "primary_counterpart": 13335},
+                            {"asn": 174, "ipv4_primary_counterpart": 7018},
+                            {"asn": 16509, "ipv6_primary_counterpart": 13335},
                         ]
                     },
                 ],
