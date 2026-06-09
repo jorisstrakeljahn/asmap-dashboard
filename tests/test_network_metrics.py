@@ -75,6 +75,31 @@ def test_snapshot_metrics_counts_mapping_hhi_and_bucketing():
     assert result["bucketing"]["asmap_groups"] == 3
 
 
+def test_snapshot_metrics_unwraps_tunneled_ipv4_like_core():
+    """A 6to4 peer scores as its embedded IPv4 on both bucket scales.
+
+    The 6to4 address embeds 1.1.9.9 (2002:0101:0909::), which BUILD2
+    maps to AS200 — exactly what Core's GetMappedAS() would resolve.
+    Its default bucket is the embedded IPv4's /16, shared with the
+    native 1.1.1.1 node, so neither vocabulary treats the tunnel
+    wrapper as a separate location.
+    """
+    nodes = [
+        Node(ip="1.1.1.1", version=4, asn=200, country="DE"),
+        Node(ip="2002:101:909::1", version=6, asn=None, country=None),
+    ]
+    snap = _snapshot(1710000001, nodes)
+
+    result = _snapshot_metrics(snap, BUILD2)
+
+    # Both nodes resolve to AS200 -> one AS, HHI 1.0, one AS bucket.
+    assert result["unique_asns"] == 1
+    assert result["hhi"] == 1.0
+    assert result["bucketing"]["asmap_groups"] == 1
+    # And one shared default /16 bucket (1.1.0.0/16).
+    assert result["bucketing"]["default_groups"] == 1
+
+
 def test_snapshot_metrics_cross_check_when_annotated():
     snap = _snapshot(1710000001, NODES)
 
