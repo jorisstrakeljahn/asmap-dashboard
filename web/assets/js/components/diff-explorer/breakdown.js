@@ -83,57 +83,42 @@ export function matchBanner(diff, family) {
 
 // Both families speak in NetGroup buckets so the headline
 // percent is directly comparable: /16 buckets on IPv4, /32
-// blocks on IPv6. IPv4 buckets come straight from the pipeline.
-// IPv6 buckets are derived from the address fields by the same
-// >> 96 shift formatIpv6Blocks does — staying in block space
-// keeps the values inside the Number-safe range (a /32 block
-// count is ~10^5, well below 2^53) and avoids BigInt in
-// Math.max, which would throw.
+// blocks on IPv6. Both columns come straight from the pipeline,
+// which counts them over merged prefix ranges.
 //
-// Both branches return the same {changed, denominator, ratio,
-// format} shape so familyBlock() never has to branch on
+// The denominator is the union of both maps' coverage — every
+// bucket either map has an opinion about. A changed prefix is
+// mapped on at least one side, so the changed buckets are a
+// subset of the union by construction and the match percentage
+// is guaranteed to stay within [0, 100]. A single map's bucket
+// count would not give that guarantee: a newly mapped prefix
+// only exists in Map B's coverage, an unmapped one only in
+// Map A's.
+//
+// Returns the same {changed, denominator, ratio, format} shape
+// for both families so familyBlock() never has to branch on
 // family again.
+const BANNER_FIELDS_BY_FAMILY = {
+    [FAMILY_IPV4]: {
+        changed: "ipv4_buckets_changed",
+        space: "ipv4_bucket_space_union",
+    },
+    [FAMILY_IPV6]: {
+        changed: "ipv6_blocks_changed",
+        space: "ipv6_block_space_union",
+    },
+};
+
 function matchBannerView(diff, family) {
-    if (family === FAMILY_IPV6) {
-        const changed = toIpv6Blocks(diff.ipv6_addresses_changed);
-        const denominator = Math.max(
-            toIpv6Blocks(diff.ipv6_address_space_a),
-            toIpv6Blocks(diff.ipv6_address_space_b),
-        );
-        return {
-            ratio: denominator ? changed / denominator : 0,
-            changed,
-            denominator,
-            format: formatNumber,
-        };
-    }
-    const changed = diff.ipv4_buckets_changed || 0;
-    const denominator = Math.max(
-        diff.ipv4_bucket_space_a || 0,
-        diff.ipv4_bucket_space_b || 0,
-    );
+    const fields = BANNER_FIELDS_BY_FAMILY[family];
+    const changed = diff[fields.changed] || 0;
+    const denominator = diff[fields.space] || 0;
     return {
         ratio: denominator ? changed / denominator : 0,
         changed,
         denominator,
         format: formatNumber,
     };
-}
-
-// ``raw`` is an integer count of IPv6 addresses, which can blow
-// past Number.MAX_SAFE_INTEGER on the address-space columns. We
-// promote to BigInt only long enough to shift down to /32 block
-// count, which always fits in Number cleanly. Mirrors what
-// formatIpv6Blocks does for display.
-const IPV6_NETGROUP_BITS = 96n;
-
-function toIpv6Blocks(raw) {
-    if (raw == null) return 0;
-    try {
-        return Number(BigInt(raw) >> IPV6_NETGROUP_BITS);
-    } catch {
-        return 0;
-    }
 }
 
 function familyBlock({ captionKey, view, family }) {

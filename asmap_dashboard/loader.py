@@ -15,9 +15,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from asmap_dashboard._prefix import (
-    ipv4_bucket_indices,
     is_ipv4_prefix,
+    merge_ranges,
     prefix_address_count,
+    prefix_address_range,
 )
 from asmap_dashboard._vendor.asmap import ASMap
 
@@ -40,12 +41,14 @@ class LoadedMap:
     coverage moved. Without this, IPv6 noise from many tiny
     allocations drowns out real IPv4 BGP reorganisations.
 
-    ``ipv4_bucket_space`` counts distinct /16 NetGroup buckets the
-    map covers (any prefix with a non-zero ASN that touches a /16
-    counts that /16 once). It is the denominator for the diff
-    explorer match banner on the IPv4 side, expressed in the same
-    peer-diversity bucket vocabulary Bitcoin Core's GetGroup() uses
-    when no asmap is loaded.
+    ``ipv4_address_ranges`` / ``ipv6_address_ranges`` are the same
+    coverage as sorted, disjoint half-open ``[start, end)`` ranges
+    in each family's own address space (see ``_prefix``). The diff
+    merges the ranges of two maps to obtain their union coverage —
+    the denominator of the match banner and the drift ratios, where
+    a per-map total would not be guaranteed to contain every
+    changed prefix. Their total size equals
+    ``ipv{4,6}_address_space`` by construction.
 
     The three ``*_per_asn`` Counters carry per-AS presence in each
     currency:
@@ -74,7 +77,8 @@ class LoadedMap:
     entries_count: int
     ipv4_address_space: int
     ipv6_address_space: int
-    ipv4_bucket_space: int
+    ipv4_address_ranges: tuple[tuple[int, int], ...]
+    ipv6_address_ranges: tuple[tuple[int, int], ...]
     entries_per_asn: Counter[int]
     ipv4_addresses_per_asn: Counter[int]
     ipv6_addresses_per_asn: Counter[int]
@@ -96,8 +100,8 @@ def load_map(path: PathLike) -> LoadedMap:
     entries_per_asn: Counter[int] = Counter(
         asn for _prefix, asn in minimal_entries if asn != 0
     )
-    ipv4_per_asn, ipv6_per_asn, ipv4_bucket_space = _measure_per_asn_address_space(
-        asmap
+    ipv4_per_asn, ipv6_per_asn, ipv4_ranges, ipv6_ranges = (
+        _measure_per_asn_address_space(asmap)
     )
     return LoadedMap(
         asmap=asmap,
@@ -105,7 +109,8 @@ def load_map(path: PathLike) -> LoadedMap:
         entries_count=len(minimal_entries),
         ipv4_address_space=sum(ipv4_per_asn.values()),
         ipv6_address_space=sum(ipv6_per_asn.values()),
-        ipv4_bucket_space=ipv4_bucket_space,
+        ipv4_address_ranges=tuple(merge_ranges(ipv4_ranges)),
+        ipv6_address_ranges=tuple(merge_ranges(ipv6_ranges)),
         entries_per_asn=entries_per_asn,
         ipv4_addresses_per_asn=ipv4_per_asn,
         ipv6_addresses_per_asn=ipv6_per_asn,
@@ -114,7 +119,7 @@ def load_map(path: PathLike) -> LoadedMap:
 
 def _measure_per_asn_address_space(
     asmap: ASMap,
-) -> tuple[Counter[int], Counter[int], int]:
+) -> tuple[Counter[int], Counter[int], list[tuple[int, int]], list[tuple[int, int]]]:
     """Sum non-overlapping prefix sizes per ASN, split by address family.
 
     Walks the flat (non-overlapping) trie so each address is counted
@@ -123,21 +128,24 @@ def _measure_per_asn_address_space(
     and is excluded so the totals represent address space the map
     actually has an opinion about, not raw trie coverage.
 
-    Also accumulates the set of distinct /16 NetGroup buckets the
-    map covers (every mapped IPv4 prefix contributes the /16s it
-    touches). The third return value is the size of that set —
-    ``ipv4_bucket_space`` on the LoadedMap.
+    Also collects every mapped prefix as a raw ``[start, end)``
+    address range per family. The caller merges those into the
+    canonical sorted disjoint form once, so the all-pairs diff loop
+    can union two maps' coverage by a single merge instead of
+    re-walking either trie.
     """
     ipv4_per_asn: Counter[int] = Counter()
     ipv6_per_asn: Counter[int] = Counter()
-    ipv4_buckets: set[int] = set()
+    ipv4_ranges: list[tuple[int, int]] = []
+    ipv6_ranges: list[tuple[int, int]] = []
     for prefix, asn in asmap.to_entries(overlapping=False):
         if asn == 0:
             continue
         size = prefix_address_count(prefix)
         if is_ipv4_prefix(prefix):
             ipv4_per_asn[asn] += size
-            ipv4_buckets.update(ipv4_bucket_indices(prefix))
+            ipv4_ranges.append(prefix_address_range(prefix))
         else:
             ipv6_per_asn[asn] += size
-    return ipv4_per_asn, ipv6_per_asn, len(ipv4_buckets)
+            ipv6_ranges.append(prefix_address_range(prefix))
+    return ipv4_per_asn, ipv6_per_asn, ipv4_ranges, ipv6_ranges

@@ -126,40 +126,56 @@ def test_load_map_per_asn_address_space_excludes_sentinel_zero(tmp_path):
     assert loaded.ipv6_address_space == 0
 
 
-def test_load_map_counts_distinct_ipv4_bucket_space(tmp_path):
-    """ipv4_bucket_space counts each /16 NetGroup bucket once across the map.
+def test_load_map_caches_merged_address_ranges_per_family(tmp_path):
+    """Address ranges are sorted, disjoint, family-split, ASN-0-free.
 
-    Map: one /8 (covers 256 buckets, ASN 100), one /24 inside a
-    completely separate /16 (covers 1 bucket, ASN 200), one /20
-    inside one further /16 (covers 1 bucket, ASN 200), and an
-    ASN-0 /16 that must not contribute. Result: 256 + 1 + 1 = 258.
+    The three adjacent /24s (different ASNs, so they survive as
+    separate trie entries) must coalesce into one contiguous range;
+    the ASN-0 prefix and the IPv6 entry must not leak into the
+    IPv4 list.
     """
     path = write_asmap(
-        tmp_path / "buckets.dat",
-        [
-            (ipaddress.IPv4Network("1.0.0.0/8"), 100),
-            (ipaddress.IPv4Network("16.0.0.0/24"), 200),
-            (ipaddress.IPv4Network("32.0.0.0/20"), 200),
-            (ipaddress.IPv4Network("48.0.0.0/16"), 0),
-        ],
-    )
-
-    loaded = load_map(path)
-
-    assert loaded.ipv4_bucket_space == 256 + 1 + 1
-
-
-def test_load_map_ipv4_bucket_space_dedups_overlapping_prefixes(tmp_path):
-    """Multiple prefixes that fall into the same /16 only count it once."""
-    path = write_asmap(
-        tmp_path / "overlap.dat",
+        tmp_path / "ranges.dat",
         [
             (ipaddress.IPv4Network("10.0.0.0/24"), 100),
             (ipaddress.IPv4Network("10.0.1.0/24"), 200),
             (ipaddress.IPv4Network("10.0.2.0/24"), 300),
+            (ipaddress.IPv4Network("1.0.0.0/8"), 400),
+            (ipaddress.IPv4Network("48.0.0.0/16"), 0),
+            (ipaddress.IPv6Network("2001::/16"), 500),
         ],
     )
 
     loaded = load_map(path)
 
-    assert loaded.ipv4_bucket_space == 1
+    ten_base = int(ipaddress.IPv4Address("10.0.0.0"))
+    assert loaded.ipv4_address_ranges == (
+        (1 << 24, 2 << 24),
+        (ten_base, ten_base + 3 * 256),
+    )
+    v6_base = int(ipaddress.IPv6Address("2001::"))
+    assert loaded.ipv6_address_ranges == ((v6_base, v6_base + (1 << 112)),)
+
+
+def test_load_map_address_ranges_sum_to_address_space(tmp_path):
+    """The ranges and the headline space totals describe the same coverage."""
+    path = write_asmap(
+        tmp_path / "sum.dat",
+        [
+            (ipaddress.IPv4Network("1.0.0.0/8"), 100),
+            (ipaddress.IPv4Network("16.0.0.0/24"), 200),
+            (ipaddress.IPv6Network("2001::/16"), 300),
+            (ipaddress.IPv6Network("2a00::/48"), 400),
+        ],
+    )
+
+    loaded = load_map(path)
+
+    assert (
+        sum(end - start for start, end in loaded.ipv4_address_ranges)
+        == loaded.ipv4_address_space
+    )
+    assert (
+        sum(end - start for start, end in loaded.ipv6_address_ranges)
+        == loaded.ipv6_address_space
+    )

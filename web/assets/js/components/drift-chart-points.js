@@ -23,22 +23,23 @@ import {
 import { unfilledProfile } from "../utils/map-variants.js";
 
 // Per-unit accessor table: tells the point builder which pipeline
-// field is the bucket count and which two are the per-map totals
-// used as the shared denominator. Centralised so adding a new
-// unit (e.g. bitnodes-weighted coverage later) only needs one
-// entry here, not edits in every consumer.
+// fields carry the category counts and which one is the shared
+// denominator — the union of both maps' mapped space, the same
+// quantity driftViews() in utils/diffs.js divides by, so the
+// chart and the headline cards can never disagree on a ratio.
+// Centralised so adding a new unit (e.g. bitnodes-weighted
+// coverage later) only needs one entry here, not edits in every
+// consumer.
 const UNIT_FIELDS = {
     [DRIFT_IPV4_COVERAGE]: {
-        denominatorA: "ipv4_address_space_a",
-        denominatorB: "ipv4_address_space_b",
+        denominator: "ipv4_address_space_union",
         reassigned: "reassigned_ipv4_addresses",
         newlyMapped: "newly_mapped_ipv4_addresses",
         unmapped: "unmapped_ipv4_addresses",
         total: "ipv4_addresses_changed",
     },
     [DRIFT_IPV6_COVERAGE]: {
-        denominatorA: "ipv6_address_space_a",
-        denominatorB: "ipv6_address_space_b",
+        denominator: "ipv6_address_space_union",
         reassigned: "reassigned_ipv6_addresses",
         newlyMapped: "newly_mapped_ipv6_addresses",
         unmapped: "unmapped_ipv6_addresses",
@@ -117,7 +118,7 @@ function directionalDiff(diffs, fromName, toName) {
 }
 
 function toPoint(map, index, diff, vs, fields) {
-    const denom = Math.max(diff[fields.denominatorA], diff[fields.denominatorB]);
+    const denom = diff[fields.denominator] || 0;
     const ratio = (value) => (denom ? value / denom : 0);
     const reassigned = diff[fields.reassigned] || 0;
     const newlyMapped = diff[fields.newlyMapped] || 0;
