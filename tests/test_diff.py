@@ -387,8 +387,13 @@ def test_coverage_distinguishes_large_and_small_prefix_reassignments(tmp_path):
     assert big // small == 65_536
 
 
-def test_coverage_includes_map_address_space_denominators(tmp_path):
-    """ipv{4,6}_address_space_{a,b} carry the per-map totals for frontend ratios."""
+def test_coverage_includes_union_address_space_denominators(tmp_path):
+    """ipv{4,6}_address_space_union carry the union totals for frontend ratios.
+
+    The 1.0.0.0/8 and 2001::/16 are mapped by both maps and must
+    count once, not twice — the union is a coverage merge, not a
+    sum of the two maps' totals.
+    """
     a = write_asmap(
         tmp_path / "a.dat",
         [
@@ -407,10 +412,8 @@ def test_coverage_includes_map_address_space_denominators(tmp_path):
 
     result = diff_maps(a, b)
 
-    assert result["ipv4_address_space_a"] == 1 << (32 - 8)
-    assert result["ipv4_address_space_b"] == 2 * (1 << (32 - 8))
-    assert result["ipv6_address_space_a"] == 1 << (128 - 16)
-    assert result["ipv6_address_space_b"] == 1 << (128 - 16)
+    assert result["ipv4_address_space_union"] == 2 * (1 << (32 - 8))
+    assert result["ipv6_address_space_union"] == 1 << (128 - 16)
 
 
 def test_ipv4_buckets_changed_counts_each_sixteen_once(tmp_path):
@@ -488,12 +491,12 @@ def test_ipv4_buckets_changed_unions_across_change_kinds(tmp_path):
     assert result["ipv4_buckets_changed"] == 3
 
 
-def test_diff_carries_ipv4_bucket_space_for_both_sides(tmp_path):
-    """ipv4_bucket_space_{a,b} match the corresponding LoadedMap fields.
+def test_diff_carries_ipv4_bucket_space_union(tmp_path):
+    """ipv4_bucket_space_union deduplicates buckets both maps cover.
 
-    Map A has one /8 (256 buckets); Map B adds another /8 (256
-    further buckets) so the banner can express change ratios on
-    either side.
+    Map A has one /8 (256 buckets); Map B has the same /8 plus
+    another (256 further buckets). The shared /8 counts once:
+    256 + 256, not 256 + 512.
     """
     a = write_asmap(
         tmp_path / "a.dat",
@@ -509,8 +512,73 @@ def test_diff_carries_ipv4_bucket_space_for_both_sides(tmp_path):
 
     result = diff_maps(a, b)
 
-    assert result["ipv4_bucket_space_a"] == 256
-    assert result["ipv4_bucket_space_b"] == 512
+    assert result["ipv4_bucket_space_union"] == 512
+    # The newly mapped /8 only exists in Map B's coverage. With a
+    # per-map denominator the changed buckets could outgrow it; the
+    # union contains them by construction.
+    assert result["ipv4_buckets_changed"] == 256
+    assert result["ipv4_buckets_changed"] <= result["ipv4_bucket_space_union"]
+
+
+def test_ipv6_blocks_changed_counts_thirtytwo_blocks_once(tmp_path):
+    """IPv6 changes count in /32 NetGroup blocks, deduplicated.
+
+    Two /48 reassignments inside the same /32 collapse to one
+    block; a third /48 in a different /32 adds a second. Mirrors
+    the IPv4 bucket semantics so the match banner's two columns
+    read identically.
+    """
+    a = write_asmap(
+        tmp_path / "a.dat",
+        [
+            (ipaddress.IPv6Network("2001:db8::/48"), 100),
+            (ipaddress.IPv6Network("2001:db8:1::/48"), 100),
+            (ipaddress.IPv6Network("2a00::/48"), 100),
+        ],
+    )
+    b = write_asmap(
+        tmp_path / "b.dat",
+        [
+            (ipaddress.IPv6Network("2001:db8::/48"), 999),
+            (ipaddress.IPv6Network("2001:db8:1::/48"), 888),
+            (ipaddress.IPv6Network("2a00::/48"), 777),
+        ],
+    )
+
+    result = diff_maps(a, b)
+
+    assert result["reassigned_ipv6"] == 3
+    assert result["ipv6_blocks_changed"] == 2
+
+
+def test_ipv6_block_space_union_expands_wide_prefixes(tmp_path):
+    """A /16 spans 2^16 /32 blocks; sub-/32 coverage still counts its block.
+
+    Also pins the changed-within-union invariant on the IPv6 side:
+    the /16 is reassigned wholesale, so changed blocks equal the
+    /16's full block span while the union additionally carries the
+    untouched 2a00::/48's block.
+    """
+    a = write_asmap(
+        tmp_path / "a.dat",
+        [
+            (ipaddress.IPv6Network("2001::/16"), 100),
+            (ipaddress.IPv6Network("2a00::/48"), 200),
+        ],
+    )
+    b = write_asmap(
+        tmp_path / "b.dat",
+        [
+            (ipaddress.IPv6Network("2001::/16"), 999),
+            (ipaddress.IPv6Network("2a00::/48"), 200),
+        ],
+    )
+
+    result = diff_maps(a, b)
+
+    assert result["ipv6_blocks_changed"] == 1 << 16
+    assert result["ipv6_block_space_union"] == (1 << 16) + 1
+    assert result["ipv6_blocks_changed"] <= result["ipv6_block_space_union"]
 
 
 def test_top_mover_row_carries_coverage_in_both_families(tmp_path):

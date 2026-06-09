@@ -11,9 +11,12 @@ import { unfilledProfile } from "./map-variants.js";
 // for every diff:
 //
 //   DRIFT_IPV4_COVERAGE: IPv4 addresses whose ASN changed, divided
-//     by the larger of the two maps' IPv4 address space. The
-//     default headline metric — answers the operationally honest
-//     question "how much of the IPv4 routing has moved?".
+//     by the union of the two maps' mapped IPv4 space (addresses
+//     either map assigns an ASN to). The default headline metric —
+//     answers the operationally honest question "how much of the
+//     IPv4 routing has moved?". The union is the one denominator
+//     every changed prefix is guaranteed to fall under, so the
+//     ratio can never exceed 1.
 //   DRIFT_IPV6_COVERAGE: same for IPv6. Kept separate from v4
 //     because Bitcoin Core peer diversity treats the two families
 //     as independent dimensions and because the address spaces
@@ -46,7 +49,7 @@ export function findDiff(diffs, fromName, toName) {
 // "5% drift" means for the same pair.
 //
 // Each view exposes:
-//   ratio:        changed / max(map_a_total, map_b_total). Zero
+//   ratio:        changed / union of both maps' mapped space. Zero
 //                 when neither side has any of that resource (e.g.
 //                 a tiny map with no IPv6 entries returns
 //                 ipv6_coverage.ratio = 0 cleanly instead of NaN).
@@ -57,19 +60,17 @@ export function driftViews(diff) {
     return {
         [DRIFT_IPV4_COVERAGE]: coverageView(
             diff.ipv4_addresses_changed,
-            diff.ipv4_address_space_a,
-            diff.ipv4_address_space_b,
+            diff.ipv4_address_space_union,
         ),
         [DRIFT_IPV6_COVERAGE]: coverageView(
             diff.ipv6_addresses_changed,
-            diff.ipv6_address_space_a,
-            diff.ipv6_address_space_b,
+            diff.ipv6_address_space_union,
         ),
     };
 }
 
-function coverageView(changed, totalA, totalB) {
-    const denominator = Math.max(totalA || 0, totalB || 0);
+function coverageView(changed, unionSpace) {
+    const denominator = unionSpace || 0;
     const ratio = denominator ? (changed || 0) / denominator : 0;
     return { ratio, changed: changed || 0, denominator };
 }

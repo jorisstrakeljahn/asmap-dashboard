@@ -5,24 +5,35 @@ The vendored ``asmap.py`` stores IPv4 prefixes inside the IPv6 trie at
 head directly avoids allocating an ``ipaddress`` object per prefix,
 which matters once the all-pairs diff loop runs against a real
 history.
+
+Coverage is represented as half-open integer ranges ``[start, end)``
+of addresses within each family's own space (32-bit values for IPv4,
+128-bit for IPv6). A prefix is one contiguous range, a map's mapped
+space is a sorted list of disjoint ranges, and the union of two maps
+is just another merge. The same ranges answer both questions the
+pipeline asks: how many addresses (range sizes) and how many
+NetGroup buckets (``count_buckets``) a coverage touches — without
+ever materialising per-address or per-bucket sets, which a single
+IPv6 /16 (2**16 /32 blocks) would blow up.
 """
 
 from __future__ import annotations
-
-from collections.abc import Iterator
 
 V4_MAPPED_HEAD: list[bool] = [False] * 80 + [True] * 16
 IPV4_BITS = 32
 IPV6_BITS = 128
 
-# Bitcoin Core's CNetAddr::GetGroup() puts every IPv4 peer into a
-# /16 NetGroup bucket when no asmap is loaded. The diff explorer
-# match banner reports the IPv4 side in those buckets so a reader
-# can compare the v4 and v6 columns in the same peer-diversity
-# vocabulary: ``ipv4_buckets_changed`` of ``ipv4_bucket_space``
-# differ reads as "this many of the buckets Bitcoin Core would
-# rely on for peer diversity carry a changed prefix".
+# Bitcoin Core's NetGroupManager::GetGroup() buckets peers by /16
+# for IPv4 and /32 for IPv6 when no asmap is loaded. The diff
+# explorer match banner reports both families in those buckets so
+# the two columns read in the same peer-diversity vocabulary:
+# "this many of the buckets Bitcoin Core would rely on for peer
+# diversity carry a changed prefix". The shifts below convert an
+# address to its bucket index.
 IPV4_BUCKET_BITS = 16
+IPV6_BUCKET_BITS = 32
+IPV4_BUCKET_SHIFT = IPV4_BITS - IPV4_BUCKET_BITS
+IPV6_BUCKET_SHIFT = IPV6_BITS - IPV6_BUCKET_BITS
 
 
 def is_ipv4_prefix(prefix: list[bool]) -> bool:
@@ -50,37 +61,68 @@ def prefix_address_count(prefix: list[bool]) -> int:
     return 1 << (IPV6_BITS - len(prefix))
 
 
-def ipv4_bucket_indices(prefix: list[bool]) -> Iterator[int]:
-    """Yield every /16 NetGroup bucket the IPv4 ``prefix`` covers.
+def prefix_address_range(prefix: list[bool]) -> tuple[int, int]:
+    """Return the half-open address range ``[start, end)`` of ``prefix``.
 
-    A /20 sits inside exactly one /16, a /14 spans four, a /8 spans
-    256, and so on. The caller is expected to have already
-    classified ``prefix`` as IPv4 via ``is_ipv4_prefix`` — passing
-    anything else yields garbage. Bucket indices are plain ints in
-    ``[0, 2**16)``, derived from the first 16 bits below the
-    ``::ffff:0:0/96`` head.
-
-    Implemented as a generator so ``/8`` and ``/0`` (256 and 65 536
-    buckets respectively) do not materialise large intermediate
-    sequences; callers fold the indices straight into a set.
+    The range lives in the prefix's own family space: a v4-mapped
+    prefix resolves to 32-bit values (the ``::ffff:0:0/96`` head is
+    stripped), a native IPv6 prefix to 128-bit values. Ranges from
+    different families must therefore never be merged together —
+    the loader and the diff keep one list per family.
     """
-    v4_length = len(prefix) - 96
-    if v4_length >= IPV4_BUCKET_BITS:
-        # Prefix is strictly inside one /16. Read the first 16
-        # bits below the v4-mapped head and emit that index.
-        head = 0
-        for bit in prefix[96 : 96 + IPV4_BUCKET_BITS]:
-            head = (head << 1) | (1 if bit else 0)
-        yield head
-        return
+    if is_ipv4_prefix(prefix):
+        bits = prefix[96:]
+        total_bits = IPV4_BITS
+    else:
+        bits = prefix
+        total_bits = IPV6_BITS
+    value = 0
+    for bit in bits:
+        value = (value << 1) | (1 if bit else 0)
+    span = total_bits - len(bits)
+    start = value << span
+    return start, start + (1 << span)
 
-    # Prefix is wider than a /16. The first ``v4_length`` bits are
-    # fixed; the remaining ``IPV4_BUCKET_BITS - v4_length`` bits
-    # range over all values, so we yield every index in that span.
-    fixed_bits = 0
-    for bit in prefix[96 : 96 + v4_length]:
-        fixed_bits = (fixed_bits << 1) | (1 if bit else 0)
-    span = IPV4_BUCKET_BITS - v4_length
-    start = fixed_bits << span
-    for offset in range(1 << span):
-        yield start | offset
+
+def merge_ranges(ranges: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    """Sort half-open ranges and coalesce overlaps and adjacencies.
+
+    The result is the canonical form every consumer relies on:
+    sorted, disjoint, non-adjacent. Computing the union of two
+    coverages is just ``merge_ranges(list_a + list_b)``.
+    """
+    merged: list[tuple[int, int]] = []
+    for start, end in sorted(ranges):
+        if merged and start <= merged[-1][1]:
+            if end > merged[-1][1]:
+                merged[-1] = (merged[-1][0], end)
+        else:
+            merged.append((start, end))
+    return merged
+
+
+def total_range_size(ranges: list[tuple[int, int]]) -> int:
+    """Total number of addresses covered by disjoint ``ranges``."""
+    return sum(end - start for start, end in ranges)
+
+
+def count_buckets(ranges: list[tuple[int, int]], shift: int) -> int:
+    """Count distinct NetGroup buckets intersected by merged ``ranges``.
+
+    A bucket is the value ``address >> shift`` (16 for IPv4 /16
+    buckets, 96 for IPv6 /32 buckets). A range that covers a bucket
+    only partially still counts it — a bucket "carries" a prefix as
+    soon as one address inside it is involved. ``ranges`` must be in
+    the canonical ``merge_ranges`` form; two consecutive ranges can
+    still touch the same bucket (e.g. two /48s inside one /32 with a
+    hole between them), which the ``prev`` cursor deduplicates.
+    """
+    total = 0
+    prev = -1
+    for start, end in ranges:
+        first = max(start >> shift, prev + 1)
+        last = (end - 1) >> shift
+        if last >= first:
+            total += last - first + 1
+            prev = last
+    return total

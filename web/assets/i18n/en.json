@@ -108,7 +108,7 @@
             "secondaryViews": "IPv6 {ipv6}",
             "vsDate": "vs {date}",
             "info": [
-                "Share of routable IPv4 address space whose ASN assignment changed between this build and the most recent build it can be diffed against. A 1 percent drift means about 1 IPv4 address in 100 now lands on a different autonomous system.",
+                "Share of the mapped IPv4 address space whose ASN assignment changed between this build and the most recent build it can be diffed against. Mapped means assigned to an autonomous system by at least one of the two builds, so every changed address is part of the denominator. A 1 percent drift means about 1 mapped IPv4 address in 100 now lands on a different autonomous system.",
                 "The headline is IPv4 because Bitcoin Core peer reachability leans on IPv4 most directly. The IPv6 drift rides along as a second line because the two address families mean different things for peer diversity and cannot be added together. IPv6 is larger than IPv4 by 2 to the power of 96, so a combined number would round IPv4 down to noise.",
                 "Worked out from unfilled against unfilled diffs, so real source data drift stays apart from shifts caused by the fill heuristic."
             ],
@@ -160,7 +160,7 @@
                     "lead": "Total drift.",
                     "text": "Sum of the three categories. The headline distance from the baseline build, in a single number, for the build you have selected."
                 },
-                "The drift unit picker at the top of History switches every chart between IPv4 (share of routable IPv4 space whose ASN moved) and IPv6 (the same for IPv6). The two are kept apart because Bitcoin Core peer diversity treats them as independent. IPv6 is larger than IPv4 by 2 to the power of 96, so a combined denominator would round IPv4 down to noise.",
+                "The drift unit picker at the top of History switches every chart between IPv4 (share of the IPv4 space mapped by either build whose ASN moved) and IPv6 (the same for IPv6). The two are kept apart because Bitcoin Core peer diversity treats them as independent. IPv6 is larger than IPv4 by 2 to the power of 96, so a combined denominator would round IPv4 down to noise.",
                 "Click any legend entry to hide that line and rescale the chart to what is left. Builds without an unfilled variant carry no dot, and the tooltip flags them as having no diff. The line bridges across them so the trend stays readable."
             ]
         },
@@ -384,7 +384,7 @@
             "infoAria": "About the diff classification",
             "info": [
                 "The IPv4 and IPv6 toggle next to the section title scopes everything below it, the match banner, the bucket counts, the stacked bar, and the top movers table, to one address family at a time. Bitcoin Core peer diversity treats the two families as independent, so a diff that moves 10000 IPv4 prefixes has a different operational meaning than one that moves 10000 IPv6 prefixes.",
-                "The match banner counts in peer diversity buckets, /16 buckets for IPv4 and /32 buckets for IPv6. These are the buckets Bitcoin Core's GetGroup() uses for peer diversity when no asmap is loaded. A bucket counts as changed when at least one prefix inside it gained, lost, or swapped its ASN between Map A and Map B, so the same bucket scale applies to both families.",
+                "The match banner counts in peer diversity buckets, /16 buckets for IPv4 and /32 buckets for IPv6. These are the buckets Bitcoin Core's GetGroup() uses for peer diversity when no asmap is loaded. A bucket counts as changed when at least one prefix inside it gained, lost, or swapped its ASN between Map A and Map B, so the same bucket scale applies to both families. The denominator is every bucket that either map covers, which guarantees each changed bucket is part of it and the match never reads below zero.",
                 "Within the selected family, each entry level change between Map A and Map B falls into exactly one of three groups.",
                 {
                     "lead": "Reassigned.",

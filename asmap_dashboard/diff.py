@@ -7,9 +7,14 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from asmap_dashboard._prefix import (
-    ipv4_bucket_indices,
+    IPV4_BUCKET_SHIFT,
+    IPV6_BUCKET_SHIFT,
+    count_buckets,
     is_ipv4_prefix,
+    merge_ranges,
     prefix_address_count,
+    prefix_address_range,
+    total_range_size,
 )
 from asmap_dashboard._vendor.asmap import ASMap, net_to_prefix
 from asmap_dashboard.loader import LoadedMap, PathLike, load_map
@@ -150,22 +155,42 @@ def diff_loaded_maps(
         unmapped:                      int.
         unmapped_ipv4:                 int.
         unmapped_ipv6:                 int.
-        ipv4_address_space_a:          int, total IPv4 addresses
-                                       mapped in map_a (asn != 0).
-        ipv4_address_space_b:          int, same for map_b.
-        ipv4_bucket_space_a:           int, distinct /16 NetGroup
-                                       buckets covered by map_a.
-                                       Denominator of the diff
-                                       explorer match banner on
-                                       the IPv4 side.
-        ipv4_bucket_space_b:           int, same for map_b.
+        ipv4_address_space_union:      int, IPv4 addresses mapped
+                                       (asn != 0) by map_a, map_b,
+                                       or both. Denominator of the
+                                       IPv4 drift ratios. The union
+                                       (not either map's total) is
+                                       the one denominator every
+                                       changed prefix is guaranteed
+                                       to fall under: a newly
+                                       mapped prefix lives only in
+                                       map_b's coverage, an
+                                       unmapped one only in
+                                       map_a's, so dividing by a
+                                       single side could exceed 1.
+        ipv6_address_space_union:      int, same for IPv6.
         ipv4_buckets_changed:          int, distinct /16 NetGroup
                                        buckets that carry at least
                                        one changed prefix between
-                                       map_a and map_b.
-        ipv6_address_space_a:          int, total IPv6 addresses
-                                       mapped in map_a (asn != 0).
-        ipv6_address_space_b:          int, same for map_b.
+                                       map_a and map_b. Numerator
+                                       of the match banner's IPv4
+                                       column.
+        ipv4_bucket_space_union:       int, distinct /16 NetGroup
+                                       buckets covered by map_a,
+                                       map_b, or both. Denominator
+                                       of the same column; a
+                                       superset of the changed
+                                       buckets by construction.
+        ipv6_blocks_changed:           int, distinct /32 NetGroup
+                                       blocks that carry at least
+                                       one changed prefix. Same
+                                       vocabulary as the IPv4
+                                       buckets, so the two match
+                                       banner columns read
+                                       identically.
+        ipv6_block_space_union:        int, distinct /32 NetGroup
+                                       blocks covered by either
+                                       map.
         reassigned_ipv4_addresses:     int, IPv4 addresses whose ASN
                                        changed between maps.
         reassigned_ipv6_addresses:     int, same for IPv6.
@@ -199,11 +224,11 @@ def diff_loaded_maps(
 
     buckets = _DiffBuckets()
     activity = _PerAsActivity()
-    # ``changed_ipv4_buckets`` tracks every /16 NetGroup bucket
-    # touched by an IPv4 prefix change. ``len(...)`` becomes the
-    # IPv4 numerator in the diff explorer match banner — distinct
-    # peer-diversity buckets that carry a changed prefix.
-    changed_ipv4_buckets: set[int] = set()
+    # Every changed prefix is also collected as an address range so
+    # the match banner numerators can be counted in NetGroup buckets
+    # (/16 for IPv4, /32 for IPv6) after a single merge below.
+    changed_ipv4_ranges: list[tuple[int, int]] = []
+    changed_ipv6_ranges: list[tuple[int, int]] = []
     for prefix, old_asn, new_asn in asmap_a.diff(asmap_b):
         if old_asn == new_asn:
             continue
@@ -212,7 +237,24 @@ def diff_loaded_maps(
         buckets.record(old_asn, new_asn, is_v4, addresses)
         activity.record(old_asn, new_asn, is_v4, addresses)
         if is_v4:
-            changed_ipv4_buckets.update(ipv4_bucket_indices(prefix))
+            changed_ipv4_ranges.append(prefix_address_range(prefix))
+        else:
+            changed_ipv6_ranges.append(prefix_address_range(prefix))
+
+    # Union coverage: the addresses (and the NetGroup buckets they
+    # fall into) that at least one of the two maps has an opinion
+    # about. A changed prefix always has a non-zero ASN on at least
+    # one side, so it is contained in the union by construction —
+    # which makes these the only denominators under which the match
+    # banner and the drift ratios can never exceed 100 %.
+    union_ipv4 = merge_ranges(
+        [*loaded_a.ipv4_address_ranges, *loaded_b.ipv4_address_ranges]
+    )
+    union_ipv6 = merge_ranges(
+        [*loaded_a.ipv6_address_ranges, *loaded_b.ipv6_address_ranges]
+    )
+    changed_ipv4 = merge_ranges(changed_ipv4_ranges)
+    changed_ipv6 = merge_ranges(changed_ipv6_ranges)
 
     ranked_asns = activity.ranked_asns(TOP_MOVERS_LIMIT)
     top_movers = [activity.row(asn, loaded_a, loaded_b) for asn in ranked_asns]
@@ -235,13 +277,12 @@ def diff_loaded_maps(
         "unmapped": buckets.unmapped,
         "unmapped_ipv4": buckets.unmapped_ipv4,
         "unmapped_ipv6": buckets.unmapped - buckets.unmapped_ipv4,
-        "ipv4_address_space_a": loaded_a.ipv4_address_space,
-        "ipv4_address_space_b": loaded_b.ipv4_address_space,
-        "ipv4_bucket_space_a": loaded_a.ipv4_bucket_space,
-        "ipv4_bucket_space_b": loaded_b.ipv4_bucket_space,
-        "ipv4_buckets_changed": len(changed_ipv4_buckets),
-        "ipv6_address_space_a": loaded_a.ipv6_address_space,
-        "ipv6_address_space_b": loaded_b.ipv6_address_space,
+        "ipv4_address_space_union": total_range_size(union_ipv4),
+        "ipv6_address_space_union": total_range_size(union_ipv6),
+        "ipv4_buckets_changed": count_buckets(changed_ipv4, IPV4_BUCKET_SHIFT),
+        "ipv4_bucket_space_union": count_buckets(union_ipv4, IPV4_BUCKET_SHIFT),
+        "ipv6_blocks_changed": count_buckets(changed_ipv6, IPV6_BUCKET_SHIFT),
+        "ipv6_block_space_union": count_buckets(union_ipv6, IPV6_BUCKET_SHIFT),
         "reassigned_ipv4_addresses": buckets.reassigned_ipv4_addresses,
         "reassigned_ipv6_addresses": buckets.reassigned_ipv6_addresses,
         "newly_mapped_ipv4_addresses": buckets.newly_mapped_ipv4_addresses,
