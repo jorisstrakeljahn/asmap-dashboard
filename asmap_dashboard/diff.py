@@ -87,6 +87,16 @@ def diff_loaded_maps(
       reassignment can dominate coverage while contributing one
       entry.
 
+      A note on integer width: IPv6 coverage figures routinely
+      exceed 2**53 (a single /32 is ~7.9e28 addresses). Python
+      emits them exactly, but JSON consumers that parse numbers
+      into IEEE-754 doubles — JavaScript among them — round to a
+      relative error of ~1e-16. That is deliberate and harmless:
+      every consumer quantises these figures to /32 NetGroup
+      blocks before display, and an absolute error of ~1e18
+      addresses vanishes under a 2**96-per-block divisor. Exact
+      integer round-tripping through JSON is not promised.
+
     Top movers are ranked in all three currencies (entries, IPv4
     addresses, IPv6 addresses) but each row only carries the fields
     the frontend renders:

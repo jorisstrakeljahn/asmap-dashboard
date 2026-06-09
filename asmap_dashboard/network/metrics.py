@@ -149,6 +149,12 @@ def _select_in_effect_build(builds: list[_Build], timestamp: int) -> _Build:
     That is the most recent build whose release is at or before the
     snapshot. Snapshots older than the first build fall back to that
     first build, since there is nothing earlier to compare against.
+    The fallback fires in the real history: the KIT dossier of
+    2024-01-05 12:55 UTC sits about an hour before the first build's
+    14:00 UTC file timestamp. Scoring it against that build is the
+    right call — the build represents that day's routing data, and
+    the alternative (dropping the snapshot) would discard a full
+    crawl over a file-metadata artefact.
     ``builds`` is assumed sorted by timestamp (the caller guarantees it).
     """
     times = [b.timestamp for b in builds]
