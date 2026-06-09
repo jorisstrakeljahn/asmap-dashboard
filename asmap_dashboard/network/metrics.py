@@ -1,7 +1,7 @@
 """Network-tap metrics: observed nodes scored against the ASmap history.
 
-Five metrics, all derived from the same normalised ``Snapshot`` stream so
-a reviewer can trace every number back to a public input:
+Seven metrics, all derived from the same normalised ``Snapshot`` stream
+so a reviewer can trace every number back to a public input:
 
   1. Map staleness / decay
      For one fixed node set (a source's most recent snapshot), look every
@@ -38,6 +38,30 @@ a reviewer can trace every number back to a public input:
      stale embedded map or a crawler whois source drifting from the BGP
      view ASmap is built on.
 
+  6. ASmap coverage of observed nodes
+     How many of the observed clearnet nodes the in-effect build
+     resolves to a real AS at all (``mapped`` vs ``nodes_clearnet``).
+     The most direct "does the map fit the real network?" reading:
+     a coverage share that sinks over time means kartograf's input
+     data is falling behind the network, independent of how the
+     mapped majority is distributed.
+
+  7. AS Nakamoto coefficient
+     The minimum number of autonomous systems that together hold at
+     least half of the mapped nodes. Where HHI summarises the whole
+     distribution, this answers the blunt adversarial question "how
+     many ASes would an attacker have to control to sit next to 50 %
+     of the network?" — higher is healthier. Computed over mapped
+     nodes, consistent with the HHI denominator.
+
+Every per-snapshot metric is additionally split by address family
+(``families.ipv4`` / ``families.ipv6``). The family is the *effective*
+one after the linked-IPv4 unwrap, so a 6to4 or NAT64 peer counts as
+IPv4 exactly like Core's GetGroup() treats it. Bitcoin Core's peer
+diversity logic handles the two families as independent dimensions,
+so a combined number can mask one family concentrating while the
+other improves.
+
 Source-agnostic: the functions here only ever touch ``Snapshot`` /
 ``Node`` plus the loaded ``ASMap`` objects, so KIT, Bitnodes, or a future
 crawler all flow through the same code and produce comparable series.
@@ -50,6 +74,7 @@ import ipaddress
 from collections import Counter
 from dataclasses import dataclass
 
+from asmap_dashboard._prefix import is_ipv4_prefix
 from asmap_dashboard._vendor.asmap import ASMap, net_to_prefix
 from asmap_dashboard.loader import LoadedMap
 from asmap_dashboard.netgroup import default_netgroup, linked_ipv4
@@ -176,23 +201,72 @@ def _hhi(counts: Counter[int]) -> float:
     return sum((count / total) ** 2 for count in counts.values())
 
 
+class _Tally:
+    """Accumulator for one node population (the whole snapshot or one
+    address family).
+
+    Keeping the per-population arithmetic in one place means the
+    overall numbers and the families split can never drift apart:
+    both are fed from the identical per-node classification loop in
+    ``_snapshot_metrics``.
+    """
+
+    def __init__(self) -> None:
+        self.asn_counts: Counter[int] = Counter()
+        self.unmapped = 0
+        # Two bucket vocabularies over the identical node set: what Core
+        # buckets into with this asmap loaded vs. with no asmap at all.
+        self.asmap_buckets: set[object] = set()
+        self.default_buckets: set[object] = set()
+
+    def add(self, asn: int, default_group: object) -> None:
+        self.default_buckets.add(default_group)
+        if asn:
+            self.asn_counts[asn] += 1
+            self.asmap_buckets.add(("as", asn))
+        else:
+            self.unmapped += 1
+            # Core falls back to the default group for unmapped peers,
+            # so the honest ASmap-bucket count includes that fallback.
+            self.asmap_buckets.add(("net", default_group))
+
+    @property
+    def clearnet(self) -> int:
+        return self.mapped + self.unmapped
+
+    @property
+    def mapped(self) -> int:
+        return sum(self.asn_counts.values())
+
+    def bucketing(self) -> dict:
+        return {
+            "default_groups": len(self.default_buckets),
+            "asmap_groups": len(self.asmap_buckets),
+            "reduction_ratio": _ratio(
+                len(self.default_buckets), len(self.asmap_buckets)
+            ),
+        }
+
+
 def _snapshot_metrics(snapshot: Snapshot, build: _Build) -> dict:
     """Score one snapshot's nodes against the build in effect at its time.
 
     The emitted dict only carries the fields the frontend renders
-    (overview cards, HHI / operators series, cross-check table).
-    Per-family node splits, skip diagnostics, and the matched-build
-    echo used to ride along but were never consumed; they can be
-    re-derived from the raw snapshots if a future view needs them.
+    (overview cards, HHI / operators / coverage series, cross-check
+    table). Skip diagnostics and the matched-build echo used to ride
+    along but were never consumed; they can be re-derived from the
+    raw snapshots if a future view needs them.
+
+    ``families`` repeats the headline numbers per effective address
+    family (after the linked-IPv4 unwrap, mirroring Core's GetGroup),
+    because Core treats IPv4 and IPv6 as independent peer-diversity
+    dimensions and a combined HHI can mask one family concentrating
+    while the other improves.
     """
     prepared = _prepare_nodes(snapshot.nodes)
 
-    asn_counts: Counter[int] = Counter()
-    unmapped = 0
-    # Two bucket vocabularies over the identical node set: what Core
-    # buckets into with this asmap loaded vs. with no asmap at all.
-    asmap_buckets: set[object] = set()
-    default_buckets: set[object] = set()
+    overall = _Tally()
+    families = {"ipv4": _Tally(), "ipv6": _Tally()}
     # Cross-check accumulators (only nodes the crawler annotated count).
     cross_compared = 0
     cross_agree = 0
@@ -201,15 +275,9 @@ def _snapshot_metrics(snapshot: Snapshot, build: _Build) -> dict:
     for node in prepared:
         asn = _lookup_asn(build.asmap, node.prefix)
         default_group = default_netgroup(node.ip)
-        default_buckets.add(default_group)
-        if asn:
-            asn_counts[asn] += 1
-            asmap_buckets.add(("as", asn))
-        else:
-            unmapped += 1
-            # Core falls back to the default group for unmapped peers,
-            # so the honest ASmap-bucket count includes that fallback.
-            asmap_buckets.add(("net", default_group))
+        overall.add(asn, default_group)
+        family = "ipv4" if is_ipv4_prefix(node.prefix) else "ipv6"
+        families[family].add(asn, default_group)
 
         if node.asn is not None:
             annotated += 1
@@ -218,24 +286,63 @@ def _snapshot_metrics(snapshot: Snapshot, build: _Build) -> dict:
                 if node.asn == asn:
                     cross_agree += 1
 
-    clearnet = len(prepared)
-    mapped = clearnet - unmapped
-
     return {
         "source": snapshot.source,
         "label": snapshot.label,
         "timestamp": snapshot.timestamp,
-        "nodes_clearnet": clearnet,
-        "unique_asns": len(asn_counts),
-        "hhi": round(_hhi(asn_counts), 6),
-        "top_ases": _top_ases(asn_counts, mapped),
-        "bucketing": {
-            "default_groups": len(default_buckets),
-            "asmap_groups": len(asmap_buckets),
-            "reduction_ratio": _ratio(len(default_buckets), len(asmap_buckets)),
-        },
-        "cross_check": _cross_check(cross_compared, cross_agree, annotated, clearnet),
+        "nodes_clearnet": overall.clearnet,
+        "mapped": overall.mapped,
+        "unique_asns": len(overall.asn_counts),
+        "hhi": round(_hhi(overall.asn_counts), 6),
+        "nakamoto_50": _nakamoto_coefficient(overall.asn_counts),
+        "top_ases": _top_ases(overall.asn_counts, overall.mapped),
+        "bucketing": overall.bucketing(),
+        "families": {name: _family_payload(tally) for name, tally in families.items()},
+        "cross_check": _cross_check(
+            cross_compared, cross_agree, annotated, overall.clearnet
+        ),
     }
+
+
+def _family_payload(tally: _Tally) -> dict:
+    """The per-family slice of the snapshot metrics.
+
+    Same vocabulary as the top level (nodes, mapped, HHI, bucketing)
+    so the frontend's family toggle can swap accessors without
+    reshaping anything. A family with zero observed nodes still
+    emits the full dict — the schema stays rectangular and the
+    frontend never defends against missing keys.
+    """
+    return {
+        "nodes": tally.clearnet,
+        "mapped": tally.mapped,
+        "unique_asns": len(tally.asn_counts),
+        "hhi": round(_hhi(tally.asn_counts), 6),
+        "bucketing": tally.bucketing(),
+    }
+
+
+def _nakamoto_coefficient(
+    asn_counts: Counter[int], threshold: float = 0.5
+) -> int | None:
+    """Minimum number of ASes that together hold >= ``threshold`` of
+    the mapped nodes.
+
+    The blunt adversarial reading of the AS distribution: an attacker
+    controlling that many networks sits next to half the (mapped)
+    listening nodes. Returns ``None`` when nothing is mapped, so the
+    frontend can show an explicit no-data state instead of a fake 0.
+    """
+    total = sum(asn_counts.values())
+    if total == 0:
+        return None
+    needed = total * threshold
+    cumulative = 0
+    for rank, (_asn, count) in enumerate(asn_counts.most_common(), start=1):
+        cumulative += count
+        if cumulative >= needed:
+            return rank
+    return len(asn_counts)
 
 
 def _top_ases(asn_counts: Counter[int], mapped: int) -> list[dict]:

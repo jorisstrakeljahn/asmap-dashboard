@@ -66,13 +66,88 @@ def test_snapshot_metrics_counts_mapping_hhi_and_bucketing():
     result = _snapshot_metrics(snap, BUILD2)
 
     assert result["nodes_clearnet"] == 3
+    # Coverage: 1.1.1.1 and 2.2.2.2 resolve, 3.3.3.3 does not.
+    assert result["mapped"] == 2
     assert result["unique_asns"] == 2
     # Two ASes with one node each -> HHI = 0.5^2 + 0.5^2 = 0.5.
     assert result["hhi"] == 0.5
+    # Two equal ASes: one AS alone holds exactly half the mapped
+    # nodes, so the 50 % threshold is met at rank 1.
+    assert result["nakamoto_50"] == 1
     # Three distinct /16 default groups; ASmap keeps two AS buckets plus
     # the default-group fallback for the unmapped node = three buckets.
     assert result["bucketing"]["default_groups"] == 3
     assert result["bucketing"]["asmap_groups"] == 3
+
+
+def test_snapshot_metrics_splits_families_by_effective_family():
+    """IPv4 and IPv6 nodes land in their own family slices.
+
+    The 6to4 node (2002::/16 wrapping 1.1.9.9) counts as IPv4 — the
+    effective family after the linked-IPv4 unwrap — exactly like
+    Core's GetGroup() buckets it.
+    """
+    nodes = [
+        Node(ip="1.1.1.1", version=4, asn=None, country=None),
+        Node(ip="2002:101:909::1", version=6, asn=None, country=None),
+        Node(ip="2a01::1", version=6, asn=None, country=None),
+    ]
+    snap = _snapshot(1710000001, nodes)
+
+    result = _snapshot_metrics(snap, BUILD2)
+
+    families = result["families"]
+    assert families["ipv4"]["nodes"] == 2
+    assert families["ipv4"]["mapped"] == 2  # both fall in 1.0.0.0/8 -> AS200
+    assert families["ipv4"]["hhi"] == 1.0
+    assert families["ipv6"]["nodes"] == 1
+    assert families["ipv6"]["mapped"] == 0
+    # An empty mapped set yields the explicit zero state, not a crash.
+    assert families["ipv6"]["hhi"] == 0.0
+    # Family slices partition the snapshot exactly.
+    assert (
+        families["ipv4"]["nodes"] + families["ipv6"]["nodes"]
+        == result["nodes_clearnet"]
+    )
+
+
+def test_nakamoto_coefficient_counts_ases_to_half():
+    # 6 mapped nodes: AS1 holds 2, AS2 holds 2, AS3/AS4 hold 1 each.
+    # Half is 3 nodes -> AS1 alone (2) is short, AS1+AS2 (4) reaches it.
+    nodes = [
+        Node(ip="1.0.0.1", version=4, asn=None, country=None),
+        Node(ip="1.0.0.2", version=4, asn=None, country=None),
+        Node(ip="2.0.0.1", version=4, asn=None, country=None),
+        Node(ip="2.0.0.2", version=4, asn=None, country=None),
+        Node(ip="3.0.0.1", version=4, asn=None, country=None),
+        Node(ip="4.0.0.1", version=4, asn=None, country=None),
+    ]
+    build = _build(
+        "2024/1710000000",
+        1710000000,
+        [
+            ("1.0.0.0/8", 1),
+            ("2.0.0.0/8", 2),
+            ("3.0.0.0/8", 3),
+            ("4.0.0.0/8", 4),
+        ],
+    )
+    snap = _snapshot(1710000001, nodes)
+
+    result = _snapshot_metrics(snap, build)
+
+    assert result["mapped"] == 6
+    assert result["nakamoto_50"] == 2
+
+
+def test_nakamoto_coefficient_is_none_when_nothing_is_mapped():
+    nodes = [Node(ip="9.9.9.9", version=4, asn=None, country=None)]
+    snap = _snapshot(1710000001, nodes)
+
+    result = _snapshot_metrics(snap, BUILD2)
+
+    assert result["mapped"] == 0
+    assert result["nakamoto_50"] is None
 
 
 def test_snapshot_metrics_unwraps_tunneled_ipv4_like_core():
