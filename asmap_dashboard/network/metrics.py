@@ -52,7 +52,7 @@ from dataclasses import dataclass
 
 from asmap_dashboard._vendor.asmap import ASMap, net_to_prefix
 from asmap_dashboard.loader import LoadedMap
-from asmap_dashboard.netgroup import default_netgroup
+from asmap_dashboard.netgroup import default_netgroup, linked_ipv4
 from asmap_dashboard.network.snapshots import Node, Snapshot
 
 TOP_ASES_LIMIT = 15
@@ -83,14 +83,22 @@ class _Build:
 def _ip_to_prefix(ip: str) -> list[bool]:
     """Return the full-length bit prefix ``ASMap.lookup`` expects.
 
-    Mirrors ``diff._ip_to_prefix`` but takes a string, since snapshots
-    carry addresses as text. A /32 (v4) or /128 (v6) single-host network
-    is the lookup key for one node.
+    An IPv6 address that merely transports an IPv4 host (6to4,
+    Teredo, NAT64, ...) is looked up as that IPv4 — Core's
+    ``GetMappedAS()`` does the same, so a tunneled peer scores
+    against the same map entry as its native twin. The crawls
+    really carry such peers (a handful of 6to4 and NAT64 nodes
+    per KIT snapshot), so this is not a theoretical branch.
+
+    A /32 (v4) or /128 (v6) single-host network is the lookup key
+    for one node.
     """
     addr = ipaddress.ip_address(ip)
+    if isinstance(addr, ipaddress.IPv6Address):
+        addr = linked_ipv4(addr) or addr
     if isinstance(addr, ipaddress.IPv4Address):
-        return net_to_prefix(ipaddress.IPv4Network(f"{ip}/32"))
-    return net_to_prefix(ipaddress.IPv6Network(f"{ip}/128"))
+        return net_to_prefix(ipaddress.IPv4Network((int(addr), 32)))
+    return net_to_prefix(ipaddress.IPv6Network(f"{addr}/128"))
 
 
 def _lookup_asn(asmap: ASMap, prefix: list[bool]) -> int:
