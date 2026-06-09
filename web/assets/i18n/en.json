@@ -362,6 +362,7 @@
             "infoAria": "About ASN attribution agreement",
             "info": [
                 "This is a data quality check, not a measure of network health. Of the nodes a crawler tagged with its own ASN (resolved through whois), it is the share where that ASN matches the one the ASmap build in effect assigns to the same IP address.",
+                "Only nodes where both sides have an opinion enter the comparison: the crawler shipped an ASN and the ASmap build resolves the IP to an AS. Nodes the map leaves unmapped are excluded rather than counted as disagreement — how much of the node set the map covers is a separate question, answered by the peer-diversity buckets card above.",
                 "The few percent that do not match are expected. Attribution based on whois and attribution based on routing often differ on prefixes with more than one origin and on recent reassignments. A steady figure here means the two independent views agree, which is evidence that the data behind every chart above is sound.",
                 "Only snapshots whose crawler shipped an ASN can be scored. KIT ships one for every peer and covers the whole history. The Bitnodes archive carried whois data through late 2025, and those rows are in the table too, but its later snapshots only carry an ip and a port, so the headline figure follows KIT."
             ]
