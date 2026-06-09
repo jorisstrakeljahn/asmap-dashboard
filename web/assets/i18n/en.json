@@ -302,11 +302,12 @@
             "staleness": {
                 "label": "Map staleness",
                 "unit": "of today's nodes shift AS per year",
-                "basis": "from {drift} measured at the build that is {days} days old",
+                "basis": "scaled from {drift} measured at the build that is {days} days old",
+                "basisInterpolated": "between {driftLower} at {daysLower} days and {driftUpper} at {daysUpper} days of map age",
                 "noData": "needs more build history",
                 "info": [
-                    "The decay curve below, distilled into a single yearly rate: the share of today's node set an embedded map would mislocate after about a year of aging. Scaling to one year keeps it comparable between builds that are not spaced exactly a year apart.",
-                    "It is read off the decay curve at the build closest to one year old. Releases do not come out on a fixed schedule, so that build is rarely exactly 365 days old; the raw drift is divided by its real age and scaled up to a full year. The exact age is in the line below.",
+                    "The decay curve below, distilled into a single yearly rate: the share of today's node set an embedded map would mislocate after one year of aging.",
+                    "It is read off the decay curve at exactly one year of map age. Releases do not come out on a fixed schedule, so there is rarely a build exactly 365 days old; the value is interpolated between the two builds closest to either side of that mark, which keeps the reading on the measured curve. Only when the build history does not span a full year is the nearest build's drift scaled to a yearly rate instead. The line below names the readings this rests on.",
                     "This feeds straight into the question of how often Bitcoin Core should ship a fresh asmap. A low yearly rate means an embedded map ages gracefully, a high one is a reason to refresh more often. The rate here is low, so a shipped map stays close to reality for today's nodes well past its release."
                 ],
                 "infoAria": "About map staleness"

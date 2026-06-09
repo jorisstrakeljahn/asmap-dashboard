@@ -84,56 +84,92 @@ function bucketsCard(snapshot) {
     return card;
 }
 
-// Reads the decay curve rather than a single diff: picks the point
-// closest to one year of map age and reports how much of today's
-// node set that map would mislocate, plus the annualised rate.
+// Reads the decay curve at exactly one year of map age and reports
+// how much of today's node set a map that old would mislocate. The
+// headline is a one-year figure rather than the raw drift at the
+// nearest build: builds are not released exactly 365 days apart, so
+// "X% in 398 days" would read as an arbitrary window. The context
+// line below names the curve points the reading rests on.
 function stalenessCard(decay) {
     const card = createCard(t("network.overview.staleness.label"), {
         info: t("network.overview.staleness.info"),
         infoAria: t("network.overview.staleness.infoAria"),
     });
-    const point = pickStalenessPoint(decay);
-    if (!point) {
+    const reading = stalenessAtTarget(decay);
+    if (!reading) {
         card.append(metricNumber("\u2014"));
         card.append(metricUnit(t("network.overview.staleness.noData")));
         return card;
     }
-    // The headline is the annualised rate, not the raw drift at the
-    // nearest build: the build closest to one year is rarely exactly
-    // 365 days old (discrete release cadence), so "X% in 398 days"
-    // reads as an arbitrary window. Normalising to a per-year figure
-    // is the comparable, intuitive number; the raw reading and its
-    // exact age move to the context line below.
-    const annualised = point.age_days
-        ? (point.drift_pct * TARGET_STALENESS_DAYS) / point.age_days
-        : 0;
-    card.append(metricNumber(formatPercent(annualised / 100, 1)));
+    card.append(metricNumber(formatPercent(reading.value / 100, 1)));
     card.append(metricUnit(t("network.overview.staleness.unit")));
-    card.append(
-        deltaLine(
-            t("network.overview.staleness.basis", {
-                drift: formatPercent(point.drift_pct / 100, 1),
-                days: point.age_days,
-            }),
-        ),
-    );
+    card.append(deltaLine(stalenessBasis(reading)));
     return card;
 }
 
-// Prefer the curve point nearest one year of age; fall back to the
-// oldest (largest-age) point so the card stays populated even when
-// the build history is shorter than a year.
-function pickStalenessPoint(decay) {
-    const points = (decay?.points ?? []).filter((p) => p.age_days > 0);
+// Reads the curve at TARGET_STALENESS_DAYS. Three cases:
+//
+//   1. Two curve points bracket the one-year mark: interpolate
+//      linearly between them. The reading stays on the measured
+//      curve, so no scaling artefact can enter the headline.
+//   2. A point sits exactly on the mark: take it as is.
+//   3. The history is one-sided (all builds younger than a year,
+//      or — after a long publishing gap — all older): scale the
+//      point nearest the mark by 365 / age. This is a linear
+//      extrapolation that amplifies whatever noise the single
+//      point carries by that same factor, which is why it is the
+//      fallback and not the rule, and why the basis line labels
+//      it differently.
+function stalenessAtTarget(decay) {
+    const points = (decay?.points ?? [])
+        .filter((p) => p.age_days > 0)
+        .sort((a, b) => a.age_days - b.age_days);
     if (points.length === 0) return null;
-    let best = points[0];
+    let lower = null;
+    let upper = null;
     for (const point of points) {
-        const closer =
-            Math.abs(point.age_days - TARGET_STALENESS_DAYS) <
-            Math.abs(best.age_days - TARGET_STALENESS_DAYS);
-        if (closer) best = point;
+        if (point.age_days <= TARGET_STALENESS_DAYS) lower = point;
+        if (point.age_days >= TARGET_STALENESS_DAYS) {
+            upper = point;
+            break;
+        }
     }
-    return best;
+    if (lower && upper) {
+        const span = upper.age_days - lower.age_days;
+        if (span === 0) {
+            // A build exactly one year old — the curve answers
+            // the question directly.
+            return { interpolated: false, value: lower.drift_pct, point: lower };
+        }
+        const fraction = (TARGET_STALENESS_DAYS - lower.age_days) / span;
+        return {
+            interpolated: true,
+            value: lower.drift_pct + fraction * (upper.drift_pct - lower.drift_pct),
+            lower,
+            upper,
+        };
+    }
+    const nearest = lower ?? upper;
+    return {
+        interpolated: false,
+        value: (nearest.drift_pct * TARGET_STALENESS_DAYS) / nearest.age_days,
+        point: nearest,
+    };
+}
+
+function stalenessBasis(reading) {
+    if (reading.interpolated) {
+        return t("network.overview.staleness.basisInterpolated", {
+            driftLower: formatPercent(reading.lower.drift_pct / 100, 1),
+            daysLower: reading.lower.age_days,
+            driftUpper: formatPercent(reading.upper.drift_pct / 100, 1),
+            daysUpper: reading.upper.age_days,
+        });
+    }
+    return t("network.overview.staleness.basis", {
+        drift: formatPercent(reading.point.drift_pct / 100, 1),
+        days: reading.point.age_days,
+    });
 }
 
 // ---- card primitives (mirrors overview-cards.js) ----------------
