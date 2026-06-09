@@ -15,9 +15,11 @@ Two sources are supported today:
     nodes. One object keyed by the Python ``repr()`` of an
     ``(IPvNAddress(...), port)`` tuple, each value carrying a ``whois``
     block with the ASN and country the crawler resolved. Every node
-    carries full whois, so KIT feeds the ASN cross-check and the
-    per-country breakdown for every snapshot. The capture time is encoded
-    in the filename (``YYYYMMDD_HHMMSS_dossier.json``).
+    carries full whois, so KIT feeds the ASN cross-check on every
+    snapshot. The country code is kept on ``Node`` for a future
+    geographic view but is not consumed by any current metric. The
+    capture time is encoded in the filename
+    (``YYYYMMDD_HHMMSS_dossier.json``).
 
   Bitnodes snapshots
     Crawls shared by b10c, in two shapes that this loader unifies:
@@ -42,6 +44,7 @@ from __future__ import annotations
 import ipaddress
 import json
 import re
+import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -200,20 +203,27 @@ def load_bitnodes_snapshot(path: PathLike) -> Snapshot:
     Dispatches on the parsed JSON's top-level type: a dict is a
     "good matches" crawl (``{"timestamp", "nodes": {...}}``), a list is
     an "old best effort" crawl. The capture time is the embedded
-    ``timestamp`` when present, otherwise the filename stem.
+    ``timestamp`` when present, otherwise the filename stem. A file
+    that carries neither raises ``ValueError`` so ``discover_snapshots``
+    skips (and reports) it, instead of silently labelling the crawl
+    1970-01-01 and dragging the time axis three decades wide.
     """
     path = Path(path)
     raw = json.loads(path.read_text())
-    fallback_ts = _coerce_int(path.stem) or 0
+    fallback_ts = _coerce_int(path.stem)
 
     if isinstance(raw, dict):
-        return _load_bitnodes_good(raw, fallback_ts)
+        timestamp = _coerce_int(raw.get("timestamp")) or fallback_ts
+        if not timestamp:
+            raise ValueError(f"{path.name}: no capture timestamp")
+        return _load_bitnodes_good(raw, timestamp)
+    if not fallback_ts:
+        raise ValueError(f"{path.name}: no capture timestamp")
     return _load_bitnodes_old(raw, fallback_ts)
 
 
-def _load_bitnodes_good(raw: dict, fallback_ts: int) -> Snapshot:
+def _load_bitnodes_good(raw: dict, timestamp: int) -> Snapshot:
     """Parse the ``{"timestamp", "nodes": {addr: [...]}}`` shape."""
-    timestamp = _coerce_int(raw.get("timestamp")) or fallback_ts
     node_map = raw.get("nodes") or {}
 
     nodes: list[Node] = []
@@ -242,7 +252,7 @@ def _load_bitnodes_good(raw: dict, fallback_ts: int) -> Snapshot:
     )
 
 
-def _load_bitnodes_old(rows: list, fallback_ts: int) -> Snapshot:
+def _load_bitnodes_old(rows: list, timestamp: int) -> Snapshot:
     """Parse the bare list-of-rows ("old best effort") shape."""
     nodes: list[Node] = []
     onion = 0
@@ -268,8 +278,8 @@ def _load_bitnodes_old(rows: list, fallback_ts: int) -> Snapshot:
 
     return Snapshot(
         source="bitnodes",
-        timestamp=fallback_ts,
-        label=_iso_date(fallback_ts),
+        timestamp=timestamp,
+        label=_iso_date(timestamp),
         nodes=tuple(nodes),
         observed_total=len(rows),
         onion_skipped=onion,
@@ -316,14 +326,20 @@ def discover_snapshots(directory: PathLike, source: str) -> list[Snapshot]:
     Recurses so the Bitnodes "old best effort" subfolder is picked up
     alongside the good matches in the same pass. Files that fail to
     parse are skipped rather than aborting the run, because one corrupt
-    snapshot should not take down the whole network section.
+    snapshot should not take down the whole network section — but each
+    skip is reported on stderr so a broken source directory is visible
+    in the pipeline log instead of silently shrinking the series.
     """
     directory = Path(directory)
     out: list[Snapshot] = []
     for path in sorted(directory.rglob("*.json")):
         try:
             out.append(load_snapshot(path, source))
-        except (ValueError, json.JSONDecodeError):
+        except (ValueError, json.JSONDecodeError) as exc:
+            print(
+                f"warning: skipping {source} snapshot {path}: {exc}",
+                file=sys.stderr,
+            )
             continue
     out.sort(key=lambda s: s.timestamp)
     return out

@@ -195,6 +195,41 @@ def test_load_bitnodes_old_best_effort_list_form(tmp_path):
     assert node.country == "DE"
 
 
+def test_load_bitnodes_without_any_timestamp_is_rejected(tmp_path):
+    """A crawl with no embedded timestamp and a non-numeric filename
+    must raise instead of silently dating itself 1970-01-01."""
+    path = tmp_path / "notes.json"
+    path.write_text(json.dumps({"nodes": {"1.2.3.4:8333": [70016, "/x/", 1, 1, 1]}}))
+
+    try:
+        load_snapshot(path, "bitnodes")
+    except ValueError as exc:
+        assert "no capture timestamp" in str(exc)
+    else:  # pragma: no cover - the call above must raise
+        raise AssertionError("expected ValueError for missing timestamp")
+
+
+def test_discover_snapshots_warns_and_skips_bad_files(tmp_path, capsys):
+    """Corrupt or undatable files are skipped with a stderr warning,
+    not silently dropped and not fatal to the healthy rest."""
+    (tmp_path / "1762444952.json").write_text(
+        json.dumps(
+            {
+                "timestamp": 1762444952,
+                "nodes": {"1.2.3.4:8333": [70016, "/x/", 1, 1, 1]},
+            }
+        )
+    )
+    (tmp_path / "corrupt.json").write_text("{not json")
+
+    snaps = discover_snapshots(tmp_path, "bitnodes")
+
+    assert [s.timestamp for s in snaps] == [1762444952]
+    err = capsys.readouterr().err
+    assert "corrupt.json" in err
+    assert "skipping" in err
+
+
 def test_discover_snapshots_recurses_and_sorts_by_time(tmp_path):
     sub = tmp_path / "old best effort"
     sub.mkdir()
