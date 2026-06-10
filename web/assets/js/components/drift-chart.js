@@ -293,7 +293,11 @@ function buildChart(
             buildTooltipBody({
                 title: formatDate(sortedMaps[slotIndex].released_at),
                 rows: hoverRows(points[slotIndex], mode, family, unitCountSuffix),
-                footer: footerFor(points[slotIndex], mode),
+                footer: footerFor(
+                    points[slotIndex],
+                    mode,
+                    sortedMaps[slotIndex].released_at,
+                ),
             }),
     };
 
@@ -366,10 +370,26 @@ function formatTotalCell(point, family, unitCountSuffix) {
     });
 }
 
-function footerFor(point, mode) {
+// Step mode names the gap to the compared build right in the footer:
+// the bars are not time-normalised, so a tall bar after a five-month
+// publishing pause is mostly accumulated time, not a routing event.
+// Spelling out "147 days earlier" hands the reader the denominator
+// they need to judge the bar's height.
+function footerFor(point, mode, currentReleasedAt) {
     if (!point.present || !point.vs) return null;
     const date = formatDate(point.vs.released_at);
-    return mode === "cumulative"
-        ? t("history.driftSeries.sinceDate", { date })
+    if (mode === "cumulative") {
+        return t("history.driftSeries.sinceDate", { date });
+    }
+    const days = gapDays(point.vs.released_at, currentReleasedAt);
+    return days > 0
+        ? t("history.driftSeries.vsDateWithGap", { date, days })
         : t("history.driftSeries.vsDate", { date });
+}
+
+function gapDays(fromIso, toIso) {
+    const from = Date.parse(fromIso);
+    const to = Date.parse(toIso);
+    if (!Number.isFinite(from) || !Number.isFinite(to)) return 0;
+    return Math.max(0, Math.round((to - from) / 86_400_000));
 }
