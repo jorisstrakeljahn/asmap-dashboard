@@ -342,10 +342,17 @@
             "infoAria": "About the decay curve",
             "ariaLabel": "Share of today's observed nodes that each older build resolves to a different autonomous system than the newest build. One line per crawler.",
             "tooltipTitle": "{date} build, {days} days old",
+            "axis": {
+                "age": "Map age",
+                "date": "Build date",
+                "ariaLabel": "Decay chart x-axis",
+                "tickLabel": "{days}d"
+            },
             "info": [
-                "We hold the most recent node set fixed and look every node up in each published build, then plot the share that lands on a different autonomous system than the newest build does. Older builds sit on the left, so a line that falls toward zero on the right means the fresher the map, the less it disagrees with reality.",
-                "The node set is held fixed across every point on purpose. That way map age is the only thing that changes. Comparing different crawl populations is what makes a plain churn line look all over the place.",
-                "Each crawler is one line. Where they overlap, the map ages the same way no matter who observed the network, which is a good check that the two data sources tell the same story."
+                "The most recent node set is held fixed and looked up in every published asmap-data build. Each point is the share of those nodes an older build resolves to a different autonomous system than the newest build does.",
+                "The axis switch picks the x-axis. Map age answers the update cadence question directly: a point at 400 days shows how wrong a 400 day old map already is for today's nodes, so the curve rising to the right is the cost of shipping stale maps. Build date lines the same points up with the calendar, matching the other charts.",
+                "The node set is fixed on purpose, so map age is the only thing that changes between points. One consequence: a fresh crawl updates the node set behind the curve, but new points appear only when new builds are published.",
+                "Each crawler is one line. Where they overlap, the map ages the same way no matter who observed the network."
             ]
         },
         "hhi": {

@@ -32,6 +32,7 @@
 // the Maps tab's History range. It windows the x-axis of the trend
 // charts; the hero and the data-quality stat stay on the latest data.
 
+import { niceTicks } from "./charts/svg.js";
 import { formatDate, formatNumber } from "./format.js";
 import * as overview from "./components/network/overview.js";
 import { mountOperatorsChart } from "./components/network/operators-chart.js";
@@ -96,11 +97,12 @@ export function mount(payload) {
     }
 
     // Per-chart toggle state is hoisted here so a range re-mount keeps
-    // whatever series the reader has hidden — and, for the HHI chart,
-    // which family view is active. The operator breakdown carries no
-    // legend (its per-period cast changes), so it has no entry here.
+    // whatever series the reader has hidden — and, for the decay /
+    // HHI charts, which axis or family view is active. The operator
+    // breakdown carries no legend (its per-period cast changes), so
+    // it has no entry here.
     const states = {
-        decay: { hidden: new Set() },
+        decay: { hidden: new Set(), axis: "age" },
         hhi: { hidden: new Set(), family: "all" },
         coverage: { hidden: new Set() },
     };
@@ -109,7 +111,7 @@ export function mount(payload) {
     let range = DEFAULT_RANGE;
     const renderTrends = () => {
         const bounds = rangeBounds(range, allTimestamps);
-        mountDecayChart(network, presentSources, bounds, states.decay);
+        mountDecayChart(network, presentSources, bounds, states.decay, renderTrends);
         mountConcentrationChart(network, bounds);
         mountHhiChart(network, presentSources, bounds, states.hhi, renderTrends);
         mountCoverageChart(network, presentSources, bounds, states.coverage);
@@ -144,38 +146,98 @@ export function mount(payload) {
 
 // ---- Decay: drift of today's node set vs each build's age -------
 
-function mountDecayChart(network, sources, bounds, state) {
+// Two x-axis views over the same curve, switchable in the card header:
+//
+//   - "age" (default): x is the map's age in days, so the chart reads
+//     directly as the answer to the update-cadence question ("how far
+//     off is an N-day-old map for today's nodes?"). 0 days sits at the
+//     left, the oldest build at the right, drift rises with age.
+//   - "date": x is the build's release date, which lines the curve up
+//     with the calendar (and the other trend charts' range picker).
+//
+// The age view ignores the range picker on purpose: the curve is one
+// fixed node set scored against the whole build history, so windowing
+// it by calendar time would silently amputate the long-age tail that
+// is the whole point of the view.
+function mountDecayChart(network, sources, bounds, state, rerender) {
     const referenceTs = network.reference_timestamp;
+    const ageMode = state.axis === "age";
+
     const entries = sources.map((source) => ({
         source,
         points: network.sources[source].decay.points.map((p) => ({
-            ts: toMs(p.build_timestamp),
+            ts: ageMode ? p.age_days : toMs(p.build_timestamp),
             value: p.drift_pct,
         })),
     }));
-    const timeline = clampTimeline(buildUnionTimeline(entries), bounds.cutoff);
+    const timeline = ageMode
+        ? buildUnionTimeline(entries)
+        : clampTimeline(buildUnionTimeline(entries), bounds.cutoff);
+
+    const axisToggle = createModeSwitch({
+        options: ["age", "date"].map((value) => ({
+            value,
+            label: t(`network.decay.axis.${value}`),
+        })),
+        value: state.axis,
+        onChange: (next) => {
+            state.axis = next;
+            rerender();
+        },
+        ariaLabel: t("network.decay.axis.ariaLabel"),
+    });
 
     mountSeriesChart(document.querySelector("[data-network-decay]"), {
         title: t("network.decay.title"),
         info: t("network.decay.info"),
         infoAria: t("network.decay.infoAria"),
         ariaLabel: t("network.decay.ariaLabel"),
+        headerExtra: axisToggle,
         timestamps: timeline.timestamps,
         series: legendSeries(sources),
         valueAt: timeline.valueAt,
         yFormat: formatPercentNumber,
         yFloorZero: true,
-        domainStart: bounds.domainStart,
-        domainEnd: bounds.domainEnd,
+        ...(ageMode ? ageAxisSpec(timeline.timestamps) : {
+            domainStart: bounds.domainStart,
+            domainEnd: bounds.domainEnd,
+        }),
         tooltipTitleAt: (i) =>
             t("network.decay.tooltipTitle", {
-                date: formatDate(new Date(timeline.timestamps[i])),
-                days: ageDays(referenceTs, timeline.timestamps[i]),
+                date: formatDate(
+                    new Date(
+                        ageMode
+                            ? toMs(referenceTs - timeline.timestamps[i] * SECONDS_PER_DAY)
+                            : timeline.timestamps[i],
+                    ),
+                ),
+                days: ageMode
+                    ? timeline.timestamps[i]
+                    : ageDays(referenceTs, timeline.timestamps[i]),
             }),
         tooltipRowsAt: (i) =>
             sourceRows(sources, timeline, i, (v) => formatPercentNumber(v)),
         state,
     });
+}
+
+// Numeric x axis for the age view: domain [0, last tick] with ticks
+// from the shared nice-number picker, labelled as day counts. The
+// domain end snaps to the last tick so the rightmost label never
+// hangs past the plot edge.
+function ageAxisSpec(ages) {
+    const maxAge = ages.length ? ages[ages.length - 1] : 1;
+    const ticks = niceTicks(0, Math.max(1, maxAge)).filter((v) => v >= 0);
+    const domainEnd = Math.max(ticks[ticks.length - 1] ?? maxAge, maxAge);
+    return {
+        linearDomain: true,
+        domainStart: 0,
+        domainEnd,
+        xTicks: ticks.map((value) => ({
+            timestamp: value,
+            label: t("network.decay.axis.tickLabel", { days: value }),
+        })),
+    };
 }
 
 // ---- AS concentration (HHI) over time ---------------------------
