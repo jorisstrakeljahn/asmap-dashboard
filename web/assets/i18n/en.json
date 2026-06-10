@@ -186,6 +186,7 @@
                     "lead": "Total drift.",
                     "text": "Height of the full stack. In IPv4 mode this matches the headline number on the Drift vs previous overview card for the same pair."
                 },
+                "The bars are not normalised by time. Releases do not come out on a fixed schedule, so a build that follows a five month publishing pause accumulates five months of routing churn in one bar, while a build released two weeks after its predecessor had two weeks. A tall bar after a long gap is mostly elapsed time, not a routing event. Each bar's tooltip names the exact gap so the two cases are easy to tell apart.",
                 "The drift unit picker at the top of History switches this chart between IPv4 and IPv6 coverage. Click any legend entry to hide that category and rescale. Builds without an unfilled variant have no comparable previous build and show as an empty column. The diff is taken against the last build that actually published an unfilled variant."
             ]
         },
@@ -197,6 +198,7 @@
             "noDiff": "no diff for this build",
             "sinceDate": "since {date}",
             "vsDate": "vs {date}",
+            "vsDateWithGap": "vs {date} ({days} days between builds)",
             "totalWithCount": "{pct} ({count} {unit})"
         },
         "entriesChart": {
