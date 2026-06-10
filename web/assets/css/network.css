@@ -5,23 +5,80 @@
    Network charts wear (label + info tooltip on one row, matching
    the Maps tab's drift-chart header). */
 
-/* The Network hero carries four cards, so it breaks the shared
-   3-up .card-row into a 2x2 grid that pairs them: "what we see"
-   (nodes + concentration) on top, "what ASmap does / how it ages"
-   (buckets + staleness) below. Higher specificity than the base
-   rule and its 900px collapse so this wins without touching the
-   shared overview grid. */
-[data-network-overview] .card-row {
-    grid-template-columns: repeat(2, 1fr);
+/* The Network hero carries six cards in a 3x2 grid that pairs them
+   thematically: "what we see" (nodes + coverage + concentration) on
+   top, "what that means for an attacker / for Core" (Nakamoto +
+   buckets + staleness) below. Higher specificity than the base rule
+   so this wins without touching the shared overview grid. */
+/* Skeleton mirror of the 2+3 hero so the page does not reflow when
+   the real cards swap in: first two placeholders span 3 columns,
+   the remaining three span 2. */
+.skeleton-grid--network-hero {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
-/* Two cards fit comfortably down to ~640px, so the network hero
-   holds its 2x2 longer than the shared 3-up grid (which collapses
-   at 900px); below this it stacks to a single column. */
+.skeleton-grid--network-hero .skeleton--card {
+    grid-column: span 2;
+}
+
+.skeleton-grid--network-hero .skeleton--card:nth-child(-n + 2) {
+    grid-column: span 3;
+}
+
+/* 2+3 hero: the two lead findings (HHI, staleness) span half the row
+   each and read 1.5x the width of the three context cards below them.
+   A 6-column grid is the smallest vocabulary that expresses both
+   spans (2 x span-3 on top, 3 x span-2 below). */
+[data-network-overview] .card-row {
+    grid-template-columns: repeat(6, 1fr);
+}
+
+[data-network-overview] .card {
+    grid-column: span 2;
+}
+
+[data-network-overview] .card--lead {
+    grid-column: span 3;
+}
+
+[data-network-overview] .card--lead .card__metric {
+    font-size: var(--font-size-3xl);
+}
+
+@media (max-width: 900px) {
+    [data-network-overview] .card-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    [data-network-overview] .card,
+    [data-network-overview] .card--lead {
+        grid-column: span 1;
+    }
+
+    /* Odd card count: let the last context card stretch the row
+       instead of leaving a hole. */
+    [data-network-overview] .card:last-child {
+        grid-column: span 2;
+    }
+}
+
 @media (max-width: 640px) {
     [data-network-overview] .card-row {
         grid-template-columns: 1fr;
     }
+
+    [data-network-overview] .card,
+    [data-network-overview] .card--lead,
+    [data-network-overview] .card:last-child {
+        grid-column: span 1;
+    }
+}
+
+/* Per-chart controls (axis / family switches) sit between the card
+   label and the info tooltip; pushing them right keeps the label
+   flush left and groups the controls with the info affordance. */
+.network-chart__header-extra {
+    margin-left: auto;
 }
 
 .network-chart__header {

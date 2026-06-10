@@ -1,13 +1,22 @@
-// Network tab hero: four snapshot cards describing the most recent
+// Network tab hero: five snapshot cards describing the most recent
 // crawl of the primary source, scored against the build in effect at
 // that time. Mirrors the Maps tab overview-cards layout (card label +
 // big metric + unit + delta line) so the two tabs feel of a piece.
 //
-//   1. Reachable nodes      observed clearnet peers, IPv4/IPv6 split
-//   2. AS concentration     HHI of the observed node set
-//   3. Peer-diversity buckets   ASmap AS buckets vs Core's defaults
-//   4. Map staleness        how far a ~1-year-old map drifts for
-//                           today's nodes (read off the decay curve)
+// Row 1 — the two findings, half-width-larger lead cards:
+//   1. AS concentration     HHI of the observed node set — "does
+//                           ASmap improve peer diversity right now?"
+//   2. Map staleness        how far a ~1-year-old map drifts for
+//                           today's nodes — "how often must Core
+//                           ship a fresh map?" (off the decay curve)
+// Row 2 — the context those findings rest on:
+//   3. Reachable nodes      observed clearnet peers, IPv4/IPv6 split
+//   4. Nakamoto coefficient ASes needed to reach 50 % of mapped nodes
+//   5. Peer-diversity buckets   ASmap AS buckets vs Core's defaults
+//
+// ASmap coverage (share of nodes the map resolves) deliberately has
+// no card: it idles at ~99.9% and reads as noise here; its story —
+// the dips between releases — lives in the coverage trend chart.
 
 import { formatNumber, formatPercent } from "../../format.js";
 import { mutedNote } from "../../utils/dom.js";
@@ -24,11 +33,13 @@ export function mount(parent, { snapshot, decay }) {
     }
     const row = document.createElement("div");
     row.className = "card-row";
+    const leads = [concentrationCard(snapshot), stalenessCard(decay)];
+    for (const card of leads) card.classList.add("card--lead");
     row.append(
+        ...leads,
         nodesCard(snapshot),
-        concentrationCard(snapshot),
+        nakamotoCard(snapshot),
         bucketsCard(snapshot),
-        stalenessCard(decay),
     );
     parent.replaceChildren(row);
 }
@@ -46,7 +57,48 @@ function nodesCard(snapshot) {
     });
     card.append(metricNumber(formatNumber(snapshot.nodes_clearnet)));
     card.append(metricUnit(t("network.overview.nodes.unit")));
+    card.append(
+        deltaLine(familySplitLine(snapshot, (f) => f.nodes ?? 0, formatNumber)),
+    );
     return card;
+}
+
+// The blunt adversarial reading of the AS distribution: how many
+// autonomous systems an attacker would have to control to sit next
+// to half of the mapped listening nodes. Higher is healthier. The
+// 50 % threshold matches the convention used for consensus-layer
+// Nakamoto coefficients, so the number is comparable across studies.
+function nakamotoCard(snapshot) {
+    const card = createCard(t("network.overview.nakamoto.label"), {
+        info: t("network.overview.nakamoto.info"),
+        infoAria: t("network.overview.nakamoto.infoAria"),
+    });
+    if (snapshot.nakamoto_50 == null) {
+        card.append(metricNumber("\u2014"));
+        card.append(metricUnit(t("network.overview.nakamoto.noData")));
+        return card;
+    }
+    card.append(metricNumber(formatNumber(snapshot.nakamoto_50)));
+    card.append(metricUnit(t("network.overview.nakamoto.unit")));
+    card.append(
+        deltaLine(
+            t("network.overview.nakamoto.basis", {
+                mapped: formatNumber(snapshot.mapped),
+            }),
+        ),
+    );
+    return card;
+}
+
+// "IPv4 8,602, IPv6 1,732"-style context line shared by the cards
+// that carry a per-family split. ``pick`` reads the value off one
+// family slice, ``format`` renders it.
+function familySplitLine(snapshot, pick, format) {
+    const families = snapshot.families ?? {};
+    return t("network.overview.familySplit", {
+        ipv4: format(pick(families.ipv4 ?? {})),
+        ipv6: format(pick(families.ipv6 ?? {})),
+    });
 }
 
 // Leads with the HHI itself rather than the single largest operator's
@@ -62,6 +114,9 @@ function concentrationCard(snapshot) {
     });
     card.append(metricNumber(snapshot.hhi.toFixed(3)));
     card.append(metricUnit(t("network.overview.concentration.unit")));
+    card.append(
+        deltaLine(familySplitLine(snapshot, (f) => f.hhi ?? 0, (v) => v.toFixed(3))),
+    );
     return card;
 }
 

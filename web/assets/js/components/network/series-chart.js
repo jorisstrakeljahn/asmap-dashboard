@@ -38,11 +38,23 @@ export function mountSeriesChart(parent, config) {
         valueAt,
         yFormat,
         yFloorZero = false,
+        // Hard ceiling for the y domain. A share-of-total series like
+        // coverage can never exceed 100, so padding the domain past it
+        // would draw a misleading "102%" gridline.
+        yCeil = null,
         emptyMessage,
         tooltipTitleAt,
         tooltipRowsAt,
         domainStart = null,
         domainEnd = null,
+        // Optional element rendered in the card header next to the
+        // title (e.g. a per-chart mode switch). Built by the caller
+        // so this module stays agnostic of what the control does.
+        headerExtra = null,
+        // Pass-through to buildLineChart: a non-calendar x axis
+        // (numeric domain + caller-supplied ticks). See line-chart.js.
+        linearDomain = false,
+        xTicks = null,
         state = { hidden: new Set() },
     } = config;
 
@@ -56,7 +68,7 @@ export function mountSeriesChart(parent, config) {
     const card = document.createElement("article");
     card.className = "card chart-card network-chart";
 
-    const header = buildHeader(title, info, infoAria);
+    const header = buildHeader(title, info, infoAria, headerExtra);
     const legend = createChartLegend({
         entries: series.map((s) => ({
             key: s.key,
@@ -86,11 +98,14 @@ export function mountSeriesChart(parent, config) {
                     valueAt,
                     yFormat,
                     yFloorZero,
+                    yCeil,
                     ariaLabel,
                     tooltipTitleAt,
                     tooltipRowsAt,
                     domainStart,
                     domainEnd,
+                    linearDomain,
+                    xTicks,
                     hidden: state.hidden,
                 },
                 width,
@@ -100,7 +115,7 @@ export function mountSeriesChart(parent, config) {
     });
 }
 
-function buildHeader(title, info, infoAria) {
+function buildHeader(title, info, infoAria, headerExtra) {
     const header = document.createElement("div");
     header.className = "network-chart__header";
 
@@ -108,6 +123,11 @@ function buildHeader(title, info, infoAria) {
     label.className = "card__label uppercase-label";
     label.textContent = (title ?? "").toUpperCase();
     header.append(label);
+
+    if (headerExtra) {
+        headerExtra.classList.add("network-chart__header-extra");
+        header.append(headerExtra);
+    }
 
     if (info) {
         const tip = createInfoTooltip({ body: info, ariaLabel: infoAria });
@@ -137,6 +157,8 @@ function drawPlot(spec, width, height, layout) {
             yMax: bounds.max,
             yFormat: spec.yFormat,
             yTitle: null,
+            linearDomain: spec.linearDomain,
+            xTicks: spec.xTicks,
             ariaLabel: spec.ariaLabel,
             tooltipBodyAt: (i) =>
                 buildTooltipBody({
@@ -154,6 +176,8 @@ function drawPlot(spec, width, height, layout) {
 // y domain from the visible series only, padded so the extreme dots
 // stay off the card border. A flat series (range 0) falls back to
 // +/- one unit so the single line sits centred instead of clipped.
+// ``yCeil`` clamps the padded top: a percentage-of-total series
+// stops exactly at 100 instead of inventing headroom above it.
 function yBounds(spec, visibleSeries) {
     let min = null;
     let max = null;
@@ -168,8 +192,9 @@ function yBounds(spec, visibleSeries) {
     if (min == null) return null;
     const range = max - min;
     const pad = range > 0 ? range * Y_PADDING_FRACTION : 1;
+    const paddedMax = max + pad;
     return {
         min: spec.yFloorZero ? Math.max(0, min - pad) : min - pad,
-        max: max + pad,
+        max: spec.yCeil != null ? Math.min(spec.yCeil, paddedMax) : paddedMax,
     };
 }

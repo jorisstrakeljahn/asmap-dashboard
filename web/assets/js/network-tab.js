@@ -96,12 +96,13 @@ export function mount(payload) {
     }
 
     // Per-chart toggle state is hoisted here so a range re-mount keeps
-    // whatever series the reader has hidden. The operator breakdown
-    // carries no legend (its per-period cast changes), so it has no
-    // entry here.
+    // whatever series the reader has hidden — and, for the HHI chart,
+    // which family view is active. The operator breakdown carries no
+    // legend (its per-period cast changes), so it has no entry here.
     const states = {
         decay: { hidden: new Set() },
-        hhi: { hidden: new Set() },
+        hhi: { hidden: new Set(), family: "all" },
+        coverage: { hidden: new Set() },
     };
     const allTimestamps = collectTimestamps(network, presentSources);
 
@@ -110,7 +111,8 @@ export function mount(payload) {
         const bounds = rangeBounds(range, allTimestamps);
         mountDecayChart(network, presentSources, bounds, states.decay);
         mountConcentrationChart(network, bounds);
-        mountHhiChart(network, presentSources, bounds, states.hhi);
+        mountHhiChart(network, presentSources, bounds, states.hhi, renderTrends);
+        mountCoverageChart(network, presentSources, bounds, states.coverage);
     };
 
     // The data-quality stat summarises the whole series, so it is not
@@ -195,23 +197,42 @@ function mountDecayChart(network, sources, bounds, state) {
 // per day puts both crawlers in a single tooltip; the few-hour shift is
 // invisible at the ~monthly snapshot spacing, and genuinely different
 // days (the older best-effort matches) still stay apart.
-function mountHhiChart(network, sources, bounds, state) {
+// A family toggle (All / IPv4 / IPv6) sits in the card header:
+// Bitcoin Core treats the two families as independent peer-diversity
+// dimensions, and the ~80/20 IPv4/IPv6 split means the combined index
+// is dominated by IPv4 — the IPv6 view would otherwise be invisible.
+function mountHhiChart(network, sources, bounds, state, rerender) {
     const slot = document.querySelector("[data-network-hhi]");
     if (!slot) return;
+    const family = state.family ?? "all";
     const entries = sources.map((source) => ({
         source,
         points: network.sources[source].snapshots.map((sn) => ({
             ts: toMs(sn.timestamp),
-            value: sn.hhi,
+            value: family === "all" ? sn.hhi : (sn.families?.[family]?.hhi ?? null),
         })),
     }));
     const timeline = clampTimeline(dayUnionTimeline(entries), bounds.cutoff);
+
+    const familyToggle = createModeSwitch({
+        options: ["all", "ipv4", "ipv6"].map((value) => ({
+            value,
+            label: t(`network.familyToggle.${value}`),
+        })),
+        value: family,
+        onChange: (next) => {
+            state.family = next;
+            rerender();
+        },
+        ariaLabel: t("network.familyToggle.ariaLabel"),
+    });
 
     mountSeriesChart(slot, {
         title: t("network.hhi.title"),
         info: t("network.hhi.info"),
         infoAria: t("network.hhi.infoAria"),
         ariaLabel: t("network.hhi.ariaLabel"),
+        headerExtra: familyToggle,
         timestamps: timeline.timestamps,
         series: legendSeries(sources),
         valueAt: timeline.valueAt,
@@ -220,6 +241,47 @@ function mountHhiChart(network, sources, bounds, state) {
         domainEnd: bounds.domainEnd,
         tooltipTitleAt: (i) => snapshotTitle(timeline, i),
         tooltipRowsAt: (i) => sourceRows(sources, timeline, i, formatHhi),
+        state,
+    });
+}
+
+// ---- ASmap coverage of observed nodes over time ------------------
+
+// The "does the map fit the real network?" series: the share of each
+// snapshot's clearnet nodes the build in effect resolves to a real
+// AS. A sinking line means kartograf's input data is falling behind
+// the network — independent of how the mapped majority distributes,
+// which is what HHI above measures.
+function mountCoverageChart(network, sources, bounds, state) {
+    const slot = document.querySelector("[data-network-coverage]");
+    if (!slot) return;
+    const entries = sources.map((source) => ({
+        source,
+        points: network.sources[source].snapshots.map((sn) => ({
+            ts: toMs(sn.timestamp),
+            value: sn.nodes_clearnet
+                ? (100 * sn.mapped) / sn.nodes_clearnet
+                : null,
+        })),
+    }));
+    const timeline = clampTimeline(dayUnionTimeline(entries), bounds.cutoff);
+
+    mountSeriesChart(slot, {
+        title: t("network.coverage.title"),
+        info: t("network.coverage.info"),
+        infoAria: t("network.coverage.infoAria"),
+        ariaLabel: t("network.coverage.ariaLabel"),
+        timestamps: timeline.timestamps,
+        series: legendSeries(sources),
+        valueAt: timeline.valueAt,
+        yFormat: formatCoveragePct,
+        // Coverage is a share of the snapshot's nodes: 100% is a hard
+        // ceiling, so the axis must not pad past it.
+        yCeil: 100,
+        domainStart: bounds.domainStart,
+        domainEnd: bounds.domainEnd,
+        tooltipTitleAt: (i) => snapshotTitle(timeline, i),
+        tooltipRowsAt: (i) => sourceRows(sources, timeline, i, formatCoveragePct),
         state,
     });
 }
@@ -488,4 +550,11 @@ function formatPercentNumber(value) {
 // snapshot-to-snapshot movement legible on the axis and in tooltips.
 function formatHhi(value) {
     return value.toFixed(3);
+}
+
+// Coverage lives in a narrow band near 98 %; one decimal keeps the
+// snapshot-to-snapshot movement legible without implying precision
+// the crawl does not have.
+function formatCoveragePct(value) {
+    return `${value.toFixed(1)}%`;
 }

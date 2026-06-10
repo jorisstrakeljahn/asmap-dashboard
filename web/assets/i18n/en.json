@@ -258,6 +258,12 @@
         "noData": "No data for the visible series.",
         "allSeriesHidden": "All series hidden. Click a legend entry to bring one back.",
         "noSnapshot": "No snapshot",
+        "familyToggle": {
+            "all": "All",
+            "ipv4": "IPv4",
+            "ipv6": "IPv6",
+            "ariaLabel": "Address family"
+        },
         "source": {
             "kit": "KIT",
             "bitnodes": "Bitnodes",
@@ -269,11 +275,13 @@
             "empty": "No observed node snapshots in network.json.",
             "sourceMeta": "Snapshot metrics from the {source} crawl, {date}.",
             "sourceCompare": "{sources} is shown alongside as a frozen archive (its crawler no longer runs).",
+            "familySplit": "IPv4 {ipv4}, IPv6 {ipv6}",
             "nodes": {
                 "label": "Reachable nodes",
                 "unit": "clearnet peers observed",
                 "info": [
-                    "Distinct clearnet IP addresses the crawler reached in its most recent snapshot. Onion, I2P, and CJDNS peers are left out because they have no IP that ASmap can resolve to an autonomous system."
+                    "Distinct clearnet IP addresses the crawler reached in its most recent snapshot. Onion, I2P, and CJDNS peers are left out because they have no IP that ASmap can resolve to an autonomous system.",
+                    "The split line counts each peer by its effective address family: an IPv6 address that merely transports an IPv4 host (6to4, NAT64, and similar tunnels) counts as IPv4, exactly as Bitcoin Core's GetGroup() treats it."
                 ],
                 "infoAria": "About reachable nodes"
             },
@@ -288,6 +296,18 @@
                     "HHI leads here instead of the single largest operator's share because that share can fall while concentration is just handed to the number-two operator. Summing over the whole distribution, HHI only drops when nodes genuinely spread across more operators. As a rule of thumb, 1 divided by the HHI is the effective number of equal-sized operators the network behaves like, so a low index like this one works out to several dozen."
                 ],
                 "infoAria": "About AS concentration"
+            },
+            "nakamoto": {
+                "label": "Nakamoto coefficient (AS)",
+                "unit": "ASes hold half of all mapped nodes",
+                "basis": "smallest set of ASes covering 50% of the {mapped} mapped nodes",
+                "noData": "no mapped nodes in this snapshot",
+                "info": [
+                    "The minimum number of autonomous systems that together host at least half of the mapped listening nodes. An attacker who controls this many networks sits next to half the reachable network, so a higher number is healthier.",
+                    "Computed by sorting the autonomous systems by observed node count and walking down the list until the running total reaches half. Unmapped nodes are excluded, consistent with the HHI denominator: a node the map cannot attribute to any AS cannot be assigned to an attacker's AS either.",
+                    "The 50 percent threshold follows the convention for Nakamoto coefficients in the Bitcoin and broader blockchain literature (mining pools, client diversity), so the figure is comparable across studies."
+                ],
+                "infoAria": "About the AS Nakamoto coefficient"
             },
             "buckets": {
                 "label": "Peer diversity buckets",
@@ -332,10 +352,22 @@
             "title": "AS concentration (HHI) over time",
             "infoAria": "About AS concentration over time",
             "ariaLabel": "Herfindahl-Hirschman index of the observed node set across every snapshot, scored against the build in effect at each one. One line per crawler. Lower means more diverse.",
-  "info": [
-   "Pick two observed nodes at random, and this index is the chance they sit in the same autonomous system — at 0.02 that chance is 2 percent.",
-   "It is the same Herfindahl-Hirschman index as the concentration card above, scored against the build in effect at each snapshot instead of only the latest one. Lower is more diverse, so a line falling toward the right means the observed network keeps spreading across more operators over time.",
-                "Each crawler is its own line. They track each other closely and both drift down over the period, so the shift toward a more diverse network holds no matter who observed it, which is the cross-check the KIT only operator breakdown below cannot make on its own."
+            "info": [
+                "Pick two observed nodes at random: this index is the chance they sit in the same autonomous system. At 0.02 that chance is 2 percent.",
+                "The same Herfindahl-Hirschman index as the concentration card above, scored against the build in effect at each snapshot instead of only the latest one. Lower is more diverse, so a falling line means the observed network keeps spreading across more operators.",
+                "Each crawler is its own line. Where the lines agree, the trend holds no matter who observed the network.",
+                "The family switch scores the index over IPv4 only or IPv6 only nodes, with tunneled IPv4-in-IPv6 peers counting as IPv4 like in Core's bucketing. Bitcoin Core treats the two families as independent peer diversity dimensions, and the combined view is dominated by IPv4 because IPv4 nodes are the large majority. The split shows whether IPv6 concentration moves with the trend or against it."
+            ]
+        },
+        "coverage": {
+            "title": "ASmap coverage of observed nodes",
+            "infoAria": "About ASmap coverage over time",
+            "ariaLabel": "Share of each snapshot's clearnet nodes the build in effect resolves to an autonomous system. One line per crawler. Higher means the map fits the network better.",
+            "info": [
+                "For each snapshot, the share of observed clearnet nodes the ASmap build in effect resolves to an autonomous system. The rest fall outside every prefix the map carries and would use Bitcoin Core's default /16 and /32 groups instead.",
+                "The HHI chart above asks how the mapped nodes distribute. This one asks how many nodes get mapped at all. A falling line means the routing data behind ASmap is falling behind where the nodes actually are.",
+                "Each snapshot is scored against the build in effect at its crawl time, so the line shows what a node operator running the then current map actually experienced.",
+                "The dips are map staleness, not broken data. The deepest one (KIT, August 2024) was crawled hours before a new release shipped, against a five month old build, and every node it left unmapped resolves again under that next build. Coverage sags while a map ages and snaps back with each release. It is the coverage twin of the decay curve, and one more argument for shipping maps regularly."
             ]
         },
         "concentration": {
