@@ -194,6 +194,40 @@ def test_refresh_writes_subset_and_about_section(tmp_path):
     assert "99999" not in payload
 
 
+def test_refresh_unions_multiple_payloads_and_skips_missing(tmp_path, capsys):
+    """After the payload split, refresh scopes labels to the union of
+    every given file and tolerates the optional network payload being
+    absent (warning on stderr, no crash)."""
+    diffs_path = tmp_path / "diffs.json"
+    diffs_path.write_text(json.dumps({"diffs": [{"top_movers": [{"asn": 174}]}]}))
+    network_path = tmp_path / "network.json"
+    network_path.write_text(
+        json.dumps(
+            {
+                "network": {
+                    "sources": {"kit": {"snapshots": [{"top_ases": [{"asn": 7018}]}]}}
+                }
+            }
+        )
+    )
+    missing_path = tmp_path / "not-there.json"
+    out_path = tmp_path / "asn-names.json"
+
+    fake_csv = b"asn,name\n174,Cogent Communications\n7018,AT&T\n"
+
+    with patch(
+        "asmap_dashboard.asn_names.urllib.request.urlopen",
+        return_value=_fake_response(fake_csv),
+    ):
+        count = asn_names.refresh([diffs_path, network_path, missing_path], out_path)
+
+    assert count == 2
+    payload = json.loads(out_path.read_text())
+    assert payload["174"] == "Cogent Communications"
+    assert payload["7018"] == "AT&T"
+    assert "not-there.json" in capsys.readouterr().err
+
+
 def test_refresh_with_no_matching_asns_writes_empty_subset(tmp_path):
     """If bgp.tools has none of the wanted ASNs, the file still gets written."""
     metrics_path = tmp_path / "metrics.json"

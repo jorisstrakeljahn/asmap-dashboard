@@ -16,10 +16,14 @@ dist/
 # dashboard ships zero JS dependencies and has no build step).
 node_modules/
 
-# Generated dashboard payloads. Built fresh on every Pages deploy from
-# bitcoin-core/asmap-data + bgp.tools; see README for the regen commands
-# used locally.
+# Generated dashboard payloads. metrics.json, diffs.json and
+# asn-names.json are built fresh on every Pages deploy from
+# bitcoin-core/asmap-data + bgp.tools; see README for the regen
+# commands used locally. network.json is the one exception: it is
+# derived from KIT dossiers CI has no access to, so the small
+# aggregate file is committed until the raw data can be published.
 /web/assets/data/*.json
+!/web/assets/data/network.json
 .firecrawl/
 
 # Local checkout of bitcoin-core/asmap-data used to run the pipeline; it

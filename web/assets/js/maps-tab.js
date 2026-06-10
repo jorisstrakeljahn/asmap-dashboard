@@ -44,12 +44,21 @@ function renderBuildStaleness(map) {
     slot.textContent = tPlural("overview.staleness", days);
 }
 
-export function mount(payload) {
+// ``diffsPromise`` resolves to the all-pairs diff list, which ships
+// as a separate ~10 MB file (see app.js). Everything that does not
+// need it (build selector, entries / diversity / delta charts)
+// renders immediately; the drift views render once against an empty
+// diff list (their built-in empty states cover the gap) and re-render
+// when the diffs land. State objects live in this closure, so the
+// late re-render keeps the reader's range / unit / legend choices.
+export function mount(payload, diffsPromise = null) {
     const { maps } = payload;
-    const diffs = payload.diffs || [];
+    let diffs = payload.diffs || [];
 
     const overviewParent = document.querySelector("[data-overview]");
+    let selectedName = maps.length ? maps[maps.length - 1].name : null;
     const renderOverview = (name) => {
+        selectedName = name;
         const current = maps.find((m) => m.name === name);
         // Shared "vs previous" anchor across all three cards.
         overviewCards.mount(overviewParent, {
@@ -60,14 +69,13 @@ export function mount(payload) {
         renderBuildStaleness(current);
     };
 
-    const defaultName = maps.length ? maps[maps.length - 1].name : null;
     buildSelector.mount(
         document.querySelector("[data-build-selector]"),
         maps,
-        defaultName,
+        selectedName,
         renderOverview,
     );
-    renderOverview(defaultName);
+    renderOverview(selectedName);
 
     // History charts read a windowed slice of the maps array so
     // the range picker can swap the slice without each chart
@@ -154,4 +162,19 @@ export function mount(payload) {
     }
 
     renderHistory();
+
+    if (diffsPromise) {
+        diffsPromise
+            .then((loaded) => {
+                diffs = loaded || [];
+                renderOverview(selectedName);
+                renderHistory();
+            })
+            .catch((error) => {
+                // The non-diff views are already up; the drift slots
+                // keep their empty-state notes. app.js reports the
+                // failure on the Diff Explorer panel.
+                console.error(error);
+            });
+    }
 }

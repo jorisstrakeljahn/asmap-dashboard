@@ -43,6 +43,17 @@ from asmap_dashboard.network.metrics import build_network_section
 from asmap_dashboard.network.snapshots import discover_snapshots
 
 PathLike = str | Path
+
+# Version of the JSON data contract between this pipeline and the
+# frontend (web/assets/js/app.js mirrors it as EXPECTED_SCHEMA_VERSION).
+# Bump it on any change to field names or semantics in the emitted
+# payloads. The frontend refuses to render a payload whose version it
+# does not expect: a stale cached app.js paired with a fresh payload
+# (or vice versa) would otherwise silently compute nonsense — exactly
+# the failure mode observed when the union-coverage fields landed and
+# cached clients kept dividing by a field that no longer existed.
+SCHEMA_VERSION = 2
+
 FILLED_FILENAME_RE = re.compile(r"^(\d+)_asmap\.dat$")
 UNFILLED_FILENAME_RE = re.compile(r"^(\d+)_asmap_unfilled\.dat$")
 YEAR_DIRNAME_RE = re.compile(r"^\d{4}$")

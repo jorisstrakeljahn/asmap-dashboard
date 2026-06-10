@@ -9,9 +9,27 @@ import * as diffTab from "./diff-tab.js";
 import * as networkTab from "./network-tab.js";
 import { applyDomTranslations, loadStrings, t } from "./utils/i18n.js";
 
+// The data layer is split into three files along size and
+// reproducibility lines (see cli.py): metrics.json carries the maps
+// (~20 KB), diffs.json the all-pairs diff matrix (~10 MB), and
+// network.json the optional KIT/Bitnodes section (~30 KB). Everything
+// except the diffs is fetched up front; the diffs load in parallel
+// and the diff-dependent views fill in when they arrive, so the
+// first paint never waits on the one heavyweight file.
 const METRICS_URL = "assets/data/metrics.json";
+const DIFFS_URL = "assets/data/diffs.json";
+const NETWORK_URL = "assets/data/network.json";
 const ASN_NAMES_URL = "assets/data/asn-names.json";
 const I18N_URL = "assets/i18n/en.json";
+
+// Mirrors SCHEMA_VERSION in asmap_dashboard/metrics.py. GitHub Pages
+// caches assets for ~10 minutes, so right after a deploy a browser
+// can hold a stale app.js against a fresh payload (or the reverse).
+// When the fields shift between versions, the stale combination used
+// to compute silent nonsense (0.0% drift, "4,088 of 0 buckets");
+// checking the payload's version turns that failure mode into an
+// explicit "reload" banner.
+const EXPECTED_SCHEMA_VERSION = 2;
 
 // Snapshot of the static tab-panel markup, captured before any
 // tab module swaps in rendered DOM. The retry button on the
@@ -19,16 +37,40 @@ const I18N_URL = "assets/i18n/en.json";
 // ... slots exist when the tabs re-mount.
 let mainTemplate = null;
 
-// metrics.json stays byte-stable across no-op refreshes (see
+// The payloads stay byte-stable across no-op refreshes (see
 // metrics.py), so Last-Modified is the most accurate "data
 // last refreshed" signal — and avoids stamping a timestamp into
 // the JSON, which would force a daily commit.
-async function loadMetrics() {
-    const response = await fetch(METRICS_URL);
-    if (!response.ok) {
+//
+// ``optional`` turns a 404 into ``null`` (network.json only exists
+// when KIT data was available at generation time). A schema-version
+// mismatch is retried once with cache "reload" — the usual cause is
+// a stale CDN/browser cache entry, and a forced revalidation heals
+// it without bothering the reader — before giving up with the
+// reload banner.
+async function loadPayload(url, { optional = false } = {}) {
+    let result = await fetchPayload(url, { optional });
+    if (result && result.data.schema_version !== EXPECTED_SCHEMA_VERSION) {
+        result = await fetchPayload(url, { optional, cache: "reload" });
+    }
+    if (result && result.data.schema_version !== EXPECTED_SCHEMA_VERSION) {
+        // Plain English on purpose: this error can fire before the
+        // i18n strings have loaded, and it must stay readable then.
+        const got = result.data.schema_version ?? "none";
         throw new Error(
-            `Failed to load ${METRICS_URL}: HTTP ${response.status}`,
+            `${url} carries data schema v${got} but this page expects ` +
+                `v${EXPECTED_SCHEMA_VERSION}. A cached file is out of ` +
+                "date. Please hard-reload (Cmd/Ctrl+Shift+R).",
         );
+    }
+    return result;
+}
+
+async function fetchPayload(url, { optional = false, cache } = {}) {
+    const response = await fetch(url, cache ? { cache } : undefined);
+    if (!response.ok) {
+        if (optional && response.status === 404) return null;
+        throw new Error(`Failed to load ${url}: HTTP ${response.status}`);
     }
     const data = await response.json();
     return { data, lastModified: response.headers.get("Last-Modified") };
@@ -64,12 +106,22 @@ async function init() {
     }
 
     let metrics;
+    let network;
+    // The 10 MB diffs file starts downloading with everyone else but
+    // is not awaited here: the maps/network views render from the
+    // small payloads first, and the diff-dependent views fill in
+    // below once it lands.
+    const diffsPromise = loadPayload(DIFFS_URL);
+    // Surfaced via .then() handlers; this guard only prevents an
+    // unhandled-rejection console error racing the handlers.
+    diffsPromise.catch(() => {});
     // Single parallel batch (no extra round-trips). loadStrings
     // swallows its own failures, so an i18n outage does not block
     // the chart / table mounts.
     try {
-        [metrics] = await Promise.all([
-            loadMetrics(),
+        [metrics, network] = await Promise.all([
+            loadPayload(METRICS_URL),
+            loadPayload(NETWORK_URL, { optional: true }),
             asnNames.init(ASN_NAMES_URL),
             loadStrings(I18N_URL),
         ]);
@@ -84,17 +136,50 @@ async function init() {
     const { data: payload, lastModified } = metrics;
     renderLastRefreshed(lastModified);
 
-    mapsTab.mount(payload);
-    diffTab.mount(payload);
+    // Maps tab renders its non-diff views immediately and re-renders
+    // the drift views itself when the diffs arrive.
+    mapsTab.mount(payload, diffsPromise.then((d) => d.data.diffs));
 
-    // The Network tab is opt-in: it only renders when metrics.json
-    // carries a ``network`` section (i.e. snapshot data was passed at
-    // generation time). When absent, its nav entry stays hidden so the
-    // public deploy never shows an empty tab.
-    const hasNetwork = networkTab.mount(payload);
+    // The whole Diff Explorer is derived from the diffs, so its
+    // mount waits for them; the panel shows a loading note until
+    // then (it is hidden behind a tab anyway).
+    renderDiffLoading();
+    diffsPromise
+        .then(({ data }) => diffTab.mount({ ...payload, diffs: data.diffs }))
+        .catch((error) => {
+            console.error(error);
+            renderDiffLoadError(error);
+        });
+
+    // The Network tab is opt-in: it only renders when network.json
+    // exists (i.e. snapshot data was passed at generation time).
+    // When absent, its nav entry stays hidden so the public deploy
+    // never shows an empty tab.
+    const hasNetwork = networkTab.mount(network?.data ?? null);
     revealNetworkNav(hasNetwork);
 
     initTabs({ defaultTab: "maps" });
+}
+
+function renderDiffLoading() {
+    const slot = document.querySelector("[data-diff]");
+    if (!slot) return;
+    const note = document.createElement("p");
+    note.className = "muted";
+    note.textContent = t("diff.loading");
+    slot.replaceChildren(note);
+}
+
+function renderDiffLoadError(error) {
+    const slot = document.querySelector("[data-diff]");
+    if (!slot) return;
+    const note = document.createElement("p");
+    note.className = "muted";
+    note.setAttribute("role", "alert");
+    note.textContent = error?.message
+        ? t("loadError.bodyWithMessage", { message: error.message })
+        : t("loadError.bodyDefault");
+    slot.replaceChildren(note);
 }
 
 // Show the Network nav link only when the tab actually mounted.

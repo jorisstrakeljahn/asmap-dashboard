@@ -1,10 +1,15 @@
 name: pages
 
-# The dashboard's data layer (metrics.json, asn-names.json) is normally
-# generated fresh on every deploy from bitcoin-core/asmap-data + bgp.tools
-# and is not committed. Exception: a branch may commit the payload to
-# preview data CI cannot reproduce (the KIT-derived network tab); the
-# build steps below detect that and deploy it as-is. Triggers:
+# The dashboard's data layer is split along reproducibility lines:
+#   - metrics.json + diffs.json: rebuilt fresh on every deploy from the
+#     public bitcoin-core/asmap-data history; never committed.
+#   - network.json: derived from KIT crawler dossiers that are not
+#     public, so CI cannot regenerate it. It is small (~30 KB) and is
+#     committed; the build deploys it as-is when present and the
+#     Network tab simply stays hidden when it is absent.
+#   - asn-names.json: rebuilt from bgp.tools, scoped to the ASNs the
+#     other payloads reference.
+# Triggers:
 #   - push to main: redeploy when web/, the pipeline, or the workflow changes
 #   - daily cron: pick up new asmap-data builds and ASN-name updates
 #   - manual dispatch: ad-hoc rebuild
@@ -40,39 +45,31 @@ jobs:
       - name: Install asmap_dashboard
         run: pip install -e .
 
-      # When the branch ships a committed payload (the network-tap
-      # preview, whose KIT-derived metrics cannot be regenerated in CI
-      # because the raw dossiers are not public), deploy it as-is and
-      # skip the asmap-data rebuild. Deleting the committed JSON restores
-      # the normal fresh-every-deploy path with no other change.
-      - name: Detect committed payload
-        id: payload
-        run: |
-          if [ -f web/assets/data/metrics.json ]; then
-            echo "committed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "committed=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Clone bitcoin-core/asmap-data
-        if: steps.payload.outputs.committed == 'false'
         run: git clone --depth=1 https://github.com/bitcoin-core/asmap-data.git /tmp/asmap-data
 
-      - name: Generate metrics.json
-        if: steps.payload.outputs.committed == 'false'
+      # Writes metrics.json (maps) and diffs.json next to it. The
+      # committed network.json is left untouched: without --kit-dir /
+      # --bitnodes-dir the pipeline produces no network section and
+      # never writes (or deletes) the network payload.
+      - name: Generate metrics.json + diffs.json
         run: |
           python -m asmap_dashboard metrics \
             --data-dir /tmp/asmap-data \
             --out web/assets/data/metrics.json
 
       - name: Refresh ASN names from bgp.tools
-        # Non-fatal: if bgp.tools is unreachable we still ship metrics.json
-        # and the dashboard falls back to bare AS<num> labels.
-        if: steps.payload.outputs.committed == 'false'
+        # Non-fatal: if bgp.tools is unreachable we still ship the
+        # payloads and the dashboard falls back to bare AS<num> labels.
+        # network.json is listed even though it may not exist (public
+        # deploys without the KIT preview); refresh-asn-names skips
+        # missing files with a warning.
         continue-on-error: true
         run: |
           python -m asmap_dashboard refresh-asn-names \
-            --metrics web/assets/data/metrics.json \
+            --payload web/assets/data/metrics.json \
+                      web/assets/data/diffs.json \
+                      web/assets/data/network.json \
             --out web/assets/data/asn-names.json
 
       - uses: actions/configure-pages@v6
