@@ -3,13 +3,15 @@
 The dashboard renders top-mover rows as ``AS<num> (Operator)`` when a
 human-readable name is available. The labels are sourced from
 bgp.tools' canonical asns.csv dump, filtered down to the ASNs that
-actually appear in metrics.json so the JSON we ship to the frontend
-stays compact (a few kilobytes instead of the full 5 MB dump).
+actually appear in the dashboard payloads (diffs.json's top movers
+plus network.json's operator breakdown) so the JSON we ship to the
+frontend stays compact (a few kilobytes instead of the full 5 MB
+dump).
 
 This module is intentionally a build-time utility, not part of the
 analysis pipeline: analyze, diff, and metrics never touch it, and
-``metrics.json`` remains the single source of truth for diff numbers.
-A stale or missing ``asn-names.json`` only downgrades label
+the pipeline payloads remain the single source of truth for diff
+numbers. A stale or missing ``asn-names.json`` only downgrades label
 rendering to bare ``AS<num>``, which the frontend already handles.
 """
 
@@ -18,8 +20,9 @@ from __future__ import annotations
 import csv
 import io
 import json
+import sys
 import urllib.request
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from pathlib import Path
 
 PathLike = str | Path
@@ -115,25 +118,41 @@ def build_subset(wanted: Iterable[int], all_names: dict[int, str]) -> dict[str, 
 
 
 def refresh(
-    metrics_path: PathLike,
+    payload_paths: PathLike | Sequence[PathLike],
     out_path: PathLike,
     *,
     source_url: str = BGP_TOOLS_URL,
 ) -> int:
-    """End-to-end: read metrics, fetch source, write subset JSON.
+    """End-to-end: read payloads, fetch source, write subset JSON.
+
+    ``payload_paths`` is one path or a list of them (metrics.json,
+    diffs.json, network.json after the payload split); the wanted-ASN
+    set is the union across every file. Missing files are skipped
+    with a stderr warning rather than failing the run: the network
+    payload is optional by design (it only exists when snapshot
+    sources were available at metrics time), and the same CI
+    invocation must work in both worlds.
 
     Returns the number of ASNs written to the output file so callers
     (CLI, CI) can log a one-line summary.
     """
-    metrics = json.loads(Path(metrics_path).read_text())
-    wanted = extract_asns(metrics)
+    if isinstance(payload_paths, (str, Path)):
+        payload_paths = [payload_paths]
+    wanted: set[int] = set()
+    for path in payload_paths:
+        path = Path(path)
+        if not path.exists():
+            print(f"warning: skipping missing payload {path}", file=sys.stderr)
+            continue
+        wanted |= extract_asns(json.loads(path.read_text()))
     all_names = fetch_bgp_tools_csv(source_url)
     subset = build_subset(wanted, all_names)
     payload = {
         "_about": {
             "purpose": (
                 "Frontend labels for the Top Movers table. "
-                "metrics.json remains the only source of truth for diff numbers."
+                "The pipeline payloads remain the only source of truth "
+                "for diff numbers."
             ),
             "source": source_url,
             "asn_count": len(subset),

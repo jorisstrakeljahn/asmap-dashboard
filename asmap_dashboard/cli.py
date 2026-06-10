@@ -20,7 +20,7 @@ from asmap_dashboard.analyze import analyze_map
 from asmap_dashboard.asn_names import BGP_TOOLS_URL
 from asmap_dashboard.asn_names import refresh as refresh_asn_names
 from asmap_dashboard.diff import diff_maps
-from asmap_dashboard.metrics import generate_dashboard_data
+from asmap_dashboard.metrics import SCHEMA_VERSION, generate_dashboard_data
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -59,7 +59,35 @@ def _build_parser() -> argparse.ArgumentParser:
         "--out",
         type=Path,
         default=None,
-        help="Write JSON to this path instead of stdout.",
+        help=(
+            "Write the maps payload to this path (diffs and network go "
+            "to sibling files, see --diffs-out / --network-out). "
+            "Without --out the combined payload goes to stdout."
+        ),
+    )
+    p_metrics.add_argument(
+        "--diffs-out",
+        type=Path,
+        default=None,
+        help=(
+            "Where to write the all-pairs diffs payload. Defaults to "
+            "diffs.json next to --out. The diffs dominate the payload "
+            "size (~10 MB vs ~20 KB for the maps), so they ship as a "
+            "separate file the frontend loads in parallel and renders "
+            "late, keeping the first paint off the critical 10 MB path."
+        ),
+    )
+    p_metrics.add_argument(
+        "--network-out",
+        type=Path,
+        default=None,
+        help=(
+            "Where to write the network section, when snapshot sources "
+            "are given. Defaults to network.json next to --out. Split "
+            "out because it is the one payload that cannot be "
+            "regenerated from public inputs (KIT data), so it is the "
+            "only one worth committing."
+        ),
     )
     p_metrics.add_argument(
         "--kit-dir",
@@ -79,10 +107,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Rebuild the frontend ASN \u2192 operator-name JSON from bgp.tools.",
     )
     p_refresh.add_argument(
-        "--metrics",
+        "--payload",
         type=Path,
+        nargs="+",
         required=True,
-        help="Path to metrics.json the labels should be scoped to.",
+        help=(
+            "One or more payload files (metrics.json, diffs.json, "
+            "network.json) the labels should be scoped to. Missing "
+            "files are skipped with a warning so the same invocation "
+            "works whether or not the optional network payload exists."
+        ),
     )
     p_refresh.add_argument(
         "--out",
@@ -138,6 +172,24 @@ def _run_diff(args: argparse.Namespace) -> int:
 
 
 def _run_metrics(args: argparse.Namespace) -> int:
+    """Generate and emit the dashboard payloads.
+
+    With ``--out`` the payload is split into three files along its
+    natural fault lines:
+
+      - maps (``--out``): small, drives the overview and most charts.
+      - diffs (``--diffs-out``): the all-pairs diff matrix; ~99 % of
+        the bytes, only needed by the drift charts and Diff Explorer.
+      - network (``--network-out``): only written when snapshot
+        sources produced a network section; the one part built from
+        non-public inputs and therefore the only one committed to git.
+
+    Without ``--out`` everything goes to stdout as one combined
+    document (handy for piping into jq while debugging).
+
+    Every emitted document carries ``schema_version`` so the frontend
+    can reject a payload generation it does not understand.
+    """
     # Only the sources actually pointed at a directory are passed
     # through, so ``metrics --data-dir X`` (no snapshot flags) keeps
     # emitting the snapshot-free payload unchanged.
@@ -152,11 +204,33 @@ def _run_metrics(args: argparse.Namespace) -> int:
     result = generate_dashboard_data(
         args.data_dir, snapshot_sources=snapshot_sources or None
     )
-    return _emit_json(result, args.out, compact=True)
+    result["schema_version"] = SCHEMA_VERSION
+
+    if args.out is None:
+        return _emit_json(result, None, compact=True)
+
+    out: Path = args.out
+    diffs_out: Path = args.diffs_out or out.parent / "diffs.json"
+    network_out: Path = args.network_out or out.parent / "network.json"
+
+    network = result.pop("network", None)
+    diffs = result.pop("diffs")
+
+    _emit_json(result, out, compact=True)
+    _emit_json(
+        {"schema_version": SCHEMA_VERSION, "diffs": diffs}, diffs_out, compact=True
+    )
+    if network is not None:
+        _emit_json(
+            {"schema_version": SCHEMA_VERSION, "network": network},
+            network_out,
+            compact=True,
+        )
+    return 0
 
 
 def _run_refresh_asn_names(args: argparse.Namespace) -> int:
-    count = refresh_asn_names(args.metrics, args.out, source_url=args.source_url)
+    count = refresh_asn_names(args.payload, args.out, source_url=args.source_url)
     sys.stderr.write(f"Wrote {count} ASN names to {args.out}\n")
     return 0
 

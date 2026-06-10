@@ -266,7 +266,7 @@
         "overview": {
             "sectionTitle": "Network",
             "sectionLede": "How the ASmap history behaves against observed Bitcoin nodes",
-            "empty": "No observed node snapshots in metrics.json.",
+            "empty": "No observed node snapshots in network.json.",
             "sourceMeta": "Snapshot metrics from the {source} crawl, {date}.",
             "sourceCompare": "{sources} is shown alongside as a frozen archive (its crawler no longer runs).",
             "nodes": {
@@ -372,7 +372,8 @@
     "diff": {
         "sectionTitle": "Diff Explorer",
         "sectionLede": "Compare any two ASmap builds",
-        "noDiffsYet": "metrics.json contains no diffs yet.",
+        "loading": "Loading diff data. The all-pairs diff matrix is the dashboard's largest payload and loads after the rest of the page.",
+        "noDiffsYet": "diffs.json contains no diffs yet.",
         "needTwoUnfilled": "Need at least two builds with an unfilled variant to compare.",
         "selectors": {
             "mapA": "Map A",
