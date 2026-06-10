@@ -66,6 +66,12 @@ const HOVER_BLEED = 12;
 //   - ``options.domainStart`` / ``options.domainEnd``: optional
 //     calendar overrides passed through to resolveTimeDomain so
 //     the chart can span beyond the data (range picker windows).
+//   - ``spec.linearDomain`` / ``spec.xTicks``: opt the x axis out of
+//     calendar semantics. With ``linearDomain`` the domain is the
+//     raw numeric extent (no month snapping) and ``xTicks`` —
+//     ``{ timestamp, label }[]`` in the same numeric space — replaces
+//     the calendar ticks. Used by the decay chart's map-age view,
+//     where x is "days of map age", not a date.
 export function buildLineChart(spec, width, height, layout, options = {}) {
     const geometry = computeGeometry(spec, width, height, layout, options);
     const root = createChartSvg(width, height, spec.ariaLabel);
@@ -88,10 +94,13 @@ function computeGeometry(spec, width, height, layout, options) {
         [yTicks[0], yTicks.at(-1)],
         [plot.bottom, plot.top],
     );
-    const { domainStart, domainEnd } = resolveTimeDomain(
-        spec.timestamps,
-        options,
-    );
+    const { domainStart, domainEnd } = spec.linearDomain
+        ? {
+              domainStart: options.domainStart ?? spec.timestamps[0],
+              domainEnd:
+                  options.domainEnd ?? spec.timestamps[spec.timestamps.length - 1],
+          }
+        : resolveTimeDomain(spec.timestamps, options);
     const xScale = linearScale(
         [domainStart, domainEnd],
         [plot.left, plot.right],
@@ -116,11 +125,10 @@ function drawAxes(root, geometry, spec, width) {
         format: spec.yFormat,
     });
     if (spec.yTitle) renderYAxisTitle(root, spec.yTitle, plot);
-    const ticks = pickTimeAxisTicks(
-        domainStart,
-        domainEnd,
-        labelDensityForWidth(width),
-    );
+    // renderTimeAxis only positions { timestamp, label } pairs, so
+    // caller-supplied numeric ticks reuse it unchanged.
+    const ticks = spec.xTicks
+        ?? pickTimeAxisTicks(domainStart, domainEnd, labelDensityForWidth(width));
     renderTimeAxis(root, ticks, xScale, plot.bottom);
 }
 
