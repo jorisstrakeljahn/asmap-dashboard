@@ -23,6 +23,7 @@
 // changes (the diff-explorer uses this so Map A can never pick
 // a map at-or-after Map B, and vice versa).
 
+import { createOutsideDismiss } from "../utils/dismiss.js";
 import { SVG_NS, uniqueId } from "../utils/dom.js";
 
 // CSS-driven panel max-height (--control-panel-max-height) and
@@ -67,6 +68,20 @@ export function createDropdown({
     root.append(trigger, panel);
 
     renderValueLabel();
+
+    // Outside press / scroll closes the panel; resize re-places it.
+    // Outside-scroll dismisses rather than re-positioning: a panel that
+    // follows the trigger through a page scroll looks glued to the
+    // cursor while the content drifts past, the opposite of the native
+    // macOS / Linear / Vercel behaviour reviewers expect. Inside-scroll
+    // of the panel's own overflow-auto listbox bubbles up with
+    // target === panel, so the root.contains() guard in the controller
+    // protects it.
+    const dismiss = createOutsideDismiss({
+        root,
+        onDismiss: () => setOpen(false),
+        reposition: placePanel,
+    });
 
     // ── Internals ────────────────────────────────────────────
 
@@ -130,26 +145,11 @@ export function createDropdown({
                     ? selectedIdx
                     : firstEnabledIdx();
             if (highlightIdx >= 0) setHighlight(highlightIdx);
-            document.addEventListener("mousedown", handleOutsideMouseDown, true);
-            document.addEventListener("touchstart", handleOutsideMouseDown, true);
-            window.addEventListener("resize", placePanel);
-            // Outside-scroll dismisses the panel rather than
-            // re-positioning it. A panel that follows the trigger
-            // through a page scroll looks like it is glued to the
-            // user's cursor while the content underneath drifts
-            // past, which is the opposite of the native macOS /
-            // Linear / Vercel behaviour reviewers are used to.
-            // Inside-scroll of the panel itself (the listbox is
-            // overflow-auto) is ignored because its scroll events
-            // bubble up with target === panel.
-            window.addEventListener("scroll", handleOutsideScroll, true);
+            dismiss.attach();
             placePanel();
         } else {
             trigger.removeAttribute("aria-activedescendant");
-            document.removeEventListener("mousedown", handleOutsideMouseDown, true);
-            document.removeEventListener("touchstart", handleOutsideMouseDown, true);
-            window.removeEventListener("resize", placePanel);
-            window.removeEventListener("scroll", handleOutsideScroll, true);
+            dismiss.detach();
             panel.style.top = "";
             panel.style.bottom = "";
         }
@@ -188,19 +188,6 @@ export function createDropdown({
             panel.style.top = offset;
             panel.style.bottom = "auto";
         }
-    }
-
-    function handleOutsideMouseDown(ev) {
-        if (!root.contains(ev.target)) setOpen(false);
-    }
-
-    // Scroll events from the panel's own overflow:auto bubble up
-    // with target === panel (or one of its option children), so
-    // the same root.contains() guard that protects outside-clicks
-    // protects inside-scrolls here too. Capture-phase listener so
-    // we still see scrolls from elements that stop propagation.
-    function handleOutsideScroll(ev) {
-        if (!root.contains(ev.target)) setOpen(false);
     }
 
     // ── Wire events ──────────────────────────────────────────

@@ -8,9 +8,6 @@ export const ARROW = {
     LEFT_RIGHT: "\u2194",
 };
 
-// U+2212 minus sign — visually heavier than the hyphen-minus and
-// reads correctly next to a "+" in delta lines.
-export const MINUS = "\u2212";
 export const EM_DASH = "\u2014";
 export const ELLIPSIS = "\u2026";
 export const TIMES = "\u00d7";

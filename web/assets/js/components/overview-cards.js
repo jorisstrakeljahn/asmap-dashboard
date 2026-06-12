@@ -20,7 +20,7 @@ import {
     pickPreferUnfilled,
     unfilledProfile,
 } from "../utils/map-variants.js";
-import { createInfoTooltip } from "./info-tooltip.js";
+import { createCard, deltaLine, metricNumber, metricUnit } from "./metric-card.js";
 
 // ``previous`` bridges across filled-only builds so all three
 // cards anchor their "vs previous" delta on the same predecessor.
@@ -53,7 +53,7 @@ function entriesCountCard(currentPick, previousPick) {
     const card = createCard(t("overview.entries.label"), {
         info: t("overview.entries.info"),
         infoAria: t("overview.entries.infoAria"),
-        source: currentPick.source,
+        badge: currentPick.source === "filled" ? fallbackBadge() : null,
     });
     card.append(
         metricNumber(formatNumber(currentPick.profile.entries_count)),
@@ -148,7 +148,7 @@ function uniqueAsesCard(currentPick, previousPick) {
     const card = createCard(t("overview.uniqueAses.label"), {
         info: t("overview.uniqueAses.info"),
         infoAria: t("overview.uniqueAses.infoAria"),
-        source: currentPick.source,
+        badge: currentPick.source === "filled" ? fallbackBadge() : null,
     });
     card.append(metricNumber(formatNumber(profile.unique_asns)));
     card.append(metricUnit(t("overview.uniqueAses.unit")));
@@ -173,51 +173,12 @@ function uniqueAsesCard(currentPick, previousPick) {
     return card;
 }
 
-function createCard(label, { info, infoAria, source } = {}) {
-    const card = document.createElement("article");
-    card.className = "card";
-    if (info) {
-        const tip = createInfoTooltip({ body: info, ariaLabel: infoAria });
-        tip.classList.add("info-tooltip--card-corner");
-        card.append(tip);
-    }
-    const title = document.createElement("span");
-    title.className = "card__label uppercase-label";
-    title.textContent = label.toUpperCase();
-    card.append(title);
-    if (source === "filled") {
-        card.append(fallbackBadge());
-    }
-    return card;
-}
-
 function fallbackBadge() {
     const badge = document.createElement("span");
     badge.className = "card__fallback uppercase-label muted";
     badge.textContent = t("overview.fallbackBadge.label");
     badge.title = t("overview.fallbackBadge.tooltip");
     return badge;
-}
-
-function metricNumber(text) {
-    const node = document.createElement("p");
-    node.className = "card__metric";
-    node.textContent = text;
-    return node;
-}
-
-function metricUnit(text) {
-    const node = document.createElement("p");
-    node.className = "card__unit";
-    node.textContent = text;
-    return node;
-}
-
-function deltaLine(text) {
-    const node = document.createElement("p");
-    node.className = "card__delta";
-    node.textContent = text;
-    return node;
 }
 
 // Each segment is rounded individually so the bar reads as

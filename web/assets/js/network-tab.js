@@ -46,16 +46,15 @@ import {
 } from "./components/network/series-data.js";
 import { createInfoTooltip } from "./components/info-tooltip.js";
 import { createModeSwitch } from "./components/mode-switch.js";
+import {
+    DEFAULT_HISTORY_RANGE as DEFAULT_RANGE,
+    HISTORY_RANGE_VALUES as RANGE_VALUES,
+    MS_PER_DAY,
+    rangeBounds,
+} from "./utils/history-range.js";
 import { t } from "./utils/i18n.js";
 
 const SECONDS_PER_DAY = 86400;
-const MS_PER_DAY = 86_400_000;
-
-// Mirror the Maps tab's History range picker. Bounded ranges pin the
-// x-axis to [now - N days, now]; "max" spans the full data extent.
-const RANGE_VALUES = ["1y", "3y", "5y", "max"];
-const RANGE_DAYS = { "1y": 365, "3y": 365 * 3, "5y": 365 * 5 };
-const DEFAULT_RANGE = "max";
 
 // Mount the tab. Returns true when a network section was present and
 // rendered, false otherwise, so the caller can hide the nav entry.
@@ -503,20 +502,6 @@ function collectTimestamps(network, sources) {
         for (const p of data.decay.points) out.push(toMs(p.build_timestamp));
     }
     return out;
-}
-
-// Resolve the cutoff (drop points older than this) plus the x-axis
-// domain the charts should span. Mirrors utils/history-range.js but
-// works on plain ms timestamps rather than the maps array.
-function rangeBounds(range, timestamps) {
-    const now = Date.now();
-    if (range === "max" || !RANGE_DAYS[range]) {
-        const first = timestamps.length ? Math.min(...timestamps) : now;
-        const last = timestamps.length ? Math.max(...timestamps) : now;
-        return { cutoff: -Infinity, domainStart: first, domainEnd: Math.max(now, last) };
-    }
-    const cutoff = now - RANGE_DAYS[range] * MS_PER_DAY;
-    return { cutoff, domainStart: cutoff, domainEnd: now };
 }
 
 // Drop the slots before ``cutoff`` while keeping valueAt addressable

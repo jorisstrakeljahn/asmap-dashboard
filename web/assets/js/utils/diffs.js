@@ -23,13 +23,12 @@ import { unfilledProfile } from "./map-variants.js";
 //     cannot be meaningfully summed (2^32 vs 2^128 means IPv4
 //     would round to noise inside a combined denominator).
 //
-// The legacy "entries" view (one row per trie leaf changed) is
-// intentionally not exposed in the UI any more: it weights a /8
-// the same as a /48 and is dominated by IPv6 trie geometry, which
-// is the exact failure mode the coverage views were introduced to
-// avoid. Reviewers who want the trie-leaf reading can still see
-// it via the asmap CLI, which prints the same numbers the
-// pipeline reads.
+// The raw "entries" view (one row per trie leaf changed) is
+// intentionally not exposed in the UI: it weights a /8 the same as
+// a /48 and is dominated by IPv6 trie geometry — the exact failure
+// mode the coverage views avoid. Reviewers who want the trie-leaf
+// reading can still see it via the asmap CLI, which prints the
+// same numbers the pipeline reads.
 export const DRIFT_IPV4_COVERAGE = "ipv4_coverage";
 export const DRIFT_IPV6_COVERAGE = "ipv6_coverage";
 
@@ -40,6 +39,18 @@ export function findDiff(diffs, fromName, toName) {
             (d.from === fromName && d.to === toName) ||
             (d.from === toName && d.to === fromName),
     ) || null;
+}
+
+// Strict directional lookup: only the record stored exactly as
+// from=fromName, to=toName. The pipeline emits each pair once with
+// from < to chronologically, so callers passing (older, newer) hit
+// the canonical direction. Asymmetric callers (Diff Explorer, drift
+// chart) need this rather than findDiff's symmetric fallback, because
+// the category fields (reassigned, newly_mapped, unmapped) only make
+// sense in the canonical direction.
+export function findDirectionalDiff(diffs, fromName, toName) {
+    if (!Array.isArray(diffs)) return null;
+    return diffs.find((d) => d.from === fromName && d.to === toName) || null;
 }
 
 // Compute the two drift views for a single diff record. Returns
