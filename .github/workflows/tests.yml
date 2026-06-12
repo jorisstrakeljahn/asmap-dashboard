@@ -6,6 +6,12 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Least-privilege default: these jobs only read the checked-out code
+# and run tests/linters, so they never need a writable token — even
+# though fork PRs run the PR author's install/build code.
+permissions:
+  contents: read
+
 # Cancel in-progress runs when a new commit is pushed to the same
 # pull request or branch, so a quick fix-up push doesn't keep an
 # obsolete run burning a runner slot.
@@ -57,11 +63,13 @@ jobs:
       # fails; the other version's result is still useful triage.
       fail-fast: false
       matrix:
-        # Lower bound matches the README's Python 3.10+ pledge;
-        # upper bound mirrors the version the daily refresh-metrics
-        # cron runs on, so what gets tested in PRs matches what
-        # actually generates production data.
-        python-version: ["3.10", "3.12"]
+        # Every version the package advertises in its pyproject
+        # classifiers, end to end: the 3.10 lower bound matches the
+        # README pledge, 3.12 is the version the daily refresh-metrics
+        # cron runs on (so PRs test what generates production data), and
+        # 3.13/3.14 are tested so a classifier never claims support that
+        # CI has not actually exercised.
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v6
 
