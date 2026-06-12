@@ -39,23 +39,16 @@ import {
     positionTooltip,
     showTooltip,
 } from "./chart-interaction.js";
+import {
+    BAR_CORNER_RADIUS,
+    HOVER_BLEED,
+    pickBarWidth,
+} from "./bar-geometry.js";
 
-// Bar geometry: width is uniform across all slots and sized from
-// the smallest neighbour gap on the x axis so dense clusters
-// never overlap and sparse ranges don't render lone bars as
-// chart-wide blocks. Same scheme the map-delta chart uses, so
-// the two history bar charts read as a visually consistent pair.
-const MIN_BAR_WIDTH = 3;
-const MAX_BAR_WIDTH = 14;
-const BAR_FILL_FRACTION = 0.7;
-// Only the outer corners of the *whole stack* round. Middle
-// segments keep square edges so the eye reads a stack of three
-// segments as one bar with three colours, not three pills
-// stacked on top of each other.
-const BAR_CORNER_RADIUS = 2;
-// Hover tolerance past the plot edge, matching the line chart, so a
-// touch resolve in the gutter still maps to the nearest column.
-const HOVER_BLEED = 12;
+// Only the outer corners of the *whole stack* round (handled in
+// drawStacks via BAR_CORNER_RADIUS). Middle segments keep square
+// edges so the eye reads a stack of three segments as one bar with
+// three colours, not three pills stacked on top of each other.
 
 // Render a stacked time-series bar chart and return its hover shell.
 //
@@ -241,23 +234,6 @@ function roundedRectPath(x, y, w, h, radii) {
     if (tl > 0) parts.push(`A ${tl} ${tl} 0 0 1 ${x + tl} ${y}`);
     parts.push("Z");
     return parts.join(" ");
-}
-
-// Bar width sized from the smallest gap between adjacent slot
-// timestamps. Same algorithm the map-delta chart runs, lifted
-// here so both bar charts pick the same widths under the same
-// range picker.
-function pickBarWidth(timestamps, xScale, plot) {
-    if (timestamps.length < 2) return MAX_BAR_WIDTH;
-    let minGap = Infinity;
-    for (let i = 1; i < timestamps.length; i++) {
-        const gap = xScale(timestamps[i]) - xScale(timestamps[i - 1]);
-        if (gap > 0 && gap < minGap) minGap = gap;
-    }
-    if (!Number.isFinite(minGap) || minGap <= 0) {
-        return Math.min(MAX_BAR_WIDTH, plot.right - plot.left);
-    }
-    return Math.max(MIN_BAR_WIDTH, Math.min(MAX_BAR_WIDTH, minGap * BAR_FILL_FRACTION));
 }
 
 // Hover: an invisible full-height capture strip per slot catches

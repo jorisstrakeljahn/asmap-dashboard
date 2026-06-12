@@ -16,12 +16,10 @@ import {
 } from "./utils/diffs.js";
 import {
     DEFAULT_HISTORY_RANGE,
+    HISTORY_RANGE_VALUES,
     resolveHistoryRange,
 } from "./utils/history-range.js";
 import { t, tPlural } from "./utils/i18n.js";
-
-// Bloomberg / TradingView convention for instant recognition.
-const HISTORY_RANGE_VALUES = ["1y", "3y", "5y", "max"];
 
 // Drift unit picker order. IPv4 first because it is the headline
 // view (Bitcoin Core peer diversity weighs IPv4 reachability most

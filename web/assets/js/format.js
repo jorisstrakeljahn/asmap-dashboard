@@ -13,14 +13,28 @@ const megabyteFormatter = new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 1,
     maximumFractionDigits: 2,
 });
+// Build dates arrive as UTC "YYYY-MM-DD" strings (derived from the
+// Unix timestamps in the build filenames). Pin the formatter to UTC
+// so a viewer west of UTC does not see the previous calendar day.
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
+    timeZone: "UTC",
 });
 
 export function formatNumber(value) {
     return numberFormatter.format(value);
+}
+
+// Compact y-axis tick label: literal counts ("412,539") are wider
+// than a chart gutter can afford, so anything from a thousand up is
+// rounded to whole "k" units. Shared by every count-axis chart so
+// the tick vocabulary stays identical across them.
+export function formatCompactCount(value) {
+    return Math.abs(value) >= 1000
+        ? `${Math.round(value / 1000)}k`
+        : String(value);
 }
 
 // IPv4 and IPv6 carry incomparable address-space sizes, so every
@@ -92,11 +106,6 @@ export function formatPercent(ratio, fractionDigits = 1) {
     return `${(ratio * 100).toFixed(fractionDigits)}%`;
 }
 
-export function formatSignedPercent(ratio, fractionDigits = 1) {
-    const sign = ratio > 0 ? "+" : "";
-    return `${sign}${(ratio * 100).toFixed(fractionDigits)}%`;
-}
-
 export function formatSignedNumber(value) {
     const sign = value > 0 ? "+" : "";
     return `${sign}${numberFormatter.format(value)}`;
@@ -111,12 +120,34 @@ export function formatMegabytes(bytes) {
     return `${megabyteFormatter.format(bytes / 1e6)} MB`;
 }
 
+// Keep a number glued to the word touching it so a tight column never
+// orphans the unit on its own line ("0\nunmapped") or strands the number
+// from its label ("IPv4\n7,024"). Only spaces directly adjacent to a
+// digit become non-breaking; every other space stays a valid wrap point,
+// so a long line like "between 4.2% at 252 days and …" still wraps — it
+// just never splits "252 days" or "4.2%" mid-pair. Comma separators are
+// untouched, so a count list still breaks between its segments.
+export function glueUnits(text) {
+    return String(text)
+        .replace(/(\d)\u0020/g, "$1\u00A0")
+        .replace(/\u0020(\d)/g, "\u00A0$1");
+}
+
 export function formatDate(isoDate) {
     return dateFormatter.format(new Date(isoDate));
 }
 
 export function daysBetween(isoDate, reference = new Date()) {
     const then = new Date(isoDate);
-    const ms = reference.getTime() - then.getTime();
+    // Compare on the UTC day grid: ``then`` is already UTC midnight for
+    // a date-only string, so truncate ``reference`` to UTC midnight too.
+    // Without this the result depends on the viewer's local time of day
+    // and timezone, which can flip the staleness headline by a day.
+    const refUtcMidnight = Date.UTC(
+        reference.getUTCFullYear(),
+        reference.getUTCMonth(),
+        reference.getUTCDate(),
+    );
+    const ms = refUtcMidnight - then.getTime();
     return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
 }

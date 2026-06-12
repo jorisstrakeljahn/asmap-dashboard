@@ -104,7 +104,3 @@ export function applyDomTranslations(root = document) {
         }
     }
 }
-
-export function currentLocale() {
-    return locale;
-}

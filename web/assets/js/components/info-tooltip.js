@@ -4,6 +4,7 @@
 // as a glossary. Single-string ``text`` is accepted for the
 // simple case. Returns a <span> exposing setBody(next).
 
+import { createOutsideDismiss } from "../utils/dismiss.js";
 import { SVG_NS, uniqueId } from "../utils/dom.js";
 import { t } from "../utils/i18n.js";
 
@@ -50,6 +51,15 @@ export function createInfoTooltip({ text, body, ariaLabel } = {}) {
         }
     }
 
+    // Outside press / scroll closes the popover; resize re-places it.
+    // The popover is short enough never to need internal scrolling, so
+    // every scroll is an outside-scroll that dismisses.
+    const dismiss = createOutsideDismiss({
+        root,
+        onDismiss: () => setOpen(false),
+        reposition: placePopover,
+    });
+
     function setOpen(next) {
         if (open === next) return;
         open = next;
@@ -58,14 +68,10 @@ export function createInfoTooltip({ text, body, ariaLabel } = {}) {
         root.classList.toggle("is-open", next);
 
         if (next) {
-            document.addEventListener("mousedown", handleOutside, true);
-            document.addEventListener("touchstart", handleOutside, true);
+            dismiss.attach();
+            // Escape-to-close is unique to the tooltip (the dropdown
+            // handles Escape on its trigger keydown), so it stays here.
             document.addEventListener("keydown", handleKey, true);
-            window.addEventListener("resize", placePopover);
-            // Scroll dismisses rather than follows the trigger;
-            // the popover is short enough never to need internal
-            // scrolling, so there is no inside-scroll case.
-            window.addEventListener("scroll", handleOutsideScroll, true);
             // Two passes: the first reads a stale layout, the
             // rAF reads the committed layout.
             placePopover();
@@ -73,11 +79,8 @@ export function createInfoTooltip({ text, body, ariaLabel } = {}) {
         } else {
             sticky = false;
             warmUntil = Date.now() + HOVER_WARM_WINDOW_MS;
-            document.removeEventListener("mousedown", handleOutside, true);
-            document.removeEventListener("touchstart", handleOutside, true);
+            dismiss.detach();
             document.removeEventListener("keydown", handleKey, true);
-            window.removeEventListener("resize", placePopover);
-            window.removeEventListener("scroll", handleOutsideScroll, true);
             popover.style.top = "";
             popover.style.left = "";
         }
@@ -108,14 +111,6 @@ export function createInfoTooltip({ text, body, ariaLabel } = {}) {
             Math.max(maxLeft, minLeft),
         );
         popover.style.left = `${clamped}px`;
-    }
-
-    function handleOutside(ev) {
-        if (!root.contains(ev.target)) setOpen(false);
-    }
-
-    function handleOutsideScroll(ev) {
-        if (!root.contains(ev.target)) setOpen(false);
     }
 
     function handleKey(ev) {

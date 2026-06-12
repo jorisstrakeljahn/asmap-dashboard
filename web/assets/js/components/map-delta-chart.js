@@ -28,23 +28,17 @@ import {
     showTooltip,
 } from "../charts/chart-interaction.js";
 import { buildTooltipBody } from "../charts/chart-tooltip.js";
+import {
+    BAR_CORNER_RADIUS,
+    HOVER_BLEED,
+    pickBarWidth,
+} from "../charts/bar-geometry.js";
 import { formatDate, formatNumber } from "../format.js";
 import { mutedNote } from "../utils/dom.js";
 import { previousDiffable } from "../utils/diffs.js";
 import { t } from "../utils/i18n.js";
 import { unfilledProfile } from "../utils/map-variants.js";
 import { createInfoTooltip } from "./info-tooltip.js";
-
-// Uniform bar width (no "fatter bar = bigger delta" misreading)
-// driven by the smallest neighbour gap so dense clusters never
-// overlap.
-const MIN_BAR_WIDTH = 3;
-const MAX_BAR_WIDTH = 14;
-const BAR_FILL_FRACTION = 0.7;
-const BAR_CORNER_RADIUS = 2;
-// Hover tolerance past the plot edge so a touch resolve in the
-// gutter still maps to the nearest bar, matching the shared charts.
-const HOVER_BLEED = 12;
 
 export function mount(parent, maps, options = {}) {
     if (!parent || !Array.isArray(maps) || maps.length === 0) return;
@@ -234,19 +228,6 @@ function buildChart(rows, maps, width, height, layout, options) {
     renderTimeAxis(root, ticks, xScale, plot.bottom);
 
     return shell;
-}
-
-function pickBarWidth(timestamps, xScale, plot) {
-    if (timestamps.length < 2) return MAX_BAR_WIDTH;
-    let minGap = Infinity;
-    for (let i = 1; i < timestamps.length; i++) {
-        const gap = xScale(timestamps[i]) - xScale(timestamps[i - 1]);
-        if (gap < minGap) minGap = gap;
-    }
-    if (!Number.isFinite(minGap) || minGap <= 0) {
-        return Math.min(MAX_BAR_WIDTH, plot.right - plot.left);
-    }
-    return Math.max(MIN_BAR_WIDTH, Math.min(MAX_BAR_WIDTH, minGap * BAR_FILL_FRACTION));
 }
 
 function formatSignedDelta(value) {

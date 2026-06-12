@@ -50,12 +50,11 @@ export function niceTicks(min, max, count = 5) {
 // curve never claims a value above (or below) what the input
 // actually carried.
 //
-// Why not plain Catmull-Rom? The previous implementation assumed
-// uniform parameter spacing, which broke as soon as the x axis
-// went from index-based to calendar-based: a wide gap (e.g. an
+// Why not plain Catmull-Rom? It assumes uniform parameter
+// spacing, which breaks on a calendar x axis: a wide gap (e.g. an
 // 8-month bridged segment) followed by a narrow one (a 4-week
-// step) yanked the tangent at the boundary point off-direction
-// and the curve developed a visible kink. Fritsch-Carlson sizes
+// step) yanks the tangent at the boundary point off-direction
+// and the curve develops a visible kink. Fritsch-Carlson sizes
 // every tangent from the real secant slopes between neighbours,
 // so non-uniform spacing produces a clean curve and a monotone
 // run of y values is rendered monotonically (no overshoot dips).
@@ -138,16 +137,4 @@ export function smoothPath(points) {
         );
     }
     return out.join(" ");
-}
-
-// Build a closed path that fills the area between the smoothed line
-// and a horizontal baseline (typically the bottom of the chart).
-// Reuses smoothPath() for the top edge so the line and the fill never
-// drift apart on resize or recompute.
-export function areaPath(points, baselineY) {
-    if (points.length < 2) return "";
-    const top = smoothPath(points);
-    const first = points[0];
-    const last = points[points.length - 1];
-    return `${top} L${last[0]},${baselineY} L${first[0]},${baselineY} Z`;
 }

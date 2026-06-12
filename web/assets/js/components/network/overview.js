@@ -21,7 +21,12 @@
 import { formatNumber, formatPercent } from "../../format.js";
 import { mutedNote } from "../../utils/dom.js";
 import { t } from "../../utils/i18n.js";
-import { createInfoTooltip } from "../info-tooltip.js";
+import {
+    createCard,
+    deltaLine,
+    metricNumber,
+    metricUnit,
+} from "../metric-card.js";
 
 const TARGET_STALENESS_DAYS = 365;
 
@@ -225,42 +230,4 @@ function stalenessBasis(reading) {
         drift: formatPercent(reading.point.drift_pct / 100, 1),
         days: reading.point.age_days,
     });
-}
-
-// ---- card primitives (mirrors overview-cards.js) ----------------
-
-function createCard(label, { info, infoAria } = {}) {
-    const card = document.createElement("article");
-    card.className = "card";
-    if (info) {
-        const tip = createInfoTooltip({ body: info, ariaLabel: infoAria });
-        tip.classList.add("info-tooltip--card-corner");
-        card.append(tip);
-    }
-    const title = document.createElement("span");
-    title.className = "card__label uppercase-label";
-    title.textContent = label.toUpperCase();
-    card.append(title);
-    return card;
-}
-
-function metricNumber(text) {
-    const node = document.createElement("p");
-    node.className = "card__metric";
-    node.textContent = text;
-    return node;
-}
-
-function metricUnit(text) {
-    const node = document.createElement("p");
-    node.className = "card__unit";
-    node.textContent = text;
-    return node;
-}
-
-function deltaLine(text) {
-    const node = document.createElement("p");
-    node.className = "card__delta";
-    node.textContent = text;
-    return node;
 }
