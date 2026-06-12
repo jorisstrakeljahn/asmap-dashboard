@@ -18,6 +18,7 @@ from asmap_dashboard._prefix import (
 )
 from asmap_dashboard._vendor.asmap import ASMap, net_to_prefix
 from asmap_dashboard.loader import LoadedMap, PathLike, load_map
+from asmap_dashboard.netgroup import linked_ipv4
 
 # Cap on how many top-mover ASes a single diff records *per
 # currency*. A single AS that ranks in the top N by entries, by
@@ -564,7 +565,17 @@ def _node_impact(asmap_a: ASMap, asmap_b: ASMap, addrs_file: PathLike) -> dict:
 
 
 def _ip_to_prefix(ip: ipaddress._BaseAddress) -> list:
-    """Return the full-length bit prefix asmap.lookup() expects."""
+    """Return the full-length bit prefix asmap.lookup() expects.
+
+    An IPv6 address that merely transports an IPv4 host (6to4, Teredo,
+    NAT64, ...) is looked up as that IPv4, matching Bitcoin Core's
+    GetMappedAS() and the sibling lookup in network/metrics.py. Without
+    this unwrap, --addrs node-impact scored tunneled peers against the
+    v6 side of the map while the live network metrics scored them as v4,
+    so the two diverged on the handful of tunneled peers per snapshot.
+    """
+    if isinstance(ip, ipaddress.IPv6Address):
+        ip = linked_ipv4(ip) or ip
     if isinstance(ip, ipaddress.IPv4Address):
         return net_to_prefix(ipaddress.IPv4Network(f"{ip}/32"))
     return net_to_prefix(ipaddress.IPv6Network(f"{ip}/128"))

@@ -45,12 +45,11 @@ import ipaddress
 import json
 import re
 import sys
-from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-PathLike = str | Path
+from asmap_dashboard.loader import PathLike
 
 # KIT keys are Python repr() of an (IPvNAddress('<ip>'), port) tuple, e.g.
 #   "(IPv4Address('5.39.74.166'), 8333)"
@@ -124,7 +123,10 @@ def _make_node(ip: str, asn: int | None, country: str | None) -> Node | None:
         parsed = ipaddress.ip_address(ip)
     except ValueError:
         return None
-    country = (country or "").strip().upper() or None
+    # ``country`` arrives unvalidated from the bare-list Bitnodes rows
+    # (``_load_bitnodes_old`` passes ``row[idx]`` straight through), so a
+    # numeric or otherwise non-string value must not crash the loader.
+    country = (country.strip().upper() or None) if isinstance(country, str) else None
     return Node(ip=ip, version=parsed.version, asn=asn, country=country)
 
 
@@ -189,7 +191,7 @@ def load_kit_dossier(path: PathLike) -> Snapshot:
     return Snapshot(
         source="kit",
         timestamp=timestamp,
-        label=_iso_date(timestamp),
+        label=_to_iso_date(timestamp),
         nodes=tuple(nodes),
         observed_total=len(raw),
         onion_skipped=onion,
@@ -244,7 +246,7 @@ def _load_bitnodes_good(raw: dict, timestamp: int) -> Snapshot:
     return Snapshot(
         source="bitnodes",
         timestamp=timestamp,
-        label=_iso_date(timestamp),
+        label=_to_iso_date(timestamp),
         nodes=tuple(nodes),
         observed_total=len(node_map),
         onion_skipped=onion,
@@ -279,7 +281,7 @@ def _load_bitnodes_old(rows: list, timestamp: int) -> Snapshot:
     return Snapshot(
         source="bitnodes",
         timestamp=timestamp,
-        label=_iso_date(timestamp),
+        label=_to_iso_date(timestamp),
         nodes=tuple(nodes),
         observed_total=len(rows),
         onion_skipped=onion,
@@ -325,17 +327,31 @@ def discover_snapshots(directory: PathLike, source: str) -> list[Snapshot]:
 
     Recurses so the Bitnodes "old best effort" subfolder is picked up
     alongside the good matches in the same pass. Files that fail to
-    parse are skipped rather than aborting the run, because one corrupt
-    snapshot should not take down the whole network section — but each
-    skip is reported on stderr so a broken source directory is visible
-    in the pipeline log instead of silently shrinking the series.
+    parse or are structurally malformed are skipped rather than aborting
+    the run, because one corrupt snapshot should not take down the whole
+    network section — but each skip is reported on stderr so a broken
+    source directory is visible in the pipeline log instead of silently
+    shrinking the series.
     """
     directory = Path(directory)
     out: list[Snapshot] = []
     for path in sorted(directory.rglob("*.json")):
         try:
             out.append(load_snapshot(path, source))
-        except (ValueError, json.JSONDecodeError) as exc:
+        # Valid JSON of the wrong shape (a list where a dict is expected,
+        # a scalar where an object is expected) reaches the loaders'
+        # ``.get``/``.items``/index assumptions and raises Attribute/Type/
+        # Key/IndexError. Catch those too so the documented skip-with-
+        # warning contract holds for structural malformations, not only
+        # parse failures.
+        except (
+            ValueError,
+            json.JSONDecodeError,
+            AttributeError,
+            TypeError,
+            KeyError,
+            IndexError,
+        ) as exc:
             print(
                 f"warning: skipping {source} snapshot {path}: {exc}",
                 file=sys.stderr,
@@ -352,7 +368,7 @@ def _kit_timestamp(stem: str) -> int:
     return int(dt.timestamp())
 
 
-def _iso_date(unix_ts: int) -> str:
+def _to_iso_date(unix_ts: int) -> str:
     return datetime.fromtimestamp(unix_ts, tz=timezone.utc).date().isoformat()
 
 
@@ -362,8 +378,3 @@ def _coerce_int(value: object) -> int | None:
         return int(value)  # type: ignore[arg-type]
     except (TypeError, ValueError):
         return None
-
-
-def total_nodes(snapshots: Iterable[Snapshot]) -> int:
-    """Sum of clearnet node counts across snapshots (diagnostic helper)."""
-    return sum(len(s.nodes) for s in snapshots)

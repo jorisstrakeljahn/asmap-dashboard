@@ -139,12 +139,25 @@ def refresh(
     if isinstance(payload_paths, (str, Path)):
         payload_paths = [payload_paths]
     wanted: set[int] = set()
+    found = 0
     for path in payload_paths:
         path = Path(path)
         if not path.exists():
             print(f"warning: skipping missing payload {path}", file=sys.stderr)
             continue
+        found += 1
         wanted |= extract_asns(json.loads(path.read_text()))
+    # An empty ``wanted`` from existing-but-empty payloads is legitimate
+    # (a build with no diffs yet) and proceeds to write a tiny file. But
+    # if *no* payload existed at all — a CI path typo, a failed earlier
+    # step — writing would replace a previously good ``asn-names.json``
+    # with an empty subset and silently degrade every label on the
+    # dashboard to a bare ``AS<num>``. Refuse before fetching the CSV.
+    if found == 0:
+        raise FileNotFoundError(
+            "none of the payload files exist: "
+            + ", ".join(str(p) for p in payload_paths)
+        )
     all_names = fetch_bgp_tools_csv(source_url)
     subset = build_subset(wanted, all_names)
     payload = {

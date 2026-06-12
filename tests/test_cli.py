@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import io
 import ipaddress
 import json
+from unittest.mock import patch
 
 import pytest
 
@@ -11,6 +13,20 @@ from asmap_dashboard.cli import main
 from asmap_dashboard.metrics import SCHEMA_VERSION
 
 from .conftest import write_asmap
+
+
+def _fake_csv_response(body: bytes):
+    """Minimal urlopen() stand-in supporting the context manager protocol."""
+
+    class _Response(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_exc):
+            self.close()
+            return False
+
+    return _Response(body)
 
 
 def test_analyze_writes_json_to_stdout(tmp_path, capsys):
@@ -147,3 +163,38 @@ def test_metrics_without_data_dir_exits_with_error(capsys):
     with pytest.raises(SystemExit) as exc:
         main(["metrics"])
     assert exc.value.code != 0
+
+
+def test_refresh_asn_names_writes_labels_from_payload(tmp_path):
+    """refresh-asn-names scopes labels to the given payload and writes them."""
+    payload = tmp_path / "metrics.json"
+    payload.write_text(json.dumps({"diffs": [{"top_movers": [{"asn": 174}]}]}))
+    out = tmp_path / "asn-names.json"
+
+    with patch(
+        "asmap_dashboard.asn_names.urllib.request.urlopen",
+        return_value=_fake_csv_response(b"asn,name\n174,Cogent\n"),
+    ):
+        rc = main(["refresh-asn-names", "--payload", str(payload), "--out", str(out)])
+
+    assert rc == 0
+    assert json.loads(out.read_text())["174"] == "Cogent"
+
+
+def test_refresh_asn_names_fails_when_all_payloads_missing(tmp_path):
+    """A path typo (no payload exists) aborts non-zero instead of writing
+    an empty file over a previously good asn-names.json."""
+    out = tmp_path / "asn-names.json"
+
+    with pytest.raises(FileNotFoundError):
+        main(
+            [
+                "refresh-asn-names",
+                "--payload",
+                str(tmp_path / "missing.json"),
+                "--out",
+                str(out),
+            ]
+        )
+
+    assert not out.exists()
