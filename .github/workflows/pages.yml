@@ -30,7 +30,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Gate the deploy on the same fast checks the tests workflow runs.
+  # Duplicating them here (rather than chaining via workflow_run) keeps
+  # the cron and manual-dispatch paths gated too, because the gate runs
+  # in the same workflow run as the deploy.
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -e ".[dev]"
+
+      - run: python -m ruff check
+
+      - run: python -m pytest tests
+
   build-and-deploy:
+    needs: checks
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -71,6 +92,15 @@ jobs:
                       web/assets/data/diffs.json \
                       web/assets/data/network.json \
             --out web/assets/data/asn-names.json
+
+      # Guard against deploying an empty dashboard: an upstream layout
+      # change makes map discovery return nothing without erroring, so
+      # assert the generated payloads are non-empty before publishing.
+      - name: Smoke-check generated payloads
+        run: |
+          jq -e '.maps | length > 0' web/assets/data/metrics.json > /dev/null
+          jq -e '.schema_version' web/assets/data/metrics.json > /dev/null
+          jq -e '.diffs | length >= 0' web/assets/data/diffs.json > /dev/null
 
       - uses: actions/configure-pages@v6
 
