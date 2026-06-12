@@ -137,6 +137,25 @@ def test_bitcoin_node_impact_filters_to_addrs(tmp_path):
     assert impact["total_affected"] == 2
 
 
+def test_bitcoin_node_impact_unwraps_tunneled_ipv6(tmp_path):
+    """A tunneled IPv6 peer scores against the IPv4 entry it transports.
+
+    6to4 ``2002:0102:0304::1`` embeds 1.2.3.4. Bitcoin Core's
+    GetMappedAS() and the live network metrics both resolve such a peer
+    through the map as that IPv4, so node impact must do the same rather
+    than looking up the (unmapped) v6 wrapper and scoring it as no-change.
+    """
+    a = write_asmap(tmp_path / "a.dat", [(ipaddress.IPv4Network("1.0.0.0/8"), 100)])
+    b = write_asmap(tmp_path / "b.dat", [(ipaddress.IPv4Network("1.0.0.0/8"), 999)])
+    addrs = tmp_path / "addrs.txt"
+    addrs.write_text("2002:0102:0304::1\n")
+
+    impact = diff_maps(a, b, addrs_file=addrs)["bitcoin_node_impact"]
+
+    assert impact["total_nodes"] == 1
+    assert impact["reassigned"] == 1
+
+
 def test_top_movers_capped_at_limit(tmp_path):
     # Spread prefixes across the IPv4 space so every reassignment lands on a
     # distinct AS and gets its own row in changes_per_as. Generate strictly

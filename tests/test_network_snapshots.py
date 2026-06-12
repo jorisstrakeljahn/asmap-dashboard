@@ -252,6 +252,79 @@ def test_discover_snapshots_recurses_and_sorts_by_time(tmp_path):
     assert [s.timestamp for s in snaps] == [1704672612, 1762444952]
 
 
+def test_discover_snapshots_skips_kit_dossier_with_nonobject_node(tmp_path, capsys):
+    """A KIT node value that is valid JSON but not an object (so
+    ``value.get`` would raise AttributeError) is skipped per-file with a
+    warning, leaving the healthy dossier in the series."""
+    good = tmp_path / "20240105_120000_dossier.json"
+    _write_kit(good, {"1.2.3.4": (4, "1", "US")})
+    bad = tmp_path / "20240106_120000_dossier.json"
+    bad.write_text(json.dumps({"(IPv4Address('5.6.7.8'), 8333)": "not-an-object"}))
+
+    snaps = discover_snapshots(tmp_path, "kit")
+
+    assert [s.label for s in snaps] == ["2024-01-05"]
+    err = capsys.readouterr().err
+    assert "20240106_120000_dossier.json" in err
+    assert "skipping" in err
+
+
+def test_discover_snapshots_skips_bitnodes_nodes_as_array(tmp_path, capsys):
+    """A good-matches file whose ``nodes`` is a JSON array (so ``.items()``
+    would raise AttributeError) is skipped, not fatal to the run."""
+    (tmp_path / "1762444952.json").write_text(
+        json.dumps(
+            {
+                "timestamp": 1762444952,
+                "nodes": {"1.2.3.4:8333": [70016, "/x/", 1, 1, 1]},
+            }
+        )
+    )
+    (tmp_path / "1762444953.json").write_text(
+        json.dumps({"timestamp": 1762444953, "nodes": [["1.2.3.4:8333", 1]]})
+    )
+
+    snaps = discover_snapshots(tmp_path, "bitnodes")
+
+    assert [s.timestamp for s in snaps] == [1762444952]
+    err = capsys.readouterr().err
+    assert "1762444953.json" in err
+    assert "skipping" in err
+
+
+def test_load_bitnodes_old_numeric_country_loads_without_crash(tmp_path):
+    """A bare-list row carrying a numeric country field must not crash the
+    loader; the node loads with country=None instead."""
+    path = tmp_path / "1704672612.json"
+    # 15-element row (>= the 14-min that triggers asn/country extraction),
+    # but country@9 is a number instead of the usual ISO string.
+    row = [
+        "9.9.9.9",
+        8333,
+        70016,
+        "/x/",
+        1,
+        1,
+        1,
+        "host",
+        None,
+        0,
+        51.3,
+        9.5,
+        "Europe/Berlin",
+        "AS24940",
+        "Hetzner",
+    ]
+    path.write_text(json.dumps([row]))
+
+    snap = load_snapshot(path, "bitnodes")
+
+    [node] = snap.nodes
+    assert node.ip == "9.9.9.9"
+    assert node.asn == 24940
+    assert node.country is None
+
+
 def test_unknown_source_is_rejected(tmp_path):
     path = tmp_path / "x.json"
     path.write_text("{}")

@@ -6,6 +6,8 @@ import io
 import json
 from unittest.mock import patch
 
+import pytest
+
 from asmap_dashboard import asn_names
 
 
@@ -245,6 +247,28 @@ def test_refresh_with_no_matching_asns_writes_empty_subset(tmp_path):
     payload = json.loads(out_path.read_text())
     assert payload["_about"]["asn_count"] == 0
     assert {k for k in payload if not k.startswith("_")} == set()
+
+
+def test_refresh_raises_when_no_payload_exists_and_never_fetches(tmp_path):
+    """When every payload path is missing, refresh aborts before the fetch.
+
+    Writing here would overwrite a previously good asn-names.json with an
+    empty subset and silently degrade every label to a bare AS<num>, so
+    the all-missing case must raise rather than write — and must not even
+    hit bgp.tools.
+    """
+    out_path = tmp_path / "asn-names.json"
+
+    with patch(
+        "asmap_dashboard.asn_names.urllib.request.urlopen",
+        side_effect=AssertionError("urlopen must not be called"),
+    ):
+        with pytest.raises(FileNotFoundError):
+            asn_names.refresh(
+                [tmp_path / "missing-a.json", tmp_path / "missing-b.json"], out_path
+            )
+
+    assert not out_path.exists()
 
 
 def _fake_response(body: bytes):
