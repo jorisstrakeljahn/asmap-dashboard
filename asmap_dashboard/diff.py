@@ -21,23 +21,22 @@ from asmap_dashboard.loader import LoadedMap, PathLike, load_map
 from asmap_dashboard.netgroup import linked_ipv4
 
 # Cap on how many top-mover ASes a single diff records *per
-# currency*. A single AS that ranks in the top N by entries, by
-# IPv4 coverage and by IPv6 coverage shows up exactly once thanks
-# to the union below, so the actual upper bound on row count is
-# ``3 * TOP_MOVERS_LIMIT`` in the (rare) pathological case where
-# the three rankings disagree completely. Real diffs see heavy
-# overlap because the biggest ASes dominate every currency, so the
-# union typically lands closer to ``1.2 - 1.5 * TOP_MOVERS_LIMIT``.
+# currency*. The roster is the union of the top ``TOP_MOVERS_LIMIT``
+# ASes under each of the two rendered currencies (IPv4 and IPv6
+# coverage), so the upper bound on row count is ``2 *
+# TOP_MOVERS_LIMIT`` in the rare case the two rankings disagree
+# completely. Real diffs see heavy overlap because the biggest ASes
+# dominate both families, so the union typically lands well under
+# that.
 #
-# The cap exists to bound metrics.json size: an uncapped diff at
-# the high end of the change distribution touches a few thousand
-# distinct ASes and the long-long tail (ASes with one or two
-# changes) carries no analytical value at the diff-explorer tier.
-# 100 is the smallest cap that still resolves into the analytically
-# meaningful population (the 100th row on a 25k-changes diff sits
-# around 20-50 changes) while keeping the diffs portion of
-# metrics.json well under 1 MB even after the union.
-TOP_MOVERS_LIMIT = 100
+# The cap exists to bound the detail payload (diffs.json) size: an
+# uncapped diff at the high end of the change distribution touches a
+# few thousand distinct ASes, and the long tail (ASes with one or
+# two changes) carries no analytical value at the diff-explorer tier
+# and is not reachable through the paginated table anyway. 50 keeps
+# the visible roster focused per family while still covering every
+# AS a reader would plausibly page to.
+TOP_MOVERS_LIMIT = 50
 
 
 def diff_maps(
@@ -129,12 +128,17 @@ def diff_loaded_maps(
           "Touched" multiplier in the IPv4 / IPv6 Top Movers view.
 
     The top_movers row set is the union of the top-``TOP_MOVERS_LIMIT``
-    ASes under each of the three currencies. This keeps every AS
-    that would rank in the user-visible table reachable regardless
-    of which currency the frontend picker selects, without the
-    payload blowing up: the three rankings overlap heavily on real
-    diffs, and ASes that fail to rank under any currency contribute
-    no information at the top-movers tier.
+    ASes under each of the two rendered currencies (IPv4 then IPv6
+    coverage). This keeps every AS that would rank in the
+    user-visible table reachable regardless of which currency the
+    frontend picker selects, without the payload blowing up: the two
+    rankings overlap heavily on real diffs, and ASes that fail to
+    rank under either currency contribute no information at the
+    top-movers tier. The legacy entry-level ("changes") currency is
+    no longer a ranking key — it is not a sortable column in the UI,
+    so an AS that ranks only by entry count would arrive as a row no
+    picker can ever surface. The per-row ``changes`` total is still
+    emitted for the row tooltip.
 
     When ``addrs_file`` is given it is read line by line as one IP per
     line (blank lines and lines starting with '#' are skipped) and a
@@ -414,21 +418,22 @@ class _PerAsActivity:
                 self._gained_from_ipv6[new_asn][old_asn] += addresses
 
     def ranked_asns(self, limit: int) -> list[int]:
-        """Return the union of the top ``limit`` ASes under each currency.
+        """Return the union of the top ``limit`` ASes per rendered currency.
 
-        Ordering: entries-rank first, then v4-only newcomers, then
-        v6-only newcomers. The frontend sorts client-side per the
-        active currency, so this order is only the default rendering
-        when no sort is applied. Stable insertion via dict-from-keys
-        preserves the entries-first tie-breaker, which keeps the
-        legacy view byte-stable while the new fields ride alongside.
+        Only the two currencies the Top Movers table can actually
+        sort by are ranked: IPv4 coverage first, then IPv6. The
+        entry-level ("changes") view is no longer a UI column, so an
+        AS that ranks only by entry count — but moves no measurable
+        IPv4 or IPv6 address space — would arrive as a row every
+        currency filter prunes; ranking by the two visible currencies
+        keeps the roster to what the table can show.
+
+        IPv4 is unioned first so it wins insertion-order ties, which
+        matches the table's default IPv4 view. The frontend re-sorts
+        client-side per the active currency, so this order is only the
+        default rendering when no sort is applied.
         """
         ordered: dict[int, None] = {}
-        for asn, count in self._total(
-            self._gained_entries, self._lost_entries
-        ).most_common(limit):
-            if count > 0:
-                ordered[asn] = None
         for asn, count in self._total(self._gained_ipv4, self._lost_ipv4).most_common(
             limit
         ):
@@ -447,10 +452,10 @@ class _PerAsActivity:
 
         Lost is folded in first so that, on a tie, the losing AS
         ranks ahead of the gaining one. This keeps the rendered
-        Top Movers order stable across the entries / IPv4 / IPv6
-        currencies: the AS that gave up the prefixes is the more
-        natural "headline" of a reassignment event, and surfacing
-        it first matches what every prior frontend release showed.
+        Top Movers order stable across the IPv4 and IPv6 currencies:
+        the AS that gave up the prefixes is the more natural
+        "headline" of a reassignment event, and surfacing it first
+        matches what every prior frontend release showed.
         Counter+Counter would also drop zero rows, which we need
         to keep for the union-top-N pass to see every active AS.
         """

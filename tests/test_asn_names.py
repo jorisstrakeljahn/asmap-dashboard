@@ -93,10 +93,29 @@ def test_extract_asns_drops_zero_and_missing():
     assert asn_names.extract_asns(metrics) == {174}
 
 
+def test_extract_asns_handles_split_detail_shape():
+    """The split diffs.json keys top_movers by "<from>|<to>"; both the
+    row asn and the per-family counterparts are still collected."""
+    detail = {
+        "top_movers": {
+            "2026-01-01|2026-02-01": [
+                {"asn": 174, "ipv4_primary_counterpart": 7018},
+                {"asn": 16509, "ipv6_primary_counterpart": 13335},
+            ],
+            "2026-02-01|2026-03-01": [
+                {"asn": 174, "ipv4_primary_counterpart": 0},
+            ],
+        }
+    }
+
+    assert asn_names.extract_asns(detail) == {174, 7018, 16509, 13335}
+
+
 def test_extract_asns_handles_empty_payload():
     """A payload without diffs returns an empty set instead of raising."""
     assert asn_names.extract_asns({}) == set()
     assert asn_names.extract_asns({"diffs": []}) == set()
+    assert asn_names.extract_asns({"top_movers": {}}) == set()
 
 
 def test_parse_csv_extracts_asn_name_pairs():

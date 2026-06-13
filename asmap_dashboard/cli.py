@@ -177,15 +177,22 @@ def _run_metrics(args: argparse.Namespace) -> int:
     With ``--out`` the payload is split into three files along its
     natural fault lines:
 
-      - maps (``--out``): small, drives the overview and most charts.
-      - diffs (``--diffs-out``): the all-pairs diff matrix; ~99 % of
-        the bytes, only needed by the drift charts and Diff Explorer.
+      - maps + diff summary (``--out``): small. Drives the overview,
+        every drift chart, and the Diff Explorer's match banner. Each
+        pair diff is carried here with its aggregate fields but
+        without its ``top_movers`` roster.
+      - diff detail (``--diffs-out``): the per-pair ``top_movers``
+        rosters keyed by ``"<from>|<to>"``; ~99 % of the diff bytes,
+        only the Top Movers table reads them, so the frontend
+        lazy-loads this file when the Diff Explorer tab is first
+        opened rather than on initial paint.
       - network (``--network-out``): only written when snapshot
         sources produced a network section; the one part built from
         non-public inputs and therefore the only one committed to git.
 
     Without ``--out`` everything goes to stdout as one combined
-    document (handy for piping into jq while debugging).
+    document with the rosters still nested under each diff (handy for
+    piping into jq while debugging).
 
     Every emitted document carries ``schema_version`` so the frontend
     can reject a payload generation it does not understand.
@@ -216,9 +223,27 @@ def _run_metrics(args: argparse.Namespace) -> int:
     network = result.pop("network", None)
     diffs = result.pop("diffs")
 
+    # Split each pair diff into a lightweight summary (the aggregate
+    # fields the Maps tab drift/overview and the Diff Explorer's match
+    # banner need) and the heavy top_movers roster (only the Top
+    # Movers table reads it). The summary rides in metrics.json so the
+    # default Maps view renders without fetching the big file; the
+    # rosters go to diffs.json keyed by "<from>|<to>" and are
+    # lazy-loaded only when the Diff Explorer tab is opened. The
+    # rosters are ~99 % of the diff bytes, so this keeps the first
+    # paint off a multi-megabyte download and parse.
+    summary = [
+        {key: value for key, value in diff.items() if key != "top_movers"}
+        for diff in diffs
+    ]
+    top_movers = {f"{diff['from']}|{diff['to']}": diff["top_movers"] for diff in diffs}
+    result["diffs"] = summary
+
     _emit_json(result, out, compact=True)
     _emit_json(
-        {"schema_version": SCHEMA_VERSION, "diffs": diffs}, diffs_out, compact=True
+        {"schema_version": SCHEMA_VERSION, "top_movers": top_movers},
+        diffs_out,
+        compact=True,
     )
     if network is not None:
         _emit_json(

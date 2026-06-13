@@ -72,7 +72,8 @@ def test_diff_with_addrs_enables_node_impact(tmp_path, capsys):
 
 
 def test_metrics_writes_json_to_file(tmp_path):
-    """metrics --out splits the payload into maps + diffs files."""
+    """metrics --out splits the payload into a maps+summary file and a
+    detail file carrying the top-mover rosters."""
     (tmp_path / "data" / "2024").mkdir(parents=True)
     write_asmap(
         tmp_path / "data" / "2024" / "1700000000_asmap.dat",
@@ -92,13 +93,43 @@ def test_metrics_writes_json_to_file(tmp_path):
     assert len(payload["maps"]) == 1
     assert payload["maps"][0]["name"] == "2024/1700000000"
     assert payload["maps"][0]["released_at"] == "2023-11-14"
-    # The all-pairs diffs land in a sibling file, not in the maps doc.
-    assert "diffs" not in payload
+    # The diff summary now rides in metrics.json (a single build means
+    # no pairs, hence an empty list); the heavy rosters land in the
+    # sibling detail file keyed by "<from>|<to>".
+    assert payload["diffs"] == []
     diffs = json.loads((tmp_path / "diffs.json").read_text())
     assert diffs["schema_version"] == SCHEMA_VERSION
-    assert diffs["diffs"] == []
+    assert diffs["top_movers"] == {}
     # No snapshot sources -> no network payload is written.
     assert not (tmp_path / "network.json").exists()
+
+
+def test_metrics_splits_top_movers_into_detail_file(tmp_path):
+    """With two diffable builds the aggregate fields stay in metrics.json
+    while top_movers move to diffs.json keyed by "<from>|<to>"."""
+    (tmp_path / "data" / "2024").mkdir(parents=True)
+    for ts, asn in (("1700000000", 100), ("1700100000", 200)):
+        write_asmap(
+            tmp_path / "data" / "2024" / f"{ts}_asmap_unfilled.dat",
+            [(ipaddress.IPv4Network("1.0.0.0/8"), asn)],
+        )
+    out = tmp_path / "metrics.json"
+
+    rc = main(["metrics", "--data-dir", str(tmp_path / "data"), "--out", str(out)])
+
+    assert rc == 0
+    summary = json.loads(out.read_text())["diffs"]
+    assert len(summary) == 1
+    pair = summary[0]
+    # Aggregate fields survive in the summary; the roster does not.
+    assert pair["reassigned"] == 1
+    assert "top_movers" not in pair
+
+    detail = json.loads((tmp_path / "diffs.json").read_text())["top_movers"]
+    key = f"{pair['from']}|{pair['to']}"
+    assert key in detail
+    asns = {row["asn"] for row in detail[key]}
+    assert {100, 200} <= asns
 
 
 def test_metrics_writes_network_payload_when_sources_given(tmp_path):

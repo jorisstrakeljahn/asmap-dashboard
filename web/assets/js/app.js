@@ -11,11 +11,14 @@ import { applyDomTranslations, loadStrings, t } from "./utils/i18n.js";
 
 // The data layer is split into three files along size and
 // reproducibility lines (see cli.py): metrics.json carries the maps
-// (~20 KB), diffs.json the all-pairs diff matrix (~10 MB), and
-// network.json the optional KIT/Bitnodes section (~30 KB). Everything
-// except the diffs is fetched up front; the diffs load in parallel
-// and the diff-dependent views fill in when they arrive, so the
-// first paint never waits on the one heavyweight file.
+// plus the per-pair diff *summary* (aggregate fields only, ~100 KB),
+// diffs.json the per-pair top-mover rosters (~99 % of the diff bytes,
+// the one heavyweight file), and network.json the optional
+// KIT/Bitnodes section (~30 KB). metrics.json + network.json are
+// fetched up front and drive the first paint — including every drift
+// chart, since those read only the summary. diffs.json is *not*
+// fetched until the Diff Explorer tab is first opened, because only
+// its Top Movers table reads the rosters; see the lazy mount below.
 const METRICS_URL = "assets/data/metrics.json";
 const DIFFS_URL = "assets/data/diffs.json";
 const NETWORK_URL = "assets/data/network.json";
@@ -29,7 +32,7 @@ const I18N_URL = "assets/i18n/en.json";
 // to compute silent nonsense (0.0% drift, "4,088 of 0 buckets");
 // checking the payload's version turns that failure mode into an
 // explicit "reload" banner.
-const EXPECTED_SCHEMA_VERSION = 2;
+const EXPECTED_SCHEMA_VERSION = 3;
 
 // Snapshot of the static tab-panel markup, captured before any
 // tab module swaps in rendered DOM. The retry button on the
@@ -107,17 +110,11 @@ async function init() {
 
     let metrics;
     let network;
-    // The 10 MB diffs file starts downloading with everyone else but
-    // is not awaited here: the maps/network views render from the
-    // small payloads first, and the diff-dependent views fill in
-    // below once it lands.
-    const diffsPromise = loadPayload(DIFFS_URL);
-    // Surfaced via .then() handlers; this guard only prevents an
-    // unhandled-rejection console error racing the handlers.
-    diffsPromise.catch(() => {});
-    // Single parallel batch (no extra round-trips). loadStrings
-    // swallows its own failures, so an i18n outage does not block
-    // the chart / table mounts.
+    // Single parallel batch (no extra round-trips). The heavy
+    // diffs.json is deliberately *not* in here — it is fetched lazily
+    // when the Diff Explorer is first opened (see ensureDiffMounted).
+    // loadStrings swallows its own failures, so an i18n outage does
+    // not block the chart / table mounts.
     try {
         [metrics, network] = await Promise.all([
             loadPayload(METRICS_URL),
@@ -136,26 +133,44 @@ async function init() {
     const { data: payload, lastModified } = metrics;
     renderLastRefreshed(lastModified);
 
-    // Maps tab renders its non-diff views immediately and re-renders
-    // the drift views itself when the diffs arrive.
-    mapsTab.mount(payload, diffsPromise.then((d) => d.data.diffs));
+    // Maps tab renders from metrics.json alone: the diff *summary* it
+    // needs for the drift views now ships in that file, so the charts
+    // paint with real data immediately — no empty-state flash, no wait
+    // on the heavy roster file.
+    mapsTab.mount(payload);
 
-    // The whole Diff Explorer is derived from the diffs, so its
-    // mount waits for them; the panel shows a loading note until
-    // then (it is hidden behind a tab anyway). The optional node
-    // impact rides along so the explorer can show a per-pair "real
-    // node impact" banner; it is null when network.json is absent or
-    // predates the field, and the explorer degrades gracefully.
+    // The optional node impact rides along so the Diff Explorer can
+    // show a per-pair "real node impact" banner; it is null when
+    // network.json is absent or predates the field, and the explorer
+    // degrades gracefully.
     const pairImpact = network?.data?.network?.pair_impact ?? null;
-    renderDiffLoading();
-    diffsPromise
-        .then(({ data }) =>
-            diffTab.mount({ ...payload, diffs: data.diffs, pairImpact }),
-        )
-        .catch((error) => {
-            console.error(error);
-            renderDiffLoadError(error);
-        });
+
+    // The Top Movers rosters live in the heavy diffs.json. Fetch it
+    // lazily the first time the Diff Explorer tab is activated, then
+    // graft each pair's roster back onto the summary diff (keyed by
+    // "<from>|<to>") so the explorer sees the same shape it always
+    // did. The match banner and drift come from the summary, so only
+    // the table waits on this file. Guarded so an in-tab state change
+    // (or re-opening the tab) never re-fetches.
+    let diffMountStarted = false;
+    const ensureDiffMounted = () => {
+        if (diffMountStarted) return;
+        diffMountStarted = true;
+        diffTab.mountLoading();
+        loadPayload(DIFFS_URL)
+            .then(({ data }) => {
+                const rosters = data.top_movers ?? {};
+                const diffs = (payload.diffs ?? []).map((diff) => ({
+                    ...diff,
+                    top_movers: rosters[`${diff.from}|${diff.to}`] ?? [],
+                }));
+                diffTab.mount({ ...payload, diffs, pairImpact });
+            })
+            .catch((error) => {
+                console.error(error);
+                renderDiffLoadError(error);
+            });
+    };
 
     // The Network tab is opt-in: it only renders when network.json
     // exists (i.e. snapshot data was passed at generation time).
@@ -164,16 +179,12 @@ async function init() {
     const hasNetwork = networkTab.mount(network?.data ?? null);
     revealNetworkNav(hasNetwork);
 
-    initTabs({ defaultTab: "maps" });
-}
-
-function renderDiffLoading() {
-    const slot = document.querySelector("[data-diff]");
-    if (!slot) return;
-    const note = document.createElement("p");
-    note.className = "muted";
-    note.textContent = t("diff.loading");
-    slot.replaceChildren(note);
+    initTabs({
+        defaultTab: "maps",
+        onActivate: (tab) => {
+            if (tab === "diff") ensureDiffMounted();
+        },
+    });
 }
 
 function renderDiffLoadError(error) {

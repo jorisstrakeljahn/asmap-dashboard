@@ -27,9 +27,9 @@ import { t, tPlural } from "./utils/i18n.js";
 
 // Drift unit picker order. IPv4 first because it is the headline
 // view (Bitcoin Core peer diversity weighs IPv4 reachability most
-// directly), IPv6 second. The legacy entries view was dropped on
-// purpose: it weights a /8 the same as a /48 and is the exact
-// failure mode the coverage views were introduced to avoid.
+// directly), IPv6 second. A raw entries view is deliberately not
+// offered: it weights a /8 the same as a /48 — the exact failure
+// mode the coverage views avoid.
 const DRIFT_UNIT_VALUES = [
     DRIFT_IPV4_COVERAGE,
     DRIFT_IPV6_COVERAGE,
@@ -59,16 +59,15 @@ function renderBuildStaleness(map) {
     slot.textContent = tPlural("overview.staleness", days);
 }
 
-// ``diffsPromise`` resolves to the all-pairs diff list, which ships
-// as a separate ~10 MB file (see app.js). Everything that does not
-// need it (build selector, entries / diversity / delta charts)
-// renders immediately; the drift views render once against an empty
-// diff list (their built-in empty states cover the gap) and re-render
-// when the diffs land. State objects live in this closure, so the
-// late re-render keeps the reader's range / unit / legend choices.
-export function mount(payload, diffsPromise = null) {
+// All views render synchronously from metrics.json: the drift charts
+// and the overview "vs previous" card read only the per-pair diff
+// *summary* (aggregate coverage fields), which now ships in
+// metrics.json alongside the maps. The heavy top-mover rosters live
+// in diffs.json and are only needed by the Diff Explorer, so the Maps
+// tab never waits on that file (see app.js).
+export function mount(payload) {
     const { maps } = payload;
-    let diffs = payload.diffs || [];
+    const diffs = payload.diffs || [];
 
     // A deep link can pin the Overview build, drift unit, and history
     // range so a finding shared in a PR review opens on the same view.
@@ -217,19 +216,4 @@ export function mount(payload, diffsPromise = null) {
     }
 
     renderHistory();
-
-    if (diffsPromise) {
-        diffsPromise
-            .then((loaded) => {
-                diffs = loaded || [];
-                renderOverview(selectedName);
-                renderHistory();
-            })
-            .catch((error) => {
-                // The non-diff views are already up; the drift slots
-                // keep their empty-state notes. app.js reports the
-                // failure on the Diff Explorer panel.
-                console.error(error);
-            });
-    }
 }

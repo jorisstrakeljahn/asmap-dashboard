@@ -38,30 +38,44 @@ USER_AGENT = (
 
 
 def extract_asns(metrics: dict) -> set[int]:
-    """Return every ASN referenced in a metrics payload.
+    """Return every ASN referenced in a dashboard payload.
 
-    Walks the diffs (``top_movers[*].asn`` plus the per-family
-    ``ipv4_primary_counterpart`` / ``ipv6_primary_counterpart`` the
-    Direction column actually renders — the per-family pick can
-    differ from the row's own ASN ranking, so collecting only the
-    row ASNs would leave counterpart cells unlabeled) and the
-    network section (``network.sources[*].snapshots[*].top_ases``),
-    so operator labels are fetched for the Top Movers table and the
-    network tab's operator breakdown alike. ASN 0 is a sentinel for
-    "unmapped" and is dropped so it never asks bgp.tools for a name
-    that does not exist.
+    Collects, from each top-mover row, the row ``asn`` plus the
+    per-family ``ipv4_primary_counterpart`` / ``ipv6_primary_counterpart``
+    the Direction column actually renders — the per-family pick can
+    differ from the row's own ASN ranking, so collecting only the row
+    ASNs would leave counterpart cells unlabeled — and from the
+    network section the operator breakdown
+    (``network.sources[*].snapshots[*].top_ases``), so operator labels
+    are fetched for the Top Movers table and the network tab alike.
+
+    Two top-mover layouts are accepted so the same function works on
+    every payload variant passed to ``refresh``:
+
+      - ``diffs[*].top_movers`` — the nested layout, as in the
+        combined stdout document.
+      - ``top_movers`` keyed by ``"<from>|<to>"`` — the split detail
+        file (diffs.json) the frontend lazy-loads.
+
+    ASN 0 is the "unmapped" sentinel and is dropped so it never asks
+    bgp.tools for a name that does not exist.
     """
     wanted: set[int] = set()
+
+    def collect_row(row: dict) -> None:
+        for key in ("asn", "ipv4_primary_counterpart", "ipv6_primary_counterpart"):
+            value = row.get(key)
+            if value:
+                wanted.add(int(value))
+
     for diff in metrics.get("diffs", []):
         for row in diff.get("top_movers", []):
-            for key in (
-                "asn",
-                "ipv4_primary_counterpart",
-                "ipv6_primary_counterpart",
-            ):
-                value = row.get(key)
-                if value:
-                    wanted.add(int(value))
+            collect_row(row)
+    detail = metrics.get("top_movers")
+    if isinstance(detail, dict):
+        for rows in detail.values():
+            for row in rows:
+                collect_row(row)
     network = metrics.get("network") or {}
     for source in (network.get("sources") or {}).values():
         for snapshot in source.get("snapshots", []):

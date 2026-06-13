@@ -1,0 +1,90 @@
+/* Diff Explorer loading skeleton.
+
+   The Top Movers rosters live in the lazy-loaded diffs.json (fetched
+   on first Diff-tab open, see app.js), so the tab paints a placeholder
+   that mirrors the real layout until the data lands, then swaps it for
+   the live explorer in one replaceChildren — the same direct skeleton
+   -> content handoff every other tab uses (no cross-fade reveal).
+
+   The placeholder bars reuse the `.skeleton` shimmer from layout.css;
+   `.skel-bar` and friends only set the per-slot geometry. */
+
+/* ── Placeholder bars ────────────────────────────────────────────
+   Generic shimmer block sized per slot. Pair with `.skeleton` for the
+   moving gradient: <span class="skeleton skel-bar skel-bar--lg">. */
+.skel-bar {
+    display: block;
+    height: 0.85em;
+    border-radius: var(--radius-sm);
+}
+
+.skel-bar--headline {
+    width: 88px;
+    height: 30px;
+}
+.skel-bar--xl {
+    width: 200px;
+    max-width: 100%;
+}
+.skel-bar--lg {
+    width: 160px;
+    max-width: 100%;
+}
+.skel-bar--md {
+    width: 96px;
+    max-width: 100%;
+}
+.skel-bar--sm {
+    width: 64px;
+}
+.skel-bar--xs {
+    width: 40px;
+}
+.skel-bar--value {
+    width: 56px;
+    height: 22px;
+}
+/* Second, thinner line under an AS number (the operator name slot the
+   detailed view shows). */
+.skel-bar--name {
+    width: 120px;
+    max-width: 90%;
+    height: 0.7em;
+    margin-top: 4px;
+    opacity: 0.75;
+}
+.skel-bar--full {
+    width: 100%;
+}
+
+/* Control-shaped placeholders matching the real form controls so the
+   skeleton selectors / toolbar line up with what mounts in their place. */
+.skel-control {
+    height: var(--control-height);
+    width: 100%;
+    border-radius: var(--radius);
+}
+.skel-input {
+    height: var(--control-height-sm);
+    width: 240px;
+    max-width: 100%;
+    border-radius: var(--radius-sm);
+}
+.skel-pill {
+    height: var(--control-height-sm);
+    width: 96px;
+    border-radius: var(--radius-pill);
+}
+.skel-pill--toggle {
+    width: 94px;
+}
+.skel-pill--wide {
+    width: 128px;
+}
+
+/* The Top Movers table skeleton reuses the real .top-movers__grid so
+   column widths match; these only soften the header/cells while the
+   placeholder bars carry the shimmer. */
+.skel-diff .top-movers__grid th .skel-bar {
+    display: inline-block;
+}
