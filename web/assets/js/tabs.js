@@ -23,11 +23,18 @@ const ACTIVE_CLASS = "is-active";
  * @param {object} [opts]
  * @param {string} [opts.defaultTab] - tab to show when the URL
  *   carries no hash, or a hash that does not match any panel.
+ * @param {(tab: string) => void} [opts.onActivate] - called with the
+ *   resolved tab id whenever a tab becomes active: once at init and
+ *   again on every tab navigation. Lets a caller defer per-tab work
+ *   (e.g. lazy-loading the heavy diff payload only when the Diff
+ *   Explorer is first opened). Fires on tab switches, not on a tab's
+ *   own in-fragment state changes (those use replaceState and do not
+ *   trigger a hashchange), so callers still guard against repeats.
  * @returns {{ activate(tab: string): void, current(): string }}
  *   Tiny handle for callers that need to read or force-switch
  *   the active tab (e.g. focus management after a deep link).
  */
-export function initTabs({ defaultTab } = {}) {
+export function initTabs({ defaultTab, onActivate } = {}) {
     const links = Array.from(document.querySelectorAll("[data-tab-link]"));
     const panels = Array.from(document.querySelectorAll("[data-tab-panel]"));
     const knownTabs = new Set(panels.map((p) => p.dataset.tabPanel));
@@ -68,6 +75,7 @@ export function initTabs({ defaultTab } = {}) {
             panel.classList.toggle(ACTIVE_CLASS, isActive);
             panel.hidden = !isActive;
         }
+        if (onActivate) onActivate(next);
     };
 
     activate(tabFromHash());

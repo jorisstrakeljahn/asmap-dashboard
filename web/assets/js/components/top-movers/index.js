@@ -86,8 +86,9 @@ export function mount(parent, diff, { family } = {}) {
 // each currency, so a row that ranked in IPv6 but never moved
 // IPv4 arrives with zero IPv4 activity. Showing it under the
 // IPv4 picker means a long tail of em-dash directions and zero
-// shares, which obscures the real story. The union itself stays
-// in metrics.json; this is the per-currency view filter.
+// shares, which obscures the real story. The union itself ships
+// in the lazy-loaded diffs.json; this is the per-currency view
+// filter.
 function pruneInactive(rows, unit) {
     const rowChanges = accessorsFor(unit).rowChanges;
     return rows.filter((row) => rowChanges(row) > 0);

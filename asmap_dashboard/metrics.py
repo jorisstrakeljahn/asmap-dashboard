@@ -52,7 +52,7 @@ PathLike = str | Path
 # (or vice versa) would otherwise silently compute nonsense — exactly
 # the failure mode observed when the union-coverage fields landed and
 # cached clients kept dividing by a field that no longer existed.
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 FILLED_FILENAME_RE = re.compile(r"^(\d+)_asmap\.dat$")
 UNFILLED_FILENAME_RE = re.compile(r"^(\d+)_asmap_unfilled\.dat$")
@@ -271,6 +271,15 @@ def _compute_pair_diffs(
     against the cached map profiles. The trade-off lives here, not
     in a TODO, so a reviewer hitting the limit knows exactly which
     knob to turn.
+
+    Budget note: when snapshot sources are configured, the network
+    section runs a *second* all-pairs pass over the same diffable
+    builds (``network.metrics._build_node_impact`` scores the
+    observed node set against every (from, to) pair). It is far
+    cheaper per pair — integer comparisons over precomputed ASN
+    vectors, no trie walk — but it shares the same O(N^2) pair count
+    and the same daily wall-clock budget, so the switch point above
+    is reached by whichever pass blows the budget first.
     """
     diffable: list[tuple] = [
         (build, loaded[build.unfilled_path])
