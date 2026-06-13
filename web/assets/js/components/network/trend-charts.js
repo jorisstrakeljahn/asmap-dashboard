@@ -3,9 +3,9 @@
 // HHI concentration trend, and the ASmap coverage trend. Extracted from
 // network-tab.js so the tab module stays orchestration-only.
 
-import { niceTicks } from "../../charts/svg.js";
 import { formatDate } from "../../format.js";
 import { t } from "../../utils/i18n.js";
+import { MS_PER_DAY } from "../../utils/history-range.js";
 import { createModeSwitch } from "../mode-switch.js";
 import { mountOperatorsChart } from "./operators-chart.js";
 import { mountSeriesChart } from "./series-chart.js";
@@ -15,7 +15,11 @@ import {
     sourceSeries,
     toMs,
 } from "./series-data.js";
-import { clampTimeline, dayUnionTimeline } from "./timelines.js";
+import {
+    clampTimeline,
+    clampTimelineMax,
+    dayUnionTimeline,
+} from "./timelines.js";
 
 const SECONDS_PER_DAY = 86400;
 
@@ -39,12 +43,14 @@ export function mountTrendCharts(network, sources, bounds, states, rerender) {
 //     off is an N-day-old map for today's nodes?"). 0 days sits at the
 //     left, the oldest build at the right, drift rises with age.
 //   - "date": x is the build's release date, which lines the curve up
-//     with the calendar (and the other trend charts' range picker).
+//     with the calendar.
 //
-// The age view ignores the range picker on purpose: the curve is one
-// fixed node set scored against the whole build history, so windowing
-// it by calendar time would silently amputate the long-age tail that
-// is the whole point of the view.
+// Both views honour the 1Y/3Y/5Y/Max range picker, like every other
+// trend chart. The age view windows by age rather than by calendar:
+// because age = reference − build date, the picker's calendar cutoff
+// maps one-to-one onto a maximum map age ("builds from the last year"
+// is exactly "ages up to ~365 days"), so the same picker drives both
+// axes without a special case the user has to learn.
 function mountDecayChart(network, sources, bounds, state, rerender) {
     const referenceTs = network.reference_timestamp;
     const ageMode = state.axis === "age";
@@ -56,8 +62,20 @@ function mountDecayChart(network, sources, bounds, state, rerender) {
             value: p.drift_pct,
         })),
     }));
+    // The age axis has no calendar of its own — age 0 is always the
+    // freshest build, no matter when the newest crawl ran. So the picker
+    // windows it by age span, not by wall-clock date: "1Y" keeps map ages
+    // up to ~365 days, anchored at age 0. The window width is the same
+    // 365 / 1095 / 1825 days the date view spans (the "now" terms cancel
+    // in domainEnd − cutoff), but here it never shrinks when the crawler
+    // pauses — a year of aging is always a full year on screen. "max"
+    // (cutoff −Infinity) keeps the whole curve.
+    const ageWindowDays =
+        bounds.cutoff === -Infinity
+            ? Infinity
+            : (bounds.domainEnd - bounds.cutoff) / MS_PER_DAY;
     const timeline = ageMode
-        ? buildUnionTimeline(entries)
+        ? clampTimelineMax(buildUnionTimeline(entries), ageWindowDays)
         : clampTimeline(buildUnionTimeline(entries), bounds.cutoff);
 
     const axisToggle = createModeSwitch({
@@ -84,7 +102,7 @@ function mountDecayChart(network, sources, bounds, state, rerender) {
         valueAt: timeline.valueAt,
         yFormat: formatPercentNumber,
         yFloorZero: true,
-        ...(ageMode ? ageAxisSpec(timeline.timestamps) : {
+        ...(ageMode ? ageAxisSpec(decayAxisMax(timeline.timestamps, bounds)) : {
             domainStart: bounds.domainStart,
             domainEnd: bounds.domainEnd,
         }),
@@ -107,23 +125,55 @@ function mountDecayChart(network, sources, bounds, state, rerender) {
     });
 }
 
-// Numeric x axis for the age view: domain [0, last tick] with ticks
-// from the shared nice-number picker, labelled as day counts. The
-// domain end snaps to the last tick so the rightmost label never
-// hangs past the plot edge.
-function ageAxisSpec(ages) {
-    const maxAge = ages.length ? ages[ages.length - 1] : 1;
-    const ticks = niceTicks(0, Math.max(1, maxAge)).filter((v) => v >= 0);
-    const domainEnd = Math.max(ticks[ticks.length - 1] ?? maxAge, maxAge);
-    return {
-        linearDomain: true,
-        domainStart: 0,
-        domainEnd,
-        xTicks: ticks.map((value) => ({
+// Calendar units for the age axis, largest first. Raw day counts
+// (the previous "{days}d") read poorly on a multi-year curve — "1,825d"
+// is noise where "5y" is instantly legible. The unit is chosen from the
+// span: years past two years, months past a quarter, days below that.
+// Steps are calendar-nice within the unit (1/2/5 years, 1/3/6 months)
+// rather than the generic 2.5x picker, so ticks land on whole years and
+// quarters. The tooltip still carries the exact day count, so precision
+// is never lost — only the axis label gets cleaner.
+const AGE_AXIS_UNITS = [
+    { minDays: 2 * 365, days: 365, steps: [1, 2, 5, 10], labelKey: "tickYears" },
+    { minDays: 91, days: 30, steps: [1, 2, 3, 6], labelKey: "tickMonths" },
+    { minDays: 0, days: 1, steps: [7, 14, 30, 60, 90], labelKey: "tickDays" },
+];
+
+// The age the x axis should span. A bounded range (1Y/3Y/5Y) pins the
+// axis to the full window width — 365 / 1095 / 1825 days — so the axis
+// reads "1y" / "3y" / "5y" even when a publishing pause leaves the data
+// short of the edge, exactly as the date view shows empty space. "max"
+// (cutoff −Infinity) spans the real data extent.
+function decayAxisMax(ages, bounds) {
+    const dataMax = ages.length ? ages[ages.length - 1] : 1;
+    if (bounds.cutoff === -Infinity) return Math.max(1, dataMax);
+    return (bounds.domainEnd - bounds.cutoff) / MS_PER_DAY;
+}
+
+// Numeric x axis for the age view: domain [0, axisMax] with ticks on
+// calendar boundaries (whole years / quarters), chosen by decayAxisMax.
+function ageAxisSpec(axisMax) {
+    const unit = AGE_AXIS_UNITS.find((u) => axisMax >= u.minDays);
+    // Aim for ~5 intervals, then round up to the nearest calendar-nice
+    // step so a slightly-too-small target never produces a busy axis.
+    const target = axisMax / unit.days / 5;
+    const step = unit.steps.find((s) => s >= target) ?? unit.steps.at(-1);
+    const stepDays = step * unit.days;
+
+    const xTicks = [];
+    for (let value = 0; value <= axisMax + stepDays / 2; value += stepDays) {
+        if (value > axisMax + 0.5) break;
+        xTicks.push({
             timestamp: value,
-            label: t("network.decay.axis.tickLabel", { days: value }),
-        })),
-    };
+            label:
+                value === 0
+                    ? t("network.decay.axis.tickZero")
+                    : t(`network.decay.axis.${unit.labelKey}`, {
+                          n: Math.round(value / unit.days),
+                      }),
+        });
+    }
+    return { linearDomain: true, domainStart: 0, domainEnd: axisMax, xTicks };
 }
 
 // ---- AS concentration (HHI) over time ---------------------------

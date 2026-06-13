@@ -10,8 +10,10 @@ import {
     FAMILY_IPV6,
     formatNumber,
     formatPercent,
+    glueUnits,
 } from "../../format.js";
 import { t } from "../../utils/i18n.js";
+import { createInfoTooltip } from "../info-tooltip.js";
 
 export const DIFF_CATEGORIES = [
     {
@@ -60,24 +62,24 @@ export function matchBanner(diff, family) {
     const wrap = document.createElement("div");
     wrap.className = "match-banner";
 
+    // Variant caption answers what kind of comparison this is.
+    // The label is read from the diff payload so a future
+    // filled vs filled diff cannot silently masquerade as
+    // source data. It rides along as the block's third stacked
+    // line (under the bucket detail) so the banner reads on the
+    // same rail as the node-impact block below it.
+    const variantLabel = VARIANT_LABEL_KEYS[diff.variant]
+        ? t(VARIANT_LABEL_KEYS[diff.variant])
+        : diff.variant || t("common.variants.unknown");
+
     const block = familyBlock({
         captionKey: CAPTION_KEY_BY_FAMILY[family],
         view,
         family,
+        variantLabel,
     });
 
-    // Variant caption answers what kind of comparison this is.
-    // The label is read from the diff payload so a future
-    // filled vs filled diff cannot silently masquerade as
-    // source data.
-    const variantLabel = VARIANT_LABEL_KEYS[diff.variant]
-        ? t(VARIANT_LABEL_KEYS[diff.variant])
-        : diff.variant || t("common.variants.unknown");
-    const caption = document.createElement("p");
-    caption.className = "match-banner__variant";
-    caption.textContent = variantLabel;
-
-    wrap.append(block, caption);
+    wrap.append(block);
     return wrap;
 }
 
@@ -121,7 +123,7 @@ function matchBannerView(diff, family) {
     };
 }
 
-function familyBlock({ captionKey, view, family }) {
+function familyBlock({ captionKey, view, family, variantLabel }) {
     const block = document.createElement("div");
     block.className = `match-banner__family match-banner__family--${family}`;
 
@@ -135,23 +137,27 @@ function familyBlock({ captionKey, view, family }) {
 
     const detail = document.createElement("span");
     detail.className = "match-banner__detail";
-    detail.textContent = t("diff.matchBanner.detail", {
-        changed: view.format(view.changed),
-        denominator: view.format(view.denominator),
-        unit: t(UNIT_LABEL_KEY_BY_FAMILY[family]),
-    });
+    detail.textContent = glueUnits(
+        t("diff.matchBanner.detail", {
+            changed: view.format(view.changed),
+            denominator: view.format(view.denominator),
+            unit: t(UNIT_LABEL_KEY_BY_FAMILY[family]),
+        }),
+    );
 
-    block.append(headline, captionEl, detail);
+    const source = document.createElement("span");
+    source.className = "match-banner__source";
+    source.textContent = variantLabel;
+
+    block.append(headline, captionEl, detail, source);
     return block;
 }
 
-// Classification cards now scope to a single family so the
-// headline numbers, the stacked bar below, and the match banner
-// all speak the same currency. The combined ``field`` value
-// (entry totals across both families) used to surface in the
-// caption; the breakdown into v4 / v6 entries is more useful
-// when the user already picked a side, so the family-scoped
-// figure stands alone now.
+// Classification cards scope to a single family so the headline
+// numbers, the stacked bar below, and the match banner all speak
+// the same currency. The caption shows the family-scoped figure
+// rather than the combined v4 + v6 total, which is more useful
+// once the user has picked a side.
 export function classificationRow(diff, family) {
     const row = document.createElement("div");
     row.className = "classification-row";
@@ -231,13 +237,29 @@ export function rosterDeltaRow(diff) {
     if (diff.as_total_a === undefined || diff.as_total_b === undefined) {
         return null;
     }
-    const p = document.createElement("p");
-    p.className = "as-roster-delta";
-    p.textContent = t("diff.rosterDelta", {
-        a: formatNumber(diff.as_total_a),
-        b: formatNumber(diff.as_total_b),
-        appeared: formatNumber(diff.as_appeared ?? 0),
-        disappeared: formatNumber(diff.as_disappeared ?? 0),
+    // Its own divided section with an info icon, so it reads as a
+    // distinct line (map-level AS roster) rather than a footnote
+    // glued to the stacked bar. Family-agnostic by design.
+    const section = document.createElement("div");
+    section.className = "as-roster-delta";
+
+    const tip = createInfoTooltip({
+        body: t("diff.rosterDeltaInfo"),
+        ariaLabel: t("diff.rosterDeltaInfoAria"),
     });
-    return p;
+    tip.classList.add("as-roster-delta__info");
+
+    const text = document.createElement("p");
+    text.className = "as-roster-delta__text";
+    text.textContent = glueUnits(
+        t("diff.rosterDelta", {
+            a: formatNumber(diff.as_total_a),
+            b: formatNumber(diff.as_total_b),
+            appeared: formatNumber(diff.as_appeared ?? 0),
+            disappeared: formatNumber(diff.as_disappeared ?? 0),
+        }),
+    );
+
+    section.append(tip, text);
+    return section;
 }

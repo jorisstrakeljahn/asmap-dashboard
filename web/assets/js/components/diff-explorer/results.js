@@ -4,6 +4,7 @@
 // selectors guarantee the same ordering, so the lookup is direct.
 
 import { t } from "../../utils/i18n.js";
+import { findDirectionalDiff } from "../../utils/diffs.js";
 import { createInfoTooltip } from "../info-tooltip.js";
 import * as topMoversTable from "../top-movers-table.js";
 import {
@@ -12,13 +13,21 @@ import {
     rosterDeltaRow,
     stackedBar,
 } from "./breakdown.js";
+import { nodeImpactBanner } from "./node-impact.js";
 
-export function renderResults(parent, diffs, fromName, toName, family) {
+export function renderResults(
+    parent,
+    diffs,
+    fromName,
+    toName,
+    family,
+    { pairImpact = null } = {},
+) {
     if (fromName === toName) {
         parent.replaceChildren(samePairMessage());
         return;
     }
-    const diff = resolveDiff(diffs, fromName, toName);
+    const diff = findDirectionalDiff(diffs, fromName, toName);
     if (!diff) {
         parent.replaceChildren(unavailableMessage());
         return;
@@ -36,17 +45,22 @@ export function renderResults(parent, diffs, fromName, toName, family) {
         classificationRow(diff, family),
         stackedBar(diff, family),
     );
+    // AS roster delta closes the map-level picture (how many distinct
+    // ASes each build maps) right after the prefix breakdown it belongs
+    // with, as its own divided line.
     const roster = rosterDeltaRow(diff);
     if (roster) card.append(roster);
+    // Optional "real node impact" line, only when network.json shipped
+    // node-impact data. Sits last because it answers the downstream
+    // question — what the diff means for live peers — that the
+    // map-level breakdown above it cannot.
+    const impact = nodeImpactBanner(pairImpact, fromName, toName, family);
+    if (impact) card.append(impact);
 
     const topMoversSlot = document.createElement("div");
     topMoversTable.mount(topMoversSlot, diff, { family });
 
     parent.replaceChildren(card, topMoversSlot);
-}
-
-function resolveDiff(diffs, fromName, toName) {
-    return diffs.find((d) => d.from === fromName && d.to === toName) || null;
 }
 
 // Local helper instead of mutedNote() so the dashed-border

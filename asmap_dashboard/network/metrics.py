@@ -71,6 +71,7 @@ from __future__ import annotations
 
 import bisect
 import ipaddress
+import itertools
 from collections import Counter
 from dataclasses import dataclass
 
@@ -81,6 +82,13 @@ from asmap_dashboard.netgroup import default_netgroup, linked_ipv4
 from asmap_dashboard.network.snapshots import Node, Snapshot
 
 TOP_ASES_LIMIT = 15
+
+# Which source's most recent snapshot is the node set the impact
+# numbers are scored over. KIT first because it is the live, fully
+# annotated crawl; the frontend treats it as primary too
+# (series-data.js SOURCE_ORDER), so the dashboard card / diff banner
+# and this payload agree on whose nodes were counted.
+PRIMARY_SOURCE_ORDER = ("kit", "bitnodes")
 
 # A snapshot only feeds the cross-check view when enough of its nodes
 # carry the crawler annotation; below this the sample is too thin to
@@ -413,6 +421,129 @@ def _decay_curve(snapshot: Snapshot, builds: list[_Build], reference: _Build) ->
     }
 
 
+def _classify_change(asn_a: int, asn_b: int) -> str | None:
+    """Bucket one node's ASN change between two maps.
+
+    Mirrors ``diff._node_impact``: same three categories the Diff
+    Explorer uses for prefixes, here over observed nodes. ``0`` is the
+    folded "no AS opinion" sentinel from ``_lookup_asn``.
+    """
+    if asn_a == asn_b:
+        return None
+    if asn_a == 0:
+        return "newly_mapped"
+    if asn_b == 0:
+        return "unmapped"
+    return "reassigned"
+
+
+def _impact_dict(families: list[str], asns_a: list[int], asns_b: list[int]) -> dict:
+    """Count how the node set's ASNs move from map A to map B.
+
+    ``families`` / ``asns_a`` / ``asns_b`` are aligned per-node lists.
+    Returns total + per-category counts overall and split by effective
+    address family, so a consumer can scope to the family it shows
+    (the Diff Explorer) or read the whole set (the Network card).
+    """
+
+    def blank() -> dict:
+        return {
+            "total_nodes": 0,
+            "reassigned": 0,
+            "newly_mapped": 0,
+            "unmapped": 0,
+        }
+
+    overall = blank()
+    fam = {"ipv4": blank(), "ipv6": blank()}
+    for family, asn_a, asn_b in zip(families, asns_a, asns_b, strict=True):
+        overall["total_nodes"] += 1
+        fam[family]["total_nodes"] += 1
+        change = _classify_change(asn_a, asn_b)
+        if change is not None:
+            overall[change] += 1
+            fam[family][change] += 1
+
+    def finalize(d: dict) -> dict:
+        d["total_affected"] = d["reassigned"] + d["newly_mapped"] + d["unmapped"]
+        return d
+
+    result = finalize(overall)
+    result["families"] = {name: finalize(t) for name, t in fam.items()}
+    return result
+
+
+def _build_node_impact(
+    snapshot: Snapshot, diffable_builds: list[_Build]
+) -> tuple[dict | None, dict]:
+    """Score one node set against every diffable build pair.
+
+    Each node's ASN is looked up once per build (``net_to_prefix`` is
+    precomputed by ``_prepare_nodes``), then every pair is a cheap
+    integer comparison over those vectors — so this stays affordable
+    even though the pair count is the same O(N^2) all-pairs set the
+    Diff Explorer carries.
+
+    Returns ``(latest_update, pair_impact)``:
+
+      - ``latest_update`` is the impact of the two most recent diffable
+        builds — "did the last release move the observed network?" —
+        or ``None`` when fewer than two diffable builds exist.
+      - ``pair_impact`` carries one entry per (from, to) build pair,
+        keyed ``"<from>|<to>"`` to match the Diff Explorer's diff keys,
+        so the explorer can join a node-impact banner onto any pair.
+    """
+    prepared = _prepare_nodes(snapshot.nodes)
+    families = ["ipv4" if is_ipv4_prefix(n.prefix) else "ipv6" for n in prepared]
+    asn_by_build = {
+        build.name: [_lookup_asn(build.asmap, n.prefix) for n in prepared]
+        for build in diffable_builds
+    }
+
+    pairs: dict[str, dict] = {}
+    for build_a, build_b in itertools.combinations(diffable_builds, 2):
+        pairs[f"{build_a.name}|{build_b.name}"] = _impact_dict(
+            families, asn_by_build[build_a.name], asn_by_build[build_b.name]
+        )
+
+    latest_update: dict | None = None
+    if len(diffable_builds) >= 2:
+        prev_build, last_build = diffable_builds[-2], diffable_builds[-1]
+        latest_update = {
+            "from_build": prev_build.name,
+            "to_build": last_build.name,
+            "from_timestamp": prev_build.timestamp,
+            "to_timestamp": last_build.timestamp,
+            **_impact_dict(
+                families,
+                asn_by_build[prev_build.name],
+                asn_by_build[last_build.name],
+            ),
+        }
+
+    return latest_update, {"pairs": pairs}
+
+
+def _diffable_builds(builds: list, loaded: dict) -> list[_Build]:
+    """The builds the Diff Explorer can pair: those with an unfilled
+    variant, lifted into ``_Build`` and sorted by timestamp.
+
+    The diff pipeline only emits unfilled-vs-unfilled diffs, so scoring
+    node impact over the same set keeps the ``"<from>|<to>"`` keys here
+    in lockstep with the diff keys the frontend looks up.
+    """
+    out: list[_Build] = []
+    for build in builds:
+        if build.unfilled_path is None:
+            continue
+        loaded_map: LoadedMap = loaded[build.unfilled_path]
+        out.append(
+            _Build(name=build.name, timestamp=build.timestamp, asmap=loaded_map.asmap)
+        )
+    out.sort(key=lambda b: b.timestamp)
+    return out
+
+
 def build_network_section(
     builds: list,
     loaded: dict,
@@ -435,6 +566,7 @@ def build_network_section(
     reference = prepared_builds[-1]
 
     sources_out: dict[str, dict] = {}
+    latest_snapshot_by_source: dict[str, Snapshot] = {}
     for source, snapshots in snapshots_by_source.items():
         usable = [s for s in snapshots if s.nodes]
         if not usable:
@@ -445,14 +577,39 @@ def build_network_section(
         ]
         decay = _decay_curve(usable[-1], prepared_builds, reference)
         sources_out[source] = {"snapshots": series, "decay": decay}
+        latest_snapshot_by_source[source] = usable[-1]
 
     if not sources_out:
         return {}
 
-    return {
+    out = {
         "reference_timestamp": reference.timestamp,
         "sources": sources_out,
     }
+
+    # Node-impact: score the primary source's most recent node set
+    # against every diffable build pair. Additive and optional — the
+    # frontend renders the impact card / diff banner only when these
+    # keys are present, so an older committed network.json keeps
+    # working unchanged.
+    diffable = _diffable_builds(builds, loaded)
+    primary = next(
+        (s for s in PRIMARY_SOURCE_ORDER if s in latest_snapshot_by_source),
+        next(iter(latest_snapshot_by_source)),
+    )
+    if len(diffable) >= 2:
+        node_set = latest_snapshot_by_source[primary]
+        latest_update, pair_impact = _build_node_impact(node_set, diffable)
+        meta = {
+            "node_set_source": primary,
+            "node_set_label": node_set.label,
+            "node_set_timestamp": node_set.timestamp,
+        }
+        if latest_update is not None:
+            out["latest_update"] = {**meta, **latest_update}
+        out["pair_impact"] = {**meta, **pair_impact}
+
+    return out
 
 
 def _prepare_builds(builds: list, loaded: dict) -> list[_Build]:

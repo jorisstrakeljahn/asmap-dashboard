@@ -67,18 +67,19 @@
 .match-banner__family {
     display: grid;
     grid-template-columns: auto 1fr;
-    grid-template-rows: auto auto;
+    grid-template-rows: auto auto auto;
     column-gap: var(--space-3);
     row-gap: var(--space-1);
     align-items: baseline;
 }
 
-/* Headline number spans both rows on the left so the caption
-   and detail can stack on the right in a single column,
-   visually anchored against the percent. */
+/* Headline number spans all three rows on the left so the caption,
+   detail, and source line stack on the right in a single column,
+   visually anchored against the percent. Mirrors the node-impact
+   block below so the two banners read on the same rail. */
 .match-banner__headline {
     grid-column: 1;
-    grid-row: 1 / span 2;
+    grid-row: 1 / span 3;
     font-size: var(--font-size-2xl);
     font-weight: var(--font-weight-semibold);
     color: var(--color-text-strong);
@@ -103,13 +104,78 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* Variant sub caption. Sits below the family pair in subtle
-   text colour, so the reader eye picks up the match percentages
-   first and then the metadata. */
-.match-banner__variant {
+/* Variant source line. Sits as the block's third row, under the
+   bucket detail, in subtle text colour so the reader eye picks up
+   the match percent and counts first and then the "which variant"
+   metadata. Parallel to .node-impact__source below. */
+.match-banner__source {
+    grid-column: 2;
+    grid-row: 3;
     font-size: var(--font-size-sm);
     color: var(--color-text-subtle);
+}
+
+/* Real node impact: a downstream banner under the prefix breakdown.
+   A top divider sets it apart as "what this means for live peers",
+   then it borrows the match-banner grid so the headline percent reads
+   on the same visual rail. */
+.node-impact {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto auto;
+    column-gap: var(--space-3);
+    row-gap: var(--space-1);
+    align-items: baseline;
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+}
+
+.node-impact__headline {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-strong);
+    line-height: 1;
+}
+
+.node-impact__caption {
+    grid-column: 2;
+    grid-row: 1;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-uppercase);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-uppercase-tight);
+    font-weight: var(--font-weight-medium);
+}
+
+.node-impact__detail {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.node-impact__source {
+    grid-column: 2;
+    grid-row: 3;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-subtle);
+}
+
+.node-impact__info {
+    position: absolute;
+    top: var(--space-4);
+    right: 0;
+}
+
+/* The "not covered yet" fallback is a plain muted note, no grid. */
+.node-impact--empty {
+    display: block;
     margin: 0;
+    font-size: var(--font-size-sm);
 }
 
 .classification-row {
@@ -181,17 +247,32 @@
     background: var(--color-warning);
 }
 
-/* AS roster delta line that sits one row below the stacked bar.
-   Lives in the muted text colour so the entry-level numbers above
-   stay the headline; the eye drops to this row only when the
-   reader specifically asks "and how many distinct ASes moved?".
-   Tabular numerics so the two large totals line up visually with
-   each other rather than dancing as fonts hint variable widths. */
+/* AS roster delta: its own divided section between the stacked bar
+   and the real-node-impact banner, with an info icon top-right like
+   the node-impact block. The text lives in the muted colour so the
+   entry-level numbers above stay the headline; tabular numerics keep
+   the two large totals lined up rather than dancing on variable
+   glyph widths. */
 .as-roster-delta {
+    position: relative;
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+}
+
+.as-roster-delta__text {
     margin: 0;
+    /* Room for the corner-pinned info icon so the line never runs
+       under it on a narrow card. */
+    padding-right: var(--space-7);
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
     font-variant-numeric: tabular-nums;
+}
+
+.as-roster-delta__info {
+    position: absolute;
+    top: var(--space-4);
+    right: 0;
 }
 
 .diff-explorer__notice {

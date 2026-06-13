@@ -1,18 +1,23 @@
-// Network tab hero: five snapshot cards describing the most recent
-// crawl of the primary source, scored against the build in effect at
-// that time. Mirrors the Maps tab overview-cards layout (card label +
-// big metric + unit + delta line) so the two tabs feel of a piece.
+// Network tab hero: up to six snapshot cards describing the most
+// recent crawl of the primary source, scored against the build in
+// effect at that time. Mirrors the Maps tab overview-cards layout
+// (card label + big metric + unit + delta line) so the two tabs feel
+// of a piece.
 //
-// Row 1 — the two findings, half-width-larger lead cards:
-//   1. AS concentration     HHI of the observed node set — "does
-//                           ASmap improve peer diversity right now?"
-//   2. Map staleness        how far a ~1-year-old map drifts for
-//                           today's nodes — "how often must Core
-//                           ship a fresh map?" (off the decay curve)
-// Row 2 — the context those findings rest on:
-//   3. Reachable nodes      observed clearnet peers, IPv4/IPv6 split
-//   4. Nakamoto coefficient ASes needed to reach 50 % of mapped nodes
-//   5. Peer-diversity buckets   ASmap AS buckets vs Core's defaults
+// Laid out two cards per row, each row a coherent pair so the grid
+// reads as three themes rather than a flat list:
+//   Row 1 — diversity / adversary
+//     1. AS concentration     HHI of the observed node set — "does
+//                             ASmap improve peer diversity right now?"
+//     2. Nakamoto coefficient ASes needed to reach 50 % of mapped nodes
+//   Row 2 — map freshness / churn
+//     3. Map staleness        how far a ~1-year-old map drifts for
+//                             today's nodes (off the decay curve)
+//     4. Latest update impact observed nodes the newest release moved
+//                             (optional — only when network.json carries it)
+//   Row 3 — raw context
+//     5. Reachable nodes      observed clearnet peers, IPv4/IPv6 split
+//     6. Peer-diversity buckets   ASmap AS buckets vs Core's defaults
 //
 // ASmap coverage (share of nodes the map resolves) deliberately has
 // no card: it idles at ~99.9% and reads as noise here; its story —
@@ -30,7 +35,7 @@ import {
 
 const TARGET_STALENESS_DAYS = 365;
 
-export function mount(parent, { snapshot, decay }) {
+export function mount(parent, { snapshot, decay, latestUpdate }) {
     if (!parent) return;
     if (!snapshot) {
         parent.replaceChildren(mutedNote(t("network.overview.empty")));
@@ -38,14 +43,18 @@ export function mount(parent, { snapshot, decay }) {
     }
     const row = document.createElement("div");
     row.className = "card-row";
-    const leads = [concentrationCard(snapshot), stalenessCard(decay)];
-    for (const card of leads) card.classList.add("card--lead");
-    row.append(
-        ...leads,
-        nodesCard(snapshot),
+    // Two per row, paired by theme. The optional latest-update card
+    // slots into row 2 next to staleness (both speak to map freshness)
+    // so an older network.json without it simply leaves nodes/buckets
+    // to reflow up — the pairing degrades without leaving a hole.
+    const cards = [
+        concentrationCard(snapshot),
         nakamotoCard(snapshot),
-        bucketsCard(snapshot),
-    );
+        stalenessCard(decay),
+    ];
+    if (latestUpdate) cards.push(latestUpdateCard(latestUpdate));
+    cards.push(nodesCard(snapshot), bucketsCard(snapshot));
+    row.append(...cards);
     parent.replaceChildren(row);
 }
 
@@ -144,6 +153,30 @@ function bucketsCard(snapshot) {
     return card;
 }
 
+// How many observed nodes changed AS when the most recent map shipped,
+// against the build published just before it. The abstract Diff Explorer
+// numbers made concrete on the real node set: the headline is the count
+// that moved, the line below splits it into the same three buckets the
+// Diff Explorer uses for prefixes.
+function latestUpdateCard(latestUpdate) {
+    const card = createCard(t("network.overview.latestUpdate.label"), {
+        info: t("network.overview.latestUpdate.info"),
+        infoAria: t("network.overview.latestUpdate.infoAria"),
+    });
+    card.append(metricNumber(formatNumber(latestUpdate.total_affected)));
+    card.append(metricUnit(t("network.overview.latestUpdate.unit")));
+    card.append(
+        deltaLine(
+            t("network.overview.latestUpdate.basis", {
+                reassigned: formatNumber(latestUpdate.reassigned),
+                newlyMapped: formatNumber(latestUpdate.newly_mapped),
+                unmapped: formatNumber(latestUpdate.unmapped),
+            }),
+        ),
+    );
+    return card;
+}
+
 // Reads the decay curve at exactly one year of map age and reports
 // how much of today's node set a map that old would mislocate. The
 // headline is a one-year figure rather than the raw drift at the
@@ -176,10 +209,15 @@ function stalenessCard(decay) {
 //   3. The history is one-sided (all builds younger than a year,
 //      or — after a long publishing gap — all older): scale the
 //      point nearest the mark by 365 / age. This is a linear
-//      extrapolation that amplifies whatever noise the single
-//      point carries by that same factor, which is why it is the
-//      fallback and not the rule, and why the basis line labels
-//      it differently.
+//      extrapolation *through the origin*, i.e. it assumes drift
+//      grows in proportion to age. A real decay curve saturates
+//      (drift rises fast, then flattens as the map fully
+//      decorrelates), so this over-estimates from a younger anchor
+//      and under-estimates from an older one, on top of amplifying
+//      that single point's noise by the 365 / age factor. That is
+//      why it is the fallback and not the rule, and why the basis
+//      line labels it differently. In the live data two points
+//      bracket the mark, so case 1 (interpolation) applies.
 function stalenessAtTarget(decay) {
     const points = (decay?.points ?? [])
         .filter((p) => p.age_days > 0)

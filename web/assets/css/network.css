@@ -25,52 +25,17 @@
     grid-column: span 3;
 }
 
-/* 2+3 hero: the two lead findings (HHI, staleness) span half the row
-   each and read 1.5x the width of the three context cards below them.
-   A 6-column grid is the smallest vocabulary that expresses both
-   spans (2 x span-3 on top, 3 x span-2 below). */
+/* Two cards per row, paired by theme (see overview.js). A uniform
+   2-column grid reads cleaner than the old 2+3+1 spans now that the
+   optional latest-update card brings the count to six. Cards collapse
+   to a single column on narrow viewports. */
 [data-network-overview] .card-row {
-    grid-template-columns: repeat(6, 1fr);
-}
-
-[data-network-overview] .card {
-    grid-column: span 2;
-}
-
-[data-network-overview] .card--lead {
-    grid-column: span 3;
-}
-
-[data-network-overview] .card--lead .card__metric {
-    font-size: var(--font-size-3xl);
-}
-
-@media (max-width: 900px) {
-    [data-network-overview] .card-row {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    [data-network-overview] .card,
-    [data-network-overview] .card--lead {
-        grid-column: span 1;
-    }
-
-    /* Odd card count: let the last context card stretch the row
-       instead of leaving a hole. */
-    [data-network-overview] .card:last-child {
-        grid-column: span 2;
-    }
+    grid-template-columns: repeat(2, 1fr);
 }
 
 @media (max-width: 640px) {
     [data-network-overview] .card-row {
         grid-template-columns: 1fr;
-    }
-
-    [data-network-overview] .card,
-    [data-network-overview] .card--lead,
-    [data-network-overview] .card:last-child {
-        grid-column: span 1;
     }
 }
 
