@@ -44,12 +44,19 @@ export function mount(parent, payload, { family } = {}) {
 
     const state = { family, fromName: null, toName: null };
 
+    // The default comparison is the two most recent builds; that view needs
+    // nothing in the URL, so only a non-default pair gets a sharable hash.
+    const defaultFromName = diffableMaps.at(-2).name;
+    const defaultToName = diffableMaps.at(-1).name;
+
     const refresh = (fromName, toName) => {
         state.fromName = fromName;
         state.toName = toName;
+        const isDefaultPair =
+            fromName === defaultFromName && toName === defaultToName;
         writePermalink(
-            nameToReleaseDate.get(fromName),
-            nameToReleaseDate.get(toName),
+            isDefaultPair ? null : nameToReleaseDate.get(fromName),
+            isDefaultPair ? null : nameToReleaseDate.get(toName),
         );
         renderResults(results, payload.diffs, fromName, toName, state.family);
     };
