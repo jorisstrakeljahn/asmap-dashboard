@@ -15,6 +15,10 @@ import {
     previousDiffable,
 } from "./utils/diffs.js";
 import {
+    readHashState,
+    writeHashState,
+} from "./utils/hash-state.js";
+import {
     DEFAULT_HISTORY_RANGE,
     HISTORY_RANGE_VALUES,
     resolveHistoryRange,
@@ -30,6 +34,19 @@ const DRIFT_UNIT_VALUES = [
     DRIFT_IPV4_COVERAGE,
     DRIFT_IPV6_COVERAGE,
 ];
+
+// Maps is the default tab, so it stamps its view state onto an empty
+// hash (see utils/hash-state.js). The drift-unit constants are internal
+// ("ipv4_coverage"); the URL uses short, readable tokens.
+const TAB = "maps";
+const UNIT_TO_TOKEN = {
+    [DRIFT_IPV4_COVERAGE]: "ipv4",
+    [DRIFT_IPV6_COVERAGE]: "ipv6",
+};
+const TOKEN_TO_UNIT = {
+    ipv4: DRIFT_IPV4_COVERAGE,
+    ipv6: DRIFT_IPV6_COVERAGE,
+};
 
 function renderBuildStaleness(map) {
     const slot = document.querySelector("[data-build-staleness]");
@@ -53,8 +70,51 @@ export function mount(payload, diffsPromise = null) {
     const { maps } = payload;
     let diffs = payload.diffs || [];
 
+    // A deep link can pin the Overview build, drift unit, and history
+    // range so a finding shared in a PR review opens on the same view.
+    const hash = readHashState(TAB);
+    const requestedBuild = hash.get("build");
+    const requestedUnit = TOKEN_TO_UNIT[hash.get("unit")];
+    const requestedRange = hash.get("range");
+
+    // One unit selection drives both drift charts so the cumulative and
+    // step views can never disagree on which "currency" the reader is
+    // looking at. Range windows every History chart's x-axis. Both seed
+    // from the hash when a deep link supplies a valid value.
+    let driftUnit = requestedUnit ?? DRIFT_IPV4_COVERAGE;
+    let historyRange = HISTORY_RANGE_VALUES.includes(requestedRange)
+        ? requestedRange
+        : DEFAULT_HISTORY_RANGE;
+
+    // Write the current view back to the hash. Only non-default selections
+    // are emitted, so the default Maps view stays on a bare URL with nothing
+    // to share. The guard in writeHashState makes this a no-op unless Maps
+    // owns the hash (or it is the empty default), so an inactive tab's
+    // re-render never hijacks the URL.
+    const syncUrl = () => {
+        const current = maps.find((m) => m.name === selectedName);
+        writeHashState(
+            TAB,
+            {
+                build:
+                    selectedName !== defaultName ? current?.released_at : null,
+                unit:
+                    driftUnit !== DRIFT_IPV4_COVERAGE
+                        ? UNIT_TO_TOKEN[driftUnit]
+                        : null,
+                range:
+                    historyRange !== DEFAULT_HISTORY_RANGE ? historyRange : null,
+            },
+            { stampWhenEmpty: true },
+        );
+    };
+
     const overviewParent = document.querySelector("[data-overview]");
-    let selectedName = maps.length ? maps[maps.length - 1].name : null;
+    const defaultName = maps.length ? maps[maps.length - 1].name : null;
+    const requestedName = requestedBuild
+        ? (maps.find((m) => m.released_at === requestedBuild)?.name ?? null)
+        : null;
+    let selectedName = requestedName ?? defaultName;
     const renderOverview = (name) => {
         selectedName = name;
         const current = maps.find((m) => m.name === name);
@@ -65,6 +125,7 @@ export function mount(payload, diffsPromise = null) {
             diffs,
         });
         renderBuildStaleness(current);
+        syncUrl();
     };
 
     buildSelector.mount(
@@ -94,12 +155,8 @@ export function mount(payload, diffsPromise = null) {
     const driftStepState = { hidden: new Set() };
     const entriesState = { hidden: new Set() };
 
-    let historyRange = DEFAULT_HISTORY_RANGE;
-    // One unit selection drives both drift charts so the cumulative
-    // and step views can never disagree on which "currency" the
-    // user is reading. Per-card state would tempt mis-comparisons.
-    let driftUnit = DRIFT_IPV4_COVERAGE;
     const renderHistory = () => {
+        syncUrl();
         const slice = resolveHistoryRange(maps, historyRange);
         const bounds = {
             domainStart: slice.domainStart,

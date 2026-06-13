@@ -42,12 +42,19 @@ import { SOURCE_ORDER, sourceLabel } from "./components/network/series-data.js";
 import { collectTimestamps } from "./components/network/timelines.js";
 import { mountTrendCharts } from "./components/network/trend-charts.js";
 import { createModeSwitch } from "./components/mode-switch.js";
+import { readHashState, writeHashState } from "./utils/hash-state.js";
 import {
     DEFAULT_HISTORY_RANGE as DEFAULT_RANGE,
     HISTORY_RANGE_VALUES as RANGE_VALUES,
     rangeBounds,
 } from "./utils/history-range.js";
 import { t } from "./utils/i18n.js";
+
+// Network is not the default tab, so it only writes its state once the
+// hash already carries the "#network" token (no empty-hash stamping).
+const TAB = "network";
+const DECAY_AXES = ["age", "date"];
+const HHI_FAMILIES = ["all", "ipv4", "ipv6"];
 
 // Mount the tab. Returns true when a network section was present and
 // rendered, false otherwise, so the caller can hide the nav entry.
@@ -88,20 +95,47 @@ export function mount(payload) {
             : base;
     }
 
+    // A deep link can pin the Trends range plus the decay axis and HHI
+    // family so a shared finding opens on the same view.
+    const hash = readHashState(TAB);
+    const requestedRange = hash.get("range");
+    const requestedAxis = hash.get("axis");
+    const requestedFamily = hash.get("family");
+
     // Per-chart toggle state is hoisted here so a range re-mount keeps
     // whatever series the reader has hidden — and, for the decay /
     // HHI charts, which axis or family view is active. The operator
     // breakdown carries no legend (its per-period cast changes), so
     // it has no entry here.
     const states = {
-        decay: { hidden: new Set(), axis: "age" },
-        hhi: { hidden: new Set(), family: "all" },
+        decay: {
+            hidden: new Set(),
+            axis: DECAY_AXES.includes(requestedAxis) ? requestedAxis : "age",
+        },
+        hhi: {
+            hidden: new Set(),
+            family: HHI_FAMILIES.includes(requestedFamily)
+                ? requestedFamily
+                : "all",
+        },
         coverage: { hidden: new Set() },
     };
     const allTimestamps = collectTimestamps(network, presentSources);
 
-    let range = DEFAULT_RANGE;
+    let range = RANGE_VALUES.includes(requestedRange)
+        ? requestedRange
+        : DEFAULT_RANGE;
     const renderTrends = () => {
+        // renderTrends is the single re-render path: the range picker and
+        // the in-chart axis / family toggles all route through it, so
+        // writing the hash here captures every Trends view change. Only
+        // non-default selections are emitted, so the default Trends view
+        // keeps a bare "#network" with nothing extra to share.
+        writeHashState(TAB, {
+            range: range !== DEFAULT_RANGE ? range : null,
+            axis: states.decay.axis !== "age" ? states.decay.axis : null,
+            family: states.hhi.family !== "all" ? states.hhi.family : null,
+        });
         const bounds = rangeBounds(range, allTimestamps);
         mountTrendCharts(network, presentSources, bounds, states, renderTrends);
     };
