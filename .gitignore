@@ -29,3 +29,10 @@ node_modules/
 # Local checkout of bitcoin-core/asmap-data used to run the pipeline; it
 # carries its own git history and is cloned fresh on deploy, never tracked.
 /asmap-data/
+
+# Local copies of the non-public node snapshots (KIT dossiers + the
+# archived Bitnodes matches) used to regenerate network.json. The raw
+# data carries node IP addresses and is not cleared for publication, so
+# it must never be committed; only the aggregate network.json derived
+# from it is tracked. See README for the regen command.
+/snapshots/

@@ -142,10 +142,16 @@ async function init() {
 
     // The whole Diff Explorer is derived from the diffs, so its
     // mount waits for them; the panel shows a loading note until
-    // then (it is hidden behind a tab anyway).
+    // then (it is hidden behind a tab anyway). The optional node
+    // impact rides along so the explorer can show a per-pair "real
+    // node impact" banner; it is null when network.json is absent or
+    // predates the field, and the explorer degrades gracefully.
+    const pairImpact = network?.data?.network?.pair_impact ?? null;
     renderDiffLoading();
     diffsPromise
-        .then(({ data }) => diffTab.mount({ ...payload, diffs: data.diffs }))
+        .then(({ data }) =>
+            diffTab.mount({ ...payload, diffs: data.diffs, pairImpact }),
+        )
         .catch((error) => {
             console.error(error);
             renderDiffLoadError(error);

@@ -58,7 +58,9 @@ export function mount(parent, payload, { family } = {}) {
             isDefaultPair ? null : nameToReleaseDate.get(fromName),
             isDefaultPair ? null : nameToReleaseDate.get(toName),
         );
-        renderResults(results, payload.diffs, fromName, toName, state.family);
+        renderResults(results, payload.diffs, fromName, toName, state.family, {
+            pairImpact: payload.pairImpact,
+        });
     };
 
     const selectors = createSelectors(diffableMaps, refresh);
@@ -80,6 +82,7 @@ export function mount(parent, payload, { family } = {}) {
                     state.fromName,
                     state.toName,
                     state.family,
+                    { pairImpact: payload.pairImpact },
                 );
             }
         },

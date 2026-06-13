@@ -32,6 +32,24 @@ export function clampTimeline(timeline, cutoff) {
     };
 }
 
+// Upper-bound twin of clampTimeline: drop the slots ABOVE ``ceiling``.
+// The decay age axis is windowed this way — a calendar range (1Y/3Y/5Y)
+// maps to a maximum map age of the same width because age = reference −
+// build date, so "the last year" -> "ages up to ~365 days". Anchored at
+// the reference build, not at "now" (see trend-charts.js), so the two
+// share a width but not necessarily the exact build set.
+export function clampTimelineMax(timeline, ceiling) {
+    if (ceiling === Infinity) return timeline;
+    const keep = [];
+    for (let i = 0; i < timeline.timestamps.length; i++) {
+        if (timeline.timestamps[i] <= ceiling) keep.push(i);
+    }
+    return {
+        timestamps: keep.map((i) => timeline.timestamps[i]),
+        valueAt: (source, slot) => timeline.valueAt(source, keep[slot]),
+    };
+}
+
 // Like buildUnionTimeline, but keys slots by calendar day so points
 // from different crawlers that fall on the same day share one slot (and
 // therefore one hover) instead of landing on adjacent timestamps. The

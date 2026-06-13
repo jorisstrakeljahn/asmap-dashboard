@@ -9,7 +9,10 @@ from asmap_dashboard._vendor.asmap import ASMap, net_to_prefix
 from asmap_dashboard.metrics import generate_dashboard_data
 from asmap_dashboard.network.metrics import (
     _Build,
+    _build_node_impact,
+    _classify_change,
     _decay_curve,
+    _impact_dict,
     _select_in_effect_build,
     _snapshot_metrics,
 )
@@ -216,6 +219,76 @@ def test_decay_curve_is_anchored_on_reference_and_fixed_node_set():
     assert points[BUILD2.name]["age_days"] == 0
 
 
+def test_classify_change_buckets_like_node_impact():
+    assert _classify_change(100, 100) is None  # unchanged
+    assert _classify_change(0, 200) == "newly_mapped"  # unmapped -> mapped
+    assert _classify_change(100, 0) == "unmapped"  # mapped -> unmapped
+    assert _classify_change(100, 200) == "reassigned"  # mapped -> different AS
+
+
+def test_impact_dict_counts_overall_and_per_family():
+    # Two IPv4 nodes and one IPv6 node. From map A to map B:
+    #   node 0 (v4): AS100 -> AS200  = reassigned
+    #   node 1 (v4): AS100 -> AS100  = unchanged
+    #   node 2 (v6): 0     -> AS300  = newly_mapped
+    families = ["ipv4", "ipv4", "ipv6"]
+    asns_a = [100, 100, 0]
+    asns_b = [200, 100, 300]
+
+    result = _impact_dict(families, asns_a, asns_b)
+
+    assert result["total_nodes"] == 3
+    assert result["reassigned"] == 1
+    assert result["newly_mapped"] == 1
+    assert result["unmapped"] == 0
+    assert result["total_affected"] == 2
+    # Family slices partition the node set and the changes.
+    assert result["families"]["ipv4"]["total_nodes"] == 2
+    assert result["families"]["ipv4"]["reassigned"] == 1
+    assert result["families"]["ipv4"]["total_affected"] == 1
+    assert result["families"]["ipv6"]["total_nodes"] == 1
+    assert result["families"]["ipv6"]["newly_mapped"] == 1
+
+
+def test_build_node_impact_emits_pairs_and_latest_update():
+    # Three diffable builds: 1.0.0.0/8 walks AS100 -> AS200 -> AS300.
+    build1 = _build("2023/1700000000", 1700000000, [("1.0.0.0/8", 100)])
+    build2 = _build("2024/1710000000", 1710000000, [("1.0.0.0/8", 200)])
+    build3 = _build("2025/1720000000", 1720000000, [("1.0.0.0/8", 300)])
+    snap = _snapshot(
+        1720000001, [Node(ip="1.1.1.1", version=4, asn=None, country=None)]
+    )
+
+    latest_update, pair_impact = _build_node_impact(snap, [build1, build2, build3])
+
+    # One entry per (from, to) pair, keyed to match the diff keys.
+    assert set(pair_impact["pairs"]) == {
+        "2023/1700000000|2024/1710000000",
+        "2023/1700000000|2025/1720000000",
+        "2024/1710000000|2025/1720000000",
+    }
+    # The node sits in 1.0.0.0/8, which is reassigned across every pair.
+    one_pair = pair_impact["pairs"]["2023/1700000000|2024/1710000000"]
+    assert one_pair["total_nodes"] == 1
+    assert one_pair["reassigned"] == 1
+    # latest_update is the two most recent builds.
+    assert latest_update["from_build"] == build2.name
+    assert latest_update["to_build"] == build3.name
+    assert latest_update["reassigned"] == 1
+
+
+def test_build_node_impact_latest_update_none_with_single_build():
+    build = _build("2024/1710000000", 1710000000, [("1.0.0.0/8", 100)])
+    snap = _snapshot(
+        1710000001, [Node(ip="1.1.1.1", version=4, asn=None, country=None)]
+    )
+
+    latest_update, pair_impact = _build_node_impact(snap, [build])
+
+    assert latest_update is None
+    assert pair_impact["pairs"] == {}
+
+
 def _write_kit_dossier(path, ip_to_asn):
     doc = {
         f"(IPv4Address('{ip}'), 8333)": {
@@ -246,6 +319,13 @@ def test_generate_dashboard_data_attaches_network_when_sources_given(tmp_path):
     kit = payload["network"]["sources"]["kit"]
     assert len(kit["snapshots"]) == 1
     assert kit["decay"]["reference_build"] == "2024/1710000000"
+    # Node impact rides along: the node 1.1.1.1 (in 1.0.0.0/8) is
+    # reassigned AS100 -> AS200 between the two diffable builds.
+    network = payload["network"]
+    assert network["latest_update"]["node_set_source"] == "kit"
+    assert network["latest_update"]["reassigned"] == 1
+    pair_key = "2024/1700000000|2024/1710000000"
+    assert network["pair_impact"]["pairs"][pair_key]["reassigned"] == 1
 
 
 def test_generate_dashboard_data_omits_network_without_sources(tmp_path):

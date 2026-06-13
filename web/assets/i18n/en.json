@@ -21,15 +21,22 @@
             "diff": "Diff Explorer",
             "network": "Network",
             "menuAria": "Toggle navigation menu"
+        },
+        "theme": {
+            "ariaLabel": "Theme",
+            "light": "Light",
+            "dark": "Dark"
         }
     },
 
     "footer": {
-        "sourcesLead": "Data sourced from",
-        "sourcesMiddle": ". ASN labels from",
-        "sourcesEnd": ".",
-        "sourceLinkLabel": "bitcoin-core/asmap-data",
-        "asnLinkLabel": "bgp.tools",
+        "sourcesLead": "Data sources",
+        "asmapDataLabel": "bitcoin-core/asmap-data",
+        "asmapDataDesc": "ASmap builds",
+        "bitnodesLabel": "asmap/sample-data",
+        "bitnodesDesc": "Bitnodes node snapshots",
+        "bgpToolsLabel": "bgp.tools",
+        "bgpToolsDesc": "ASN labels",
         "repoLinkLabel": "Source on GitHub",
         "lastUpdate": "Last update {timestamp}"
     },
@@ -76,10 +83,9 @@
             "deltaVsPrevious": "{delta} vs previous",
             "encodingMismatch": "no comparable previous (encoding mismatch)",
             "info": [
-                "Each entry maps an IP prefix to the autonomous system that announces it.",
-                "Read from the unfilled (source data) variant when it is published, and from the filled variant otherwise.",
-                "The vs previous delta only shows when both sides use the same encoding. Filled folds neighbouring prefixes that share an AS, cutting the count by roughly 12 percent, so a mixed comparison would look like the map grew or shrank. In practice this only blanks the delta on the rare filled only build whose comparable predecessor is unfilled.",
-                "The file size on disk rides along inside the entries chart tooltip."
+                "Each entry maps one IP prefix to the autonomous system that announces it, so this is the map's raw coverage.",
+                "Read from the unfilled (source data) variant, falling back to filled when a build published only that.",
+                "The vs previous delta shows only when both builds share an encoding. Filling folds same-AS neighbours and cuts the count by ~12 percent, so a mixed comparison would fake a jump. The on-disk size rides along in the entries chart tooltip."
             ],
             "infoAria": "About Entries"
         },
@@ -88,10 +94,9 @@
             "unit": "autonomous systems",
             "deltaVsPrevious": "{delta} vs previous",
             "info": [
-                "Number of distinct autonomous systems referenced anywhere in the map.",
-                "Filled and unfilled reference the same ASes. Filled adds prefixes, never new ASes, so this number does not depend on the variant.",
-                "The vs previous delta uses the same predecessor as the drift card, so all three cards stay lined up on which build they compare against. The drift card spells the predecessor date out on its own delta line.",
-                "The bar below shows the share of mapping entries that point at IPv4 versus IPv6 prefixes."
+                "How many distinct autonomous systems the map references. Each AS is one peer diversity bucket Bitcoin Core can keep a connection to.",
+                "Independent of the variant: filling adds prefixes, never new ASes.",
+                "The bar below splits the mapping entries by IPv4 versus IPv6 prefixes."
             ],
             "infoAria": "About Unique ASes",
             "ipv4Legend": "IPv4 {pct}",
@@ -108,9 +113,9 @@
             "secondaryViews": "IPv6 {ipv6}",
             "vsDate": "vs {date}",
             "info": [
-                "Share of the mapped IPv4 address space whose ASN assignment changed between this build and the most recent build it can be diffed against. Mapped means assigned to an autonomous system by at least one of the two builds, so every changed address is part of the denominator. A 1 percent drift means about 1 mapped IPv4 address in 100 now lands on a different autonomous system.",
-                "The headline is IPv4 because Bitcoin Core peer reachability leans on IPv4 most directly. The IPv6 drift rides along as a second line because the two address families mean different things for peer diversity and cannot be added together. IPv6 is larger than IPv4 by 2 to the power of 96, so a combined number would round IPv4 down to noise.",
-                "Worked out from unfilled against unfilled diffs, so real source data drift stays apart from shifts caused by the fill heuristic."
+                "Share of the mapped IPv4 address space that lands on a different autonomous system between this build and the most recent one it can be diffed against. At 1 percent, about 1 mapped IPv4 address in 100 moved. Mapped means at least one of the two builds assigned it.",
+                "IPv4 leads because Bitcoin Core peer reachability leans on it most. IPv6 rides along as a second line: the two families cannot be added, since IPv6 is larger by 2 to the power of 96 and would round IPv4 down to noise.",
+                "Computed unfilled vs unfilled, so this is real source data drift, not fill heuristic shuffling."
             ],
             "infoAria": "About Drift vs previous"
         }
@@ -143,25 +148,25 @@
             "infoAria": "About cumulative drift",
             "ariaLabel": "Cumulative drift composition since the oldest published build. Reassigned, newly mapped, unmapped, and total drift series.",
             "info": [
-                "How far each build has wandered from the oldest published build that has an unfilled variant. The lines grow over time, so a flat stretch means the source data did not change against the baseline and a steep slope means it changed fast.",
+                "How far each build has drifted from the oldest build with an unfilled variant. The lines only grow, so a flat stretch is a quiet baseline and a steep slope is fast change.",
                 {
                     "lead": "Reassigned.",
-                    "text": "Prefix was mapped in both builds but now lands on a different autonomous system. Usually the largest slice. It reflects real BGP and RPKI churn."
+                    "text": "Prefix mapped in both builds but now on a different autonomous system. Usually the largest slice; real BGP and RPKI churn."
                 },
                 {
                     "lead": "Newly Mapped.",
-                    "text": "Prefix had no autonomous system in the baseline and now resolves to one. It reflects coverage growing as upstream data adds prefixes."
+                    "text": "Prefix had no autonomous system in the baseline and now resolves to one. Coverage growing as upstream adds prefixes."
                 },
                 {
                     "lead": "Unmapped.",
-                    "text": "Prefix that resolved in the baseline no longer resolves. It reflects upstream data dropping prefixes, usually because RPKI or IRR coverage was pulled back."
+                    "text": "Prefix that resolved in the baseline no longer does. Upstream dropped it, usually pulled-back RPKI or IRR coverage."
                 },
                 {
                     "lead": "Total drift.",
-                    "text": "Sum of the three categories. The headline distance from the baseline build, in a single number, for the build you have selected."
+                    "text": "The three summed: the headline distance from the baseline for the selected build."
                 },
-                "The drift unit picker at the top of History switches every chart between IPv4 (share of the IPv4 space mapped by either build whose ASN moved) and IPv6 (the same for IPv6). The two are kept apart because Bitcoin Core peer diversity treats them as independent. IPv6 is larger than IPv4 by 2 to the power of 96, so a combined denominator would round IPv4 down to noise.",
-                "Click any legend entry to hide that line and rescale the chart to what is left. Builds without an unfilled variant carry no dot, and the tooltip flags them as having no diff. The line bridges across them so the trend stays readable."
+                "The IPv4/IPv6 picker at the top of History switches every chart between families. They stay apart because Bitcoin Core treats them as independent and a combined denominator would round IPv4 down to noise.",
+                "Click a legend entry to hide that line and rescale. Builds without an unfilled variant carry no dot; the line bridges across them."
             ]
         },
         "driftStep": {
@@ -169,10 +174,10 @@
             "infoAria": "About per build drift",
             "ariaLabel": "Step drift composition between each build and its last diffable predecessor. Reassigned, newly mapped, unmapped, and total drift series.",
             "info": [
-                "How much each build changed compared to the previous build that has an unfilled variant. Each release shows as one stacked bar. A tall bar is a release that moved a lot of prefixes. A flat bar is a quiet release.",
+                "How much each build changed against the previous build with an unfilled variant. One stacked bar per release: tall moved a lot, flat is quiet.",
                 {
                     "lead": "Reassigned.",
-                    "text": "Prefix was mapped in both builds but now lands on a different autonomous system between the two sides."
+                    "text": "Prefix mapped in both builds but now on a different autonomous system."
                 },
                 {
                     "lead": "Newly Mapped.",
@@ -180,14 +185,14 @@
                 },
                 {
                     "lead": "Unmapped.",
-                    "text": "Prefix that resolved in the previous build no longer resolves."
+                    "text": "Prefix that resolved in the previous build no longer does."
                 },
                 {
                     "lead": "Total drift.",
-                    "text": "Height of the full stack. In IPv4 mode this matches the headline number on the Drift vs previous overview card for the same pair."
+                    "text": "The full stack height. In IPv4 mode it matches the Drift vs previous card for the same pair."
                 },
-                "The bars are not normalised by time. Releases do not come out on a fixed schedule, so a build that follows a five month publishing pause accumulates five months of routing churn in one bar, while a build released two weeks after its predecessor had two weeks. A tall bar after a long gap is mostly elapsed time, not a routing event. Each bar's tooltip names the exact gap so the two cases are easy to tell apart.",
-                "The drift unit picker at the top of History switches this chart between IPv4 and IPv6 coverage. Click any legend entry to hide that category and rescale. Builds without an unfilled variant have no comparable previous build and show as an empty column. The diff is taken against the last build that actually published an unfilled variant."
+                "Bars are not time-normalised. A build after a five month publishing pause stacks up five months of churn in one bar, so a tall bar after a long gap is mostly elapsed time, not one event. Each bar's tooltip names the gap.",
+                "The IPv4/IPv6 picker switches this chart between families; click a legend entry to hide one. Builds without an unfilled variant have no comparable predecessor and show as an empty column."
             ]
         },
         "driftSeries": {
@@ -210,16 +215,16 @@
             "entriesAndSize": "{count} entries ({size})",
             "fillCompressionLabel": "Fill compression",
             "info": [
-                "Number of prefix to AS entries each ASmap build carries. It tracks coverage growth in plain numbers, next to the per release growth bars below.",
+                "How many prefix to AS entries each build carries, tracking coverage growth.",
                 {
                     "lead": "Source data (unfilled).",
-                    "text": "Raw upstream prefix entries the build was made from. It grows steadily as new prefixes get advertised by upstream routing data."
+                    "text": "Raw upstream prefixes the build was made from. Grows as upstream advertises more."
                 },
                 {
                     "lead": "Embedded (filled).",
-                    "text": "Entries after the fill heuristic folds neighbouring prefixes that share an AS into single rows. Always lower than unfilled. The gap between the two lines shows the heuristic compression at a glance."
+                    "text": "After the fill heuristic folds same-AS neighbours into single rows. Always lower; the gap to unfilled is the compression."
                 },
-                "Hover any build for the entry counts, the matching size on disk in MB, and the fill compression ratio between the two variants. Builds that did not publish a variant carry no dot, and the tooltip names them as not published, but the line connects the points around them so the trend stays readable."
+                "Hover a build for both counts, the on-disk size, and the compression ratio. Builds missing a variant carry no dot, but the line bridges across them."
             ]
         },
         "mapDeltaChart": {
@@ -233,10 +238,9 @@
             "entriesTransition": "{prev} to {curr}",
             "vsDate": "vs {date}",
             "info": [
-                "Gain or loss in source data prefix entries between each build and the most recent earlier build that published an unfilled variant.",
-                "A positive bar means this build added that many real prefix to ASN entries on top of the build it is diffed against. A negative bar means entries fell out of the upstream data, usually because RPKI or IRR coverage was pulled back for some prefix.",
-                "Worked out from the unfilled (source data) variant of both sides. Builds whose immediate predecessor is filled only fall back to the last build that did publish an unfilled variant, so a single filled only release no longer blanks out the bars around it. Builds without an unfilled variant of their own still show as an empty column.",
-                "Hover any bar for the exact entry counts and the date of the build the diff was taken against."
+                "Gain or loss in source data prefix entries between each build and the most recent earlier build with an unfilled variant.",
+                "A positive bar added that many real prefix to ASN entries; a negative bar lost them, usually pulled-back RPKI or IRR coverage.",
+                "Computed unfilled vs unfilled. A build whose immediate predecessor is filled only falls back to the last unfilled build, so one filled-only release no longer blanks the surrounding bars. Hover any bar for the exact counts and the date diffed against."
             ]
         },
         "diversityChart": {
@@ -248,9 +252,9 @@
             "appearedLabel": "Appeared since baseline",
             "appearedSinceBaseline": "+{count} since {date}",
             "info": [
-                "Number of distinct autonomous systems each ASmap build maps to at least one prefix. Every AS in this number is one peer diversity bucket that Bitcoin Core can keep a connection to under the asmap based GetGroup() rule.",
-                "Coverage drift answers how much address space moved. Roster drift answers how many peer buckets the network has to work with. A diff that only reassigns prefixes between existing ASes does not change this line. A diff that adds even one prefix mapped to a brand new ASN moves this line up by one.",
-                "Worked out from the unfilled (source data) variant of each build, so the curve reflects real upstream routing data and not the fill heuristic. Filled only builds carry no dot and are bridged across by the line."
+                "Distinct autonomous systems each build maps to at least one prefix. Every AS is one peer diversity bucket Bitcoin Core can hold a connection to under the asmap GetGroup() rule.",
+                "Coverage drift asks how much address space moved; this asks how many peer buckets exist. Reassigning prefixes between known ASes leaves it flat; one prefix on a brand new ASN lifts it by one.",
+                "Computed from the unfilled variant, so the curve reflects real upstream routing, not the fill heuristic. Filled-only builds carry no dot and are bridged across."
             ]
         }
     },
@@ -282,8 +286,8 @@
                 "label": "Reachable nodes",
                 "unit": "clearnet peers observed",
                 "info": [
-                    "Distinct clearnet IP addresses the crawler reached in its most recent snapshot. Onion, I2P, and CJDNS peers are left out because they have no IP that ASmap can resolve to an autonomous system.",
-                    "The split line counts each peer by its effective address family: an IPv6 address that merely transports an IPv4 host (6to4, NAT64, and similar tunnels) counts as IPv4, exactly as Bitcoin Core's GetGroup() treats it."
+                    "Distinct clearnet IPs the crawler reached in its latest snapshot. Onion, I2P, and CJDNS peers are left out: they have no IP for ASmap to resolve to an autonomous system.",
+                    "The split counts each peer by effective address family, so an IPv4-in-IPv6 tunnel (6to4, NAT64) counts as IPv4, exactly as Bitcoin Core's GetGroup() does."
                 ],
                 "infoAria": "About reachable nodes"
             },
@@ -292,9 +296,9 @@
                 "unit": "Herfindahl-Hirschman index",
                 "info": [
                     "Pick two observed nodes at random: this number is the chance they sit in the same autonomous system. At 0.02 that chance is 2 percent.",
-                    "Formally it is the Herfindahl-Hirschman index (HHI). Each autonomous system's share of the mapped nodes is squared and the squares are summed, with the nodes resolved through the ASmap build in effect. Squaring is what makes it a concentration measure: a few large operators dominate the total while the long tail barely moves it.",
-                    "The index runs from near 0 (nodes spread across many operators) to 1 (every node in a single AS). Lower means healthier peer diversity. As a rule of thumb, 1 divided by the HHI is the effective number of equal sized operators the network behaves like.",
-                    "HHI leads here instead of the largest operator's share because that share can fall while concentration is merely handed to the number two operator. The split line below repeats the index per address family."
+                    "It is the Herfindahl-Hirschman index: each AS's share of the mapped nodes squared, then summed. Squaring is what makes it a concentration measure, so a few large operators dominate it and the long tail barely registers.",
+                    "It runs from near 0 (spread across many operators) to 1 (every node in one AS); lower is healthier. As a rule of thumb, 1 divided by the HHI is the effective number of equal sized operators.",
+                    "HHI leads instead of the largest operator's share, which can fall while concentration just shifts to the runner-up. The split line below repeats it per family."
                 ],
                 "infoAria": "About AS concentration"
             },
@@ -304,9 +308,9 @@
                 "basis": "smallest set of ASes covering 50% of the {mapped} mapped nodes",
                 "noData": "no mapped nodes in this snapshot",
                 "info": [
-                    "The minimum number of autonomous systems that together host at least half of the mapped listening nodes. An attacker who controls this many networks sits next to half the reachable network, so a higher number is healthier.",
-                    "Computed by sorting the autonomous systems by observed node count and walking down the list until the running total reaches half. Unmapped nodes are excluded, consistent with the HHI denominator: a node the map cannot attribute to any AS cannot be assigned to an attacker's AS either.",
-                    "The 50 percent threshold follows the convention for Nakamoto coefficients in the Bitcoin and broader blockchain literature (mining pools, client diversity), so the figure is comparable across studies."
+                    "The fewest autonomous systems that together host at least half of the mapped nodes. An attacker controlling that many networks sits next to half the reachable network, so higher is healthier.",
+                    "Sort the ASes by observed node count and walk down until the running total passes half. Unmapped nodes are excluded, like in the HHI: a node the map cannot attribute cannot be handed to an attacker's AS either.",
+                    "The 50 percent threshold matches the Nakamoto-coefficient convention across Bitcoin and blockchain studies, so the figure is comparable."
                 ],
                 "infoAria": "About the AS Nakamoto coefficient"
             },
@@ -315,8 +319,8 @@
                 "unit": "ASmap AS buckets",
                 "vsDefault": "vs {count} default groups ({ratio} times fewer)",
                 "info": [
-                    "Distinct peer diversity buckets the observed node set falls into when ASmap is loaded. Bitcoin Core's GetGroup() returns the autonomous system, or a default group for nodes that ASmap does not map.",
-                    "ASmap folds many small default groups into far fewer AS buckets. That is the security gain. An adversary now has to control whole autonomous systems, not just neighbouring /16 ranges, to dominate a peer's set of buckets. Below you can see how much smaller the count is than Core's default /16 and /32 bucketing."
+                    "Distinct peer diversity buckets the observed nodes fall into with ASmap loaded: Bitcoin Core's GetGroup() returns the autonomous system, or a default group for nodes ASmap does not map.",
+                    "ASmap folds many small default groups into far fewer AS buckets. That is the security gain: an adversary now needs whole autonomous systems, not just neighbouring /16 ranges, to dominate a peer's buckets. The line below shows how much smaller this is than Core's default /16 and /32 bucketing."
                 ],
                 "infoAria": "About peer diversity buckets"
             },
@@ -327,11 +331,23 @@
                 "basisInterpolated": "between {driftLower} at {daysLower} days and {driftUpper} at {daysUpper} days of map age",
                 "noData": "needs more build history",
                 "info": [
-                    "The decay curve below, distilled into a single yearly rate: the share of today's node set an embedded map would mislocate after one year of aging.",
-                    "Read off the decay curve at one year of map age. There is rarely a build exactly 365 days old, so the value is interpolated between the two builds closest to that mark. Only when the build history does not span a full year is the nearest build scaled to a yearly rate instead. The line below names the readings this rests on.",
-                    "This feeds the question of how often Bitcoin Core should ship a fresh asmap. A low yearly rate means an embedded map ages gracefully, a high one is a reason to refresh more often."
+                    "The decay curve below boiled down to one yearly rate: the share of today's nodes a one-year-old embedded map would place in the wrong autonomous system.",
+                    "Read off the curve at one year of map age, interpolated between the two nearest builds (rarely is one exactly 365 days old). Only when the history is shorter than a year is the nearest build scaled instead. The line below names the readings used.",
+                    "It answers how often Bitcoin Core should ship a fresh asmap: a low rate ages gracefully, a high one argues for refreshing more often."
                 ],
                 "infoAria": "About map staleness"
+            },
+            "latestUpdate": {
+                "label": "Latest update impact",
+                "unit": "observed nodes change AS",
+                "basis": "{reassigned} reassigned, {newlyMapped} newly mapped, {unmapped} unmapped",
+                "noData": "needs two published builds",
+                "info": [
+                    "How many currently observed nodes resolve to a different autonomous system after the most recent release, versus the build published just before it. It turns the map diff into a concrete count of peers moved.",
+                    "Each node is looked up in both builds and bucketed like the Diff Explorer's prefixes: reassigned, newly mapped, or unmapped. The headline is the total moved; the line below splits it.",
+                    "The node set is the latest crawl, so the figure ages with the data, not the visitor. A tiny count is routing noise; a big jump is a substantive re-mapping worth a look in the Diff Explorer."
+                ],
+                "infoAria": "About latest update impact"
             }
         },
         "charts": {
@@ -344,16 +360,19 @@
             "ariaLabel": "Share of today's observed nodes that each older build resolves to a different autonomous system than the newest build. One line per crawler.",
             "tooltipTitle": "{date} build, {days} days old",
             "axis": {
-                "age": "Map age",
-                "date": "Build date",
+                "age": "Age",
+                "date": "Date",
                 "ariaLabel": "Decay chart x-axis",
-                "tickLabel": "{days}d"
+                "tickZero": "0",
+                "tickYears": "{n}y",
+                "tickMonths": "{n}mo",
+                "tickDays": "{n}d"
             },
             "info": [
-                "The most recent node set is held fixed and looked up in every published asmap-data build. Each point is the share of those nodes an older build resolves to a different autonomous system than the newest build does.",
-                "The axis switch picks the x-axis. Map age answers the update cadence question directly: a point at 400 days shows how wrong a 400 day old map already is for today's nodes, so the curve rising to the right is the cost of shipping stale maps. Build date lines the same points up with the calendar, matching the other charts.",
-                "The node set is fixed on purpose, so map age is the only thing that changes between points. One consequence: a fresh crawl updates the node set behind the curve, but new points appear only when new builds are published.",
-                "Each crawler is one line. Where they overlap, the map ages the same way no matter who observed the network."
+                "The latest node set, held fixed, looked up in every published build. Each point is the share that the older build resolves to a different autonomous system than the newest build does.",
+                "The axis switch picks x. Map age answers the cadence question directly: a point at 400 days shows how wrong a 400 day old map already is, so the rise to the right is the cost of shipping stale maps. Build date lines the points up with the calendar.",
+                "Holding the node set fixed means map age is the only thing changing between points. A fresh crawl updates that set, but new points appear only when new builds ship.",
+                "One line per crawler. Where they overlap, the map ages the same no matter who observed the network."
             ]
         },
         "hhi": {
@@ -362,9 +381,9 @@
             "ariaLabel": "Herfindahl-Hirschman index of the observed node set across every snapshot, scored against the build in effect at each one. One line per crawler. Lower means more diverse.",
             "info": [
                 "Pick two observed nodes at random: this index is the chance they sit in the same autonomous system. At 0.02 that chance is 2 percent.",
-                "The same Herfindahl-Hirschman index as the concentration card above, scored against the build in effect at each snapshot instead of only the latest one. Lower is more diverse, so a falling line means the observed network keeps spreading across more operators.",
-                "Each crawler is its own line. Where the lines agree, the trend holds no matter who observed the network.",
-                "The family switch scores the index over IPv4 only or IPv6 only nodes, with tunneled IPv4-in-IPv6 peers counting as IPv4 like in Core's bucketing. Bitcoin Core treats the two families as independent peer diversity dimensions, and the combined view is dominated by IPv4 because IPv4 nodes are the large majority. The split shows whether IPv6 concentration moves with the trend or against it."
+                "The same HHI as the concentration card, but scored against the build in effect at each snapshot. A falling line means the network keeps spreading across more operators.",
+                "One line per crawler; where they agree, the trend holds no matter who observed the network.",
+                "The family switch scores IPv4 only or IPv6 only (tunneled IPv4-in-IPv6 counts as IPv4). All pools both, counting an operator's IPv4 and IPv6 nodes as one AS. IPv4 sets the overall level as the majority, but IPv6 runs far more concentrated, which All alone hides, so the split is worth watching."
             ]
         },
         "coverage": {
@@ -372,10 +391,10 @@
             "infoAria": "About ASmap coverage over time",
             "ariaLabel": "Share of each snapshot's clearnet nodes the build in effect resolves to an autonomous system. One line per crawler. Higher means the map fits the network better.",
             "info": [
-                "For each snapshot, the share of observed clearnet nodes the ASmap build in effect resolves to an autonomous system. The rest fall outside every prefix the map carries and would use Bitcoin Core's default /16 and /32 groups instead.",
-                "The HHI chart above asks how the mapped nodes distribute. This one asks how many nodes get mapped at all. A falling line means the routing data behind ASmap is falling behind where the nodes actually are.",
-                "Each snapshot is scored against the build in effect at its crawl time, so the line shows what a node operator running the then current map actually experienced.",
-                "The dips are map staleness, not broken data. The deepest one (KIT, August 2024) was crawled hours before a new release shipped, against a five month old build, and every node it left unmapped resolves again under that next build. Coverage sags while a map ages and snaps back with each release. It is the coverage twin of the decay curve, and one more argument for shipping maps regularly."
+                "For each snapshot, the share of clearnet nodes the build in effect resolves to an autonomous system. The rest fall outside every prefix the map carries and use Bitcoin Core's default /16 and /32 groups.",
+                "The HHI chart asks how mapped nodes distribute; this asks how many get mapped at all. A falling line means the routing data behind ASmap is lagging where the nodes are.",
+                "Each snapshot is scored against the build in effect at its crawl time, so it reflects what a then current map actually delivered.",
+                "The dips are map staleness, not bad data. The deepest (KIT, August 2024) was crawled hours before a release, against a five month old build; every node it missed resolves again under the next one. Coverage sags as a map ages and snaps back at each release."
             ]
         },
         "concentration": {
@@ -384,28 +403,21 @@
             "operatorsInfoAria": "About the top operator breakdown",
             "operatorsAria": "Stacked bars, one per KIT snapshot, segmented into that snapshot's five largest operators by node share. The bar height is the combined top-5 share. Hover a bar for the operator names.",
             "operatorsInfo": [
-                "One bar per snapshot, split into the five operators that held the largest node share at that point in time, scored against the build in effect. The bar height is the combined top-5 share, so a shrinking bar means the top tier as a whole is losing grip on the network.",
-                "The top five are re-elected for every snapshot. A fixed set of five would understate the combined share whenever a rising operator enters the tier. Each operator keeps the same colour in every bar it appears in, so a colour appearing or vanishing is the tier reshuffling. Hover a bar to see who its five are.",
-                "KIT only, because this is the live crawl. The cross-check between crawlers lives in the decay and HHI charts above."
+                "One bar per snapshot, split into the five operators with the largest node share at that point, scored against the build in effect. Bar height is the combined top-5 share, so a shrinking bar means the top tier is losing its grip.",
+                "The top five are re-picked per snapshot, since a fixed five would understate the share when a new operator rises. Each operator keeps its colour across bars, so a colour appearing or vanishing is the tier reshuffling. Hover a bar for the names.",
+                "KIT only, the live crawl. The cross-crawler check lives in the decay and HHI charts above."
             ]
         },
         "crosscheck": {
             "label": "ASN attribution agreement",
             "metric": "~{pct}",
-            "note": "About {pct} of the nodes the {source} crawl tagged with their own ASN match the ASmap lookup for the same IP. Both crawlers stay in a {min} to {max} band. Open the table below for the exact counts.",
-            "tableToggle": "Show the numbers for each snapshot",
-            "colSnapshot": "Snapshot",
-            "colSource": "Source",
-            "colCompared": "Compared",
-            "colAgree": "Agree",
-            "colAgreement": "Agreement",
+            "note": "About {pct} of the nodes the {source} crawl tagged with their own ASN match the ASmap lookup for the same IP. Both crawlers stay in a {min} to {max} band.",
             "infoAria": "About ASN attribution agreement",
             "info": [
-                "A data quality check, not a measure of network health. Of the nodes a crawler tagged with its own ASN (resolved through whois), the share where that ASN matches what the ASmap build in effect assigns to the same IP.",
-                "Only nodes where both sides have an opinion enter the comparison. Nodes the map leaves unmapped are excluded rather than counted as disagreement.",
-                "A few percent of mismatch is expected, because whois attribution and routing attribution differ on prefixes with several origins and on recent reassignments. Hetzner, for example, announces from AS24940 plus separate cloud ASNs, and some prefixes still carry a previous owner's whois description while routing already attributes them elsewhere. This is also why per operator counts here can sit above the plots on KIT's own site: KIT groups nodes by the whois description string, this dashboard groups by the routed AS, which is the vocabulary Bitcoin Core's eclipse protection operates in.",
-                "A steady figure means the two independent views agree, which is evidence that the data behind every chart above is sound.",
-                "Only snapshots whose crawler shipped an ASN can be scored. KIT ships one for every peer. The Bitnodes archive carried whois data through late 2025, so its earlier rows appear in the table while the headline follows KIT."
+                "A data quality check, not a network health metric. Of the nodes a crawler tagged with its own ASN (via whois), the share where that ASN matches what the build in effect assigns to the same IP.",
+                "Only nodes where both sides have an opinion count; unmapped nodes are excluded, not counted as disagreement.",
+                "A few percent of mismatch is normal: whois and routing differ on multi-origin prefixes and recent reassignments. Hetzner, for example, announces from AS24940 plus separate cloud ASNs. This is also why per operator counts here can exceed KIT's own site, which groups by whois description while this dashboard groups by the routed AS, the vocabulary Bitcoin Core's eclipse protection uses.",
+                "A steady figure means the two independent views agree, which is evidence the data behind every chart above is sound. Only crawlers that ship an ASN can be scored: KIT always does; the Bitnodes archive did through late 2025, so it still widens the agreement band while the headline follows KIT."
             ]
         }
     },
@@ -413,7 +425,6 @@
     "diff": {
         "sectionTitle": "Diff Explorer",
         "sectionLede": "Compare any two ASmap builds",
-        "loading": "Loading diff data. The all-pairs diff matrix is the dashboard's largest payload and loads after the rest of the page.",
         "noDiffsYet": "diffs.json contains no diffs yet.",
         "needTwoUnfilled": "Need at least two builds with an unfilled variant to compare.",
         "selectors": {
@@ -425,26 +436,22 @@
             "unavailable": "No precomputed diff for this pair. One of the two builds is missing its unfilled (source data) variant.",
             "infoAria": "About the diff classification",
             "info": [
-                "The IPv4 and IPv6 toggle next to the section title scopes everything below it, the match banner, the bucket counts, the stacked bar, and the top movers table, to one address family at a time. Bitcoin Core peer diversity treats the two families as independent, so a diff that moves 10000 IPv4 prefixes has a different operational meaning than one that moves 10000 IPv6 prefixes.",
-                "The match banner counts in peer diversity buckets, /16 buckets for IPv4 and /32 buckets for IPv6. These are the buckets Bitcoin Core's GetGroup() uses for peer diversity when no asmap is loaded. A bucket counts as changed when at least one prefix inside it gained, lost, or swapped its ASN between Map A and Map B, so the same bucket scale applies to both families. The denominator is every bucket that either map covers, which guarantees each changed bucket is part of it and the match never reads below zero.",
-                "Within the selected family, each entry level change between Map A and Map B falls into exactly one of three groups.",
+                "The IPv4/IPv6 toggle by the section title scopes everything below it: the match banner, bucket counts, stacked bar, and top movers. Bitcoin Core treats the families as independent, so 10,000 IPv4 prefixes moving means something different from 10,000 IPv6.",
+                "The match banner counts in peer diversity buckets (/16 for IPv4, /32 for IPv6), the buckets Bitcoin Core's GetGroup() uses with no asmap loaded. A bucket counts as changed when any prefix inside it gained, lost, or swapped its ASN between Map A and Map B. The denominator is every bucket either map covers, so the match can never read below zero.",
+                "Within the selected family, each entry level change falls into exactly one of three groups.",
                 {
                     "lead": "Reassigned.",
-                    "text": "A prefix was mapped in both Map A and Map B but now lands on a different autonomous system. This is where most ASmap edits land."
+                    "text": "A prefix mapped in both maps but now on a different autonomous system. Where most ASmap edits land."
                 },
                 {
                     "lead": "Newly Mapped.",
-                    "text": "A prefix had no autonomous system in Map A and now resolves to one in Map B."
+                    "text": "A prefix had no autonomous system in Map A and resolves to one in Map B."
                 },
                 {
                     "lead": "Unmapped.",
-                    "text": "A prefix that resolved to an autonomous system in Map A no longer resolves to one in Map B."
+                    "text": "A prefix that resolved in Map A no longer does in Map B."
                 },
-                {
-                    "lead": "AS roster delta.",
-                    "text": "The footer line under the stacked bar tracks how many distinct autonomous systems each build maps, plus how many appeared (in Map B but not Map A) and disappeared (in Map A but not Map B). The roster delta does not care about address family. It counts ASes across both families, so the toggle does not change this line."
-                },
-                "Worked out from the unfilled (source data) variant of each build, so each change is a real BGP, RPKI, or IRR shift and not a fill heuristic artefact."
+                "Computed from the unfilled variant of each build (named under the bucket count), so each change is a real BGP, RPKI, or IRR shift, not a fill artefact."
             ]
         },
         "matchBanner": {
@@ -461,6 +468,18 @@
             "newlyMapped": "Newly Mapped",
             "unmapped": "Unmapped"
         },
+        "nodeImpact": {
+            "caption": "of observed nodes change AS ({affected} of {total})",
+            "detail": "{reassigned} reassigned, {newlyMapped} newly mapped, {unmapped} unmapped",
+            "source": "{source} crawl ({date}), each node resolved in Map A and Map B.",
+            "unavailable": "Real node impact is not available for this pair yet.",
+            "infoAria": "About real node impact",
+            "info": [
+                "How many observed Bitcoin nodes resolve to a different autonomous system between the two maps you picked. It turns the prefix diff above into real peers affected, so it changes with the pair.",
+                "Each crawled node is looked up in both maps and bucketed like the prefixes above: reassigned, newly mapped, or unmapped. Scoped to the selected family.",
+                "The crawl data is non-public, so only aggregate counts are published, never addresses. A pair shows no line until the committed network data covers both its builds."
+            ]
+        },
         "family": {
             "ariaLabel": "Address family",
             "ipv4": {
@@ -470,7 +489,20 @@
                 "label": "IPv6"
             }
         },
-        "rosterDelta": "ASes {a} to {b}. Appeared {appeared}, disappeared {disappeared}."
+        "rosterDelta": "ASes {a} to {b}. Appeared {appeared}, disappeared {disappeared}.",
+        "rosterDeltaInfoAria": "About the AS roster delta",
+        "rosterDeltaInfo": [
+            "How many distinct autonomous systems each build maps, and how that roster changed between Map A and Map B.",
+            {
+                "lead": "Appeared.",
+                "text": "Autonomous systems in Map B but not Map A."
+            },
+            {
+                "lead": "Disappeared.",
+                "text": "Autonomous systems in Map A but not Map B."
+            },
+            "Unlike the buckets above, this counts ASes across both families, so the toggle does not change it."
+        ]
     },
 
     "topMovers": {
@@ -479,17 +511,17 @@
         "noMatches": "No autonomous systems match this filter.",
         "infoAria": "About the top movers table",
         "info": [
-            "Autonomous systems most affected by the selected diff, ranked by the address space they gained or lost in the active address family.",
-            "The IPv4 and IPv6 toggle next to the Diff Explorer section title scopes this table too. Each AS shows once per family, and the same AS can rank very differently in the two views. A peer that reassigns a single large IPv4 prefix barely moves the IPv6 ranking, and an AS that reshuffles dozens of tiny IPv6 blocks barely shows up under IPv4. That difference is the whole reason the two are not merged.",
+            "Autonomous systems most affected by the diff, ranked by the address space they gained or lost in the active family.",
+            "The IPv4/IPv6 toggle scopes this table too. Each AS appears once per family and can rank very differently: a single large IPv4 prefix barely moves the IPv6 ranking, and dozens of tiny IPv6 blocks barely show under IPv4. That is why the two are not merged.",
             {
                 "lead": "Share.",
-                "text": "This AS share of the total address space the diff moved in the active currency. Hover a row for the raw IPv4 address or IPv6 /32 block count."
+                "text": "This AS's share of the total address space the diff moved in the active family. Hover a row for the raw counts."
             },
             {
                 "lead": "Direction.",
-                "text": "An up arrow means it gained from the counterpart, a down arrow means it lost to it, and a double arrow means address space moved both ways. The counterpart can be a real autonomous system or the unmapped pool. A row marked up arrow unmapped gained address space that previously had no ASN. A row marked down arrow unmapped lost address space that no longer resolves to any ASN."
+                "text": "Up gained, down lost, a double arrow means space moved both ways. The counterpart can be a real autonomous system or the unmapped pool: up-unmapped gained space that had no ASN, down-unmapped lost space that no longer resolves."
             },
-            "Hover any row for the AS operator name, the raw IPv4 address or IPv6 /32 block count moved, the AS footprint on each side, and the touched ratio. Touched is the share of this AS own footprint that the diff visited. Values above 100 percent show up when one build packs the AS into a single large block while the other splits the same range into many smaller pieces."
+            "Hover any row for the operator name, the raw counts moved, the AS footprint on each side, and Touched, the share of this AS's own footprint the diff visited. Above 100 percent happens when one build packs the AS into one block and the other splits it into many."
         ],
         "viewMode": {
             "compact": "Compact",
@@ -504,7 +536,7 @@
             "pageAria": "Page {n}"
         },
         "filter": {
-            "placeholder": "Filter by AS number or operator",
+            "placeholder": "Search...",
             "ariaLabel": "Filter top movers",
             "clear": "Clear",
             "clearAria": "Clear filter",
@@ -528,6 +560,7 @@
         },
         "columns": {
             "as": "AS",
+            "share": "Share",
             "direction": "Direction"
         },
         "shareDenominator": {

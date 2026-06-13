@@ -6,9 +6,11 @@
 // app.js hides its nav entry.
 //
 // Layout, top to bottom, follows the proposal's "reads as one answer"
-// order: a 2x2 snapshot hero, then two trend charts — the decay curve
-// (the update-cadence question) and the top-5 operator breakdown (the
-// decentralisation question) — and finally the ASN-attribution
+// order: a snapshot hero of up to six cards (two per row, paired by
+// theme — see overview.js), then four range-windowed trend charts —
+// the decay curve (the update-cadence question), the top-5 operator
+// breakdown (the decentralisation question), the HHI concentration
+// trend, and the ASmap coverage trend — and finally the ASN-attribution
 // agreement as a single data-quality stat that keeps the headline KPI
 // but reveals the exact per-snapshot counts (both crawlers) behind a
 // disclosure, so the figure is checkable rather than asserted. Earlier
@@ -75,11 +77,12 @@ export function mount(payload) {
         snapshot: latest,
         decay: primaryData.decay,
         source: primary,
+        latestUpdate: network.latest_update,
     });
 
     // One source line for the whole hero: all four cards read the
-    // primary crawl's latest snapshot, and the cards no longer repeat
-    // it individually. Names the comparison source when more than one
+    // primary crawl's latest snapshot, so the individual cards don't
+    // repeat it. Names the comparison source when more than one
     // crawler is present so the reader knows the Trends overlay them.
     const sourceSlot = document.querySelector("[data-network-source]");
     if (sourceSlot) {

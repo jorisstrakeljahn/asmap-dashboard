@@ -12,7 +12,7 @@ The data layer is split into three files along size and reproducibility lines:
 
 - `metrics.json` (~20 KB): per-build profiles. Loaded first, drives the overview and most charts.
 - `diffs.json` (~10 MB): the all-pairs diff matrix. Fetched in parallel and rendered late, so the first paint never waits on it.
-- `network.json` (~30 KB, optional): observed-node metrics derived from KIT crawler dossiers (and the archived Bitnodes snapshots). When the file is absent the Network tab stays hidden.
+- `network.json` (optional): observed-node metrics derived from KIT crawler dossiers (and the archived Bitnodes snapshots). When the file is absent the Network tab stays hidden. Alongside the per-snapshot series it carries node-impact aggregates: `latest_update` (how many observed nodes change AS between the two most recent builds) and `pair_impact` (the same count for every diffable build pair, so the Diff Explorer can show a per-pair banner). `pair_impact` scales with the pair count, so the file grows with the build history; only aggregate counts are emitted, never node addresses.
 
 `metrics.json`, `diffs.json`, and `asn-names.json` are generated artefacts and are not tracked in git. The Pages workflow rebuilds them from scratch on every deploy and a daily cron picks up new asmap-data builds. `network.json` is the one exception: the KIT dossiers behind it are not public yet, so the small aggregate file is committed and deployed as-is until the raw data can be published.
 
