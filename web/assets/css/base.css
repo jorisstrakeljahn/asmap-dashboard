@@ -72,3 +72,28 @@ svg {
 .muted {
     color: var(--color-text-muted);
 }
+
+/* Theme cross-fade. The token swap between light and dark is
+   instantaneous; this class — added to <html> for a single frame
+   window by components/theme-switch.js and removed ~360ms later —
+   tweens the colour-bearing properties across the whole tree so the
+   whole page eases between palettes instead of hard-cutting. Scoped
+   to a class (rather than a permanent `* { transition }`) so it only
+   ever runs on an explicit toggle and never taxes hover/scroll
+   repaints. Only colour properties are listed, so layout geometry
+   and the mode-switch pill keep their own dedicated transitions.
+   The reduced-motion guard drops the cross-fade entirely. */
+@media (prefers-reduced-motion: no-preference) {
+    html.theme-transition,
+    html.theme-transition *,
+    html.theme-transition *::before,
+    html.theme-transition *::after {
+        transition:
+            background-color var(--motion-theme) var(--motion-ease),
+            border-color var(--motion-theme) var(--motion-ease),
+            color var(--motion-theme) var(--motion-ease),
+            fill var(--motion-theme) var(--motion-ease),
+            stroke var(--motion-theme) var(--motion-ease),
+            box-shadow var(--motion-theme) var(--motion-ease) !important;
+    }
+}

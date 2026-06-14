@@ -65,6 +65,26 @@
     color: var(--color-text-base);
 }
 
+/* Icon + label segments (theme switch). The button becomes a small
+   row; the icon inherits the segment's text colour so it lifts onto
+   the accent fill alongside the label when active. */
+.mode-switch--with-icons .mode-switch__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.mode-switch__icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+}
+
+.mode-switch__icon svg {
+    display: block;
+    width: 15px;
+    height: 15px;
+}
+
 /* Active segment: colour only — the pill underneath carries the
    fill, so this just lifts the label onto the accent. */
 .mode-switch__btn.is-active {

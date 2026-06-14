@@ -3,6 +3,7 @@
 
 import * as asnNames from "./asn-names.js";
 import { initNavMenu } from "./components/nav-menu.js";
+import { initThemeSwitch, localizeThemeSwitch } from "./components/theme-switch.js";
 import { initTabs } from "./tabs.js";
 import * as mapsTab from "./maps-tab.js";
 import * as diffTab from "./diff-tab.js";
@@ -129,6 +130,11 @@ async function init() {
     }
 
     applyDomTranslations();
+    // The theme switch mounted with English fallback labels at module
+    // load (so it applies the saved theme and appears without waiting
+    // on the data fetch); now that the dictionary is in, swap in the
+    // localised labels.
+    localizeThemeSwitch(themeSwitch);
 
     const { data: payload, lastModified } = metrics;
     renderLastRefreshed(lastModified);
@@ -257,8 +263,12 @@ function renderLoadError(error) {
 }
 
 // Wired once: the header markup is static and survives the in-place
-// retry (which only rebuilds main.content), so calling this here —
-// not inside init() — avoids double-binding the burger listeners.
+// retry (which only rebuilds main.content), so calling these here —
+// not inside init() — avoids double-binding the burger listeners and
+// keeps the theme switch (which applies the saved theme on mount) live
+// even if the data fetch fails. localizeThemeSwitch runs later, once
+// the i18n dictionary has loaded.
 initNavMenu();
+const themeSwitch = initThemeSwitch();
 
 init();
