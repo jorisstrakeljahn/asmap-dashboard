@@ -16,6 +16,7 @@
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-semibold);
     color: var(--color-text-strong);
+    letter-spacing: var(--letter-tight);
 }
 
 .site-header__logo:hover {
@@ -34,11 +35,37 @@
     padding-bottom: var(--space-1);
     color: var(--color-text-base);
     white-space: nowrap;
+    transition: color var(--motion-base) var(--motion-ease);
+}
+
+/* Thick sliding underline. Every link carries the bar; it grows from
+   the centre to half width on hover and locks to full width on the
+   active tab, so the indicator animates between states instead of
+   snapping a static rule onto a new link. The bar reuses the
+   dashboard accent — the reference's lime would glare on the light
+   theme — and the 4px radius rounds the top of the 3px bar into a
+   half-pill cap. */
+.site-header__nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 3px;
+    background: var(--color-accent);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform var(--motion-pill) var(--ease-decelerate);
 }
 
 .site-header__nav-link:hover {
     text-decoration: none;
     color: var(--color-text-strong);
+}
+
+.site-header__nav-link:hover::after {
+    transform: scaleX(0.5);
 }
 
 .site-header__nav-link.is-active {
@@ -47,13 +74,7 @@
 }
 
 .site-header__nav-link.is-active::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: -3px;
-    height: 2px;
-    background: var(--color-text-strong);
+    transform: scaleX(1);
 }
 
 /* Burger toggle. Hidden on desktop where the inline nav carries
@@ -141,6 +162,8 @@
     margin-top: var(--space-1);
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
+    /* Avoid orphans / ragged last lines in the descriptive copy. */
+    text-wrap: pretty;
 }
 
 .section__body {
@@ -443,8 +466,9 @@
         border-radius: var(--radius-sm);
     }
     /* The sliding underline suits an inline row; in the stacked
-       panel an active item reads better as a filled row. */
-    .site-header__nav-link.is-active::after {
+       panel an active item reads better as a filled row, so the bar
+       (active and hover alike) is dropped here. */
+    .site-header__nav-link::after {
         display: none;
     }
     .site-header__nav-link.is-active,

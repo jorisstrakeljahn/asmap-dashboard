@@ -31,6 +31,11 @@
     color: var(--color-text-strong);
     line-height: var(--line-tight);
     margin-top: var(--space-1);
+    /* Tabular figures keep multi-digit headlines (and the delta line
+       below) on a fixed column grid; the negative tracking matches
+       the rest of the display type. */
+    font-variant-numeric: tabular-nums;
+    letter-spacing: var(--letter-tight);
 }
 
 .card__unit {

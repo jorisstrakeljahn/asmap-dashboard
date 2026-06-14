@@ -34,19 +34,23 @@
         background var(--motion-fast) var(--motion-ease);
 }
 
-/* Invisible hitbox expansion so a coarse pointer (finger, stylus)
-   can reliably tap the 18 px icon. The visual size stays at 18 px
-   for mouse users; the ::before pseudo-element grows the
-   pointer-events surface to ~32 px without nudging the layout
-   (its absolute positioning leaves siblings untouched). Limited
-   to coarse pointers because on a mouse the extra hit area can
-   trip neighbouring elements with their own hover behaviour. */
+/* Invisible hit-area halo so the pointer does not slip off the
+   18 px icon. The visual size stays 18 px; the ::before only grows
+   the pointer-events surface, and its absolute positioning leaves
+   the layout untouched. A small 4 px halo (~26 px target) applies to
+   every pointer so a fast or sensitive mouse still lands on the icon
+   without reaching neighbouring controls; coarse pointers (finger,
+   stylus) widen it toward a comfortable ~32 px tap target. */
+.info-tooltip__trigger::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: var(--radius-pill);
+}
+
 @media (pointer: coarse) {
     .info-tooltip__trigger::before {
-        content: "";
-        position: absolute;
         inset: -7px;
-        border-radius: var(--radius-pill);
     }
 }
 
@@ -115,6 +119,23 @@
        style.maxWidth wins at runtime; this rule is the fallback for
        any future caller that bypasses the JS factory. */
     max-width: 400px;
+    /* Open / close animation. The panel unfolds out of the "i": JS
+       points transform-origin back at the trigger and sets the
+       vertical shift direction (--tip-enter-shift) per open side, so
+       the scale+fade reads as the panel growing from the icon and
+       collapsing back into it. The steady visible state is the bare
+       rule here; the collapsed state below is only carried for one
+       frame on open and across the close transition, so a non-JS
+       caller still gets a fully visible panel. */
+    transform-origin: top center;
+    transition:
+        opacity var(--motion-slow) var(--ease-decelerate),
+        transform var(--motion-slow) var(--ease-decelerate);
+}
+
+.info-tooltip__popover.is-collapsed {
+    opacity: 0;
+    transform: translateY(var(--tip-enter-shift, -4px)) scale(0.96);
 }
 
 .info-tooltip__popover[hidden] {

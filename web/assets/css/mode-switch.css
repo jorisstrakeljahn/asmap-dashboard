@@ -1,19 +1,53 @@
 /* Mode switch: pill-style segmented control (drift-chart "vs
-   previous / vs baseline", top-movers compact / detailed, etc.).
-   The outer pill carries a hairline border so it sits in the same
-   visual language as dropdown triggers; the inner active button
-   fills with the accent colour so the picked mode reads as a
-   committed selection, not a hover highlight. */
+   previous / vs baseline", top-movers compact / detailed, the
+   IPv4 / IPv6 family toggles, etc.). The outer track carries a
+   hairline border so it sits in the same visual language as
+   dropdown triggers; a single sliding pill highlights the active
+   segment.
+
+   The highlight is one element (.mode-switch__pill) that JS moves
+   under the active button — it writes the pill's width + translateX
+   from the button's measured box (see mode-switch.js), so switching
+   modes tweens the highlight across the track instead of repainting
+   a static fill on a different button each time. On first layout,
+   tab reveal, and viewport resize the JS snaps the pill into place
+   without a transition, so the highlight is always correct on the
+   first frame and only animates on an actual mode change. */
 
 .mode-switch {
+    position: relative;
     display: inline-flex;
+    align-items: center;
     border: 1px solid var(--color-border-strong);
     border-radius: var(--radius-pill);
     padding: 2px;
     background: var(--color-bg);
 }
 
+/* width + transform are written inline by JS; top/bottom inset by
+   the track padding so the pill spans the button row height without
+   hard-coding it. Sits under the labels (z-index 0) so the active
+   label reads on top of the accent fill. */
+.mode-switch__pill {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    left: 0;
+    width: 0;
+    z-index: 0;
+    background: var(--color-accent);
+    border-radius: var(--radius-pill);
+    transform: translateX(0);
+    transition:
+        transform var(--motion-pill) var(--ease-decelerate),
+        width var(--motion-pill) var(--ease-decelerate);
+    will-change: transform, width;
+    pointer-events: none;
+}
+
 .mode-switch__btn {
+    position: relative;
+    z-index: 1;
     padding: 0 var(--space-3);
     height: calc(var(--control-height-sm) - 4px);
     border: 0;
@@ -24,17 +58,16 @@
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     cursor: pointer;
-    transition:
-        background var(--motion-fast) var(--motion-ease),
-        color var(--motion-fast) var(--motion-ease);
+    transition: color var(--motion-pill) var(--ease-decelerate);
 }
 
 .mode-switch__btn:hover {
     color: var(--color-text-base);
 }
 
+/* Active segment: colour only — the pill underneath carries the
+   fill, so this just lifts the label onto the accent. */
 .mode-switch__btn.is-active {
-    background: var(--color-accent);
     color: var(--color-on-fill);
 }
 
