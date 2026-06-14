@@ -75,10 +75,9 @@ import itertools
 from collections import Counter
 from dataclasses import dataclass
 
-from asmap_dashboard._prefix import is_ipv4_prefix
-from asmap_dashboard._vendor.asmap import ASMap, net_to_prefix
-from asmap_dashboard.loader import LoadedMap
-from asmap_dashboard.netgroup import default_netgroup, linked_ipv4
+from asmap_dashboard._prefix import classify_asn_change, ip_to_prefix, is_ipv4_prefix
+from asmap_dashboard._vendor.asmap import ASMap
+from asmap_dashboard.netgroup import default_netgroup
 from asmap_dashboard.network.snapshots import Node, Snapshot
 
 TOP_ASES_LIMIT = 15
@@ -113,25 +112,15 @@ class _Build:
     asmap: ASMap
 
 
-def _ip_to_prefix(ip: str) -> list[bool]:
-    """Return the full-length bit prefix ``ASMap.lookup`` expects.
+def _node_ip_to_prefix(ip: str) -> list[bool]:
+    """Return the lookup prefix for a node's IP string.
 
-    An IPv6 address that merely transports an IPv4 host (6to4,
-    Teredo, NAT64, ...) is looked up as that IPv4 — Core's
-    ``GetMappedAS()`` does the same, so a tunneled peer scores
-    against the same map entry as its native twin. The crawls
-    really carry such peers (a handful of 6to4 and NAT64 nodes
-    per KIT snapshot), so this is not a theoretical branch.
-
-    A /32 (v4) or /128 (v6) single-host network is the lookup key
-    for one node.
+    Thin wrapper over the shared ``_prefix.ip_to_prefix`` so the
+    string-keyed crawl data and the diff ``--addrs`` path share one
+    linked-IPv4 unwrap and one prefix conversion (see that function
+    for the Core-parity rationale).
     """
-    addr = ipaddress.ip_address(ip)
-    if isinstance(addr, ipaddress.IPv6Address):
-        addr = linked_ipv4(addr) or addr
-    if isinstance(addr, ipaddress.IPv4Address):
-        return net_to_prefix(ipaddress.IPv4Network((int(addr), 32)))
-    return net_to_prefix(ipaddress.IPv6Network(f"{addr}/128"))
+    return ip_to_prefix(ipaddress.ip_address(ip))
 
 
 def _lookup_asn(asmap: ASMap, prefix: list[bool]) -> int:
@@ -163,7 +152,7 @@ def _prepare_nodes(nodes: tuple[Node, ...]) -> list[_PreparedNode]:
     prepared: list[_PreparedNode] = []
     for node in nodes:
         try:
-            prefix = _ip_to_prefix(node.ip)
+            prefix = _node_ip_to_prefix(node.ip)
         except ValueError:
             continue
         prepared.append(
@@ -421,29 +410,15 @@ def _decay_curve(snapshot: Snapshot, builds: list[_Build], reference: _Build) ->
     }
 
 
-def _classify_change(asn_a: int, asn_b: int) -> str | None:
-    """Bucket one node's ASN change between two maps.
-
-    Mirrors ``diff._node_impact``: same three categories the Diff
-    Explorer uses for prefixes, here over observed nodes. ``0`` is the
-    folded "no AS opinion" sentinel from ``_lookup_asn``.
-    """
-    if asn_a == asn_b:
-        return None
-    if asn_a == 0:
-        return "newly_mapped"
-    if asn_b == 0:
-        return "unmapped"
-    return "reassigned"
-
-
-def _impact_dict(families: list[str], asns_a: list[int], asns_b: list[int]) -> dict:
+def _impact_dict(
+    node_families: list[str], asns_a: list[int], asns_b: list[int]
+) -> dict:
     """Count how the node set's ASNs move from map A to map B.
 
-    ``families`` / ``asns_a`` / ``asns_b`` are aligned per-node lists.
-    Returns total + per-category counts overall and split by effective
-    address family, so a consumer can scope to the family it shows
-    (the Diff Explorer) or read the whole set (the Network card).
+    ``node_families`` / ``asns_a`` / ``asns_b`` are aligned per-node
+    lists. Returns total + per-category counts overall and split by
+    effective address family, so a consumer can scope to the family it
+    shows (the Diff Explorer) or read the whole set (the Network card).
     """
 
     def blank() -> dict:
@@ -455,21 +430,23 @@ def _impact_dict(families: list[str], asns_a: list[int], asns_b: list[int]) -> d
         }
 
     overall = blank()
-    fam = {"ipv4": blank(), "ipv6": blank()}
-    for family, asn_a, asn_b in zip(families, asns_a, asns_b, strict=True):
+    by_family = {"ipv4": blank(), "ipv6": blank()}
+    for family, asn_a, asn_b in zip(node_families, asns_a, asns_b, strict=True):
         overall["total_nodes"] += 1
-        fam[family]["total_nodes"] += 1
-        change = _classify_change(asn_a, asn_b)
+        by_family[family]["total_nodes"] += 1
+        change = classify_asn_change(asn_a, asn_b)
         if change is not None:
             overall[change] += 1
-            fam[family][change] += 1
+            by_family[family][change] += 1
 
-    def finalize(d: dict) -> dict:
-        d["total_affected"] = d["reassigned"] + d["newly_mapped"] + d["unmapped"]
-        return d
+    def finalize(counts: dict) -> dict:
+        counts["total_affected"] = (
+            counts["reassigned"] + counts["newly_mapped"] + counts["unmapped"]
+        )
+        return counts
 
     result = finalize(overall)
-    result["families"] = {name: finalize(t) for name, t in fam.items()}
+    result["families"] = {name: finalize(counts) for name, counts in by_family.items()}
     return result
 
 
@@ -524,6 +501,26 @@ def _build_node_impact(
     return latest_update, {"pairs": pairs}
 
 
+def _lift_builds(builds: list, loaded: dict, pick_path) -> list[_Build]:
+    """Lift the builds whose ``pick_path`` variant is present into
+    ``_Build``, sorted by timestamp.
+
+    ``pick_path(build)`` returns the .dat path to read for one build, or
+    ``None`` to drop it. The two variant rules (diffable vs. lookup) live
+    in the thin wrappers below so the loop itself stays shared.
+    """
+    out: list[_Build] = []
+    for build in builds:
+        path = pick_path(build)
+        if path is None:
+            continue
+        out.append(
+            _Build(name=build.name, timestamp=build.timestamp, asmap=loaded[path].asmap)
+        )
+    out.sort(key=lambda b: b.timestamp)
+    return out
+
+
 def _diffable_builds(builds: list, loaded: dict) -> list[_Build]:
     """The builds the Diff Explorer can pair: those with an unfilled
     variant, lifted into ``_Build`` and sorted by timestamp.
@@ -532,16 +529,7 @@ def _diffable_builds(builds: list, loaded: dict) -> list[_Build]:
     node impact over the same set keeps the ``"<from>|<to>"`` keys here
     in lockstep with the diff keys the frontend looks up.
     """
-    out: list[_Build] = []
-    for build in builds:
-        if build.unfilled_path is None:
-            continue
-        loaded_map: LoadedMap = loaded[build.unfilled_path]
-        out.append(
-            _Build(name=build.name, timestamp=build.timestamp, asmap=loaded_map.asmap)
-        )
-    out.sort(key=lambda b: b.timestamp)
-    return out
+    return _lift_builds(builds, loaded, lambda build: build.unfilled_path)
 
 
 def build_network_section(
@@ -620,21 +608,9 @@ def _prepare_builds(builds: list, loaded: dict) -> list[_Build]:
     valid lookup source; unfilled is preferred purely to stay consistent
     with the diff pipeline's variant choice.
     """
-    out: list[_Build] = []
-    for build in builds:
-        path = build.unfilled_path or build.filled_path
-        if path is None:
-            continue
-        loaded_map: LoadedMap = loaded[path]
-        out.append(
-            _Build(
-                name=build.name,
-                timestamp=build.timestamp,
-                asmap=loaded_map.asmap,
-            )
-        )
-    out.sort(key=lambda b: b.timestamp)
-    return out
+    return _lift_builds(
+        builds, loaded, lambda build: build.unfilled_path or build.filled_path
+    )
 
 
 def _age_days(build_ts: int, reference_ts: int) -> int:

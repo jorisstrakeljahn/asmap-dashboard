@@ -9,16 +9,17 @@ from pathlib import Path
 from asmap_dashboard._prefix import (
     IPV4_BUCKET_SHIFT,
     IPV6_BUCKET_SHIFT,
+    classify_asn_change,
     count_buckets,
+    ip_to_prefix,
     is_ipv4_prefix,
     merge_ranges,
     prefix_address_count,
     prefix_address_range,
     total_range_size,
 )
-from asmap_dashboard._vendor.asmap import ASMap, net_to_prefix
+from asmap_dashboard._vendor.asmap import ASMap
 from asmap_dashboard.loader import LoadedMap, PathLike, load_map
-from asmap_dashboard.netgroup import linked_ipv4
 
 # Cap on how many top-mover ASes a single diff records *per
 # currency*. The roster is the union of the top ``TOP_MOVERS_LIMIT``
@@ -332,21 +333,22 @@ class _DiffBuckets:
         self.unmapped_ipv6_addresses = 0
 
     def record(self, old_asn: int, new_asn: int, is_v4: bool, addresses: int) -> None:
-        if old_asn == 0:
+        change = classify_asn_change(old_asn, new_asn)
+        if change == "newly_mapped":
             self.newly_mapped += 1
             if is_v4:
                 self.newly_mapped_ipv4 += 1
                 self.newly_mapped_ipv4_addresses += addresses
             else:
                 self.newly_mapped_ipv6_addresses += addresses
-        elif new_asn == 0:
+        elif change == "unmapped":
             self.unmapped += 1
             if is_v4:
                 self.unmapped_ipv4 += 1
                 self.unmapped_ipv4_addresses += addresses
             else:
                 self.unmapped_ipv6_addresses += addresses
-        else:
+        elif change == "reassigned":
             self.reassigned += 1
             if is_v4:
                 self.reassigned_ipv4 += 1
@@ -549,16 +551,15 @@ def _node_impact(asmap_a: ASMap, asmap_b: ASMap, addrs_file: PathLike) -> dict:
             except ValueError:
                 continue
             total_nodes += 1
-            prefix = _ip_to_prefix(ip)
+            prefix = ip_to_prefix(ip)
             asn_a = asmap_a.lookup(prefix) or 0
             asn_b = asmap_b.lookup(prefix) or 0
-            if asn_a == asn_b:
-                continue
-            if asn_a == 0:
+            change = classify_asn_change(asn_a, asn_b)
+            if change == "newly_mapped":
                 newly_mapped += 1
-            elif asn_b == 0:
+            elif change == "unmapped":
                 unmapped += 1
-            else:
+            elif change == "reassigned":
                 reassigned += 1
     return {
         "total_nodes": total_nodes,
@@ -567,20 +568,3 @@ def _node_impact(asmap_a: ASMap, asmap_b: ASMap, addrs_file: PathLike) -> dict:
         "unmapped": unmapped,
         "total_affected": reassigned + newly_mapped + unmapped,
     }
-
-
-def _ip_to_prefix(ip: ipaddress._BaseAddress) -> list:
-    """Return the full-length bit prefix asmap.lookup() expects.
-
-    An IPv6 address that merely transports an IPv4 host (6to4, Teredo,
-    NAT64, ...) is looked up as that IPv4, matching Bitcoin Core's
-    GetMappedAS() and the sibling lookup in network/metrics.py. Without
-    this unwrap, --addrs node-impact scored tunneled peers against the
-    v6 side of the map while the live network metrics scored them as v4,
-    so the two diverged on the handful of tunneled peers per snapshot.
-    """
-    if isinstance(ip, ipaddress.IPv6Address):
-        ip = linked_ipv4(ip) or ip
-    if isinstance(ip, ipaddress.IPv4Address):
-        return net_to_prefix(ipaddress.IPv4Network(f"{ip}/32"))
-    return net_to_prefix(ipaddress.IPv6Network(f"{ip}/128"))

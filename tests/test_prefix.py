@@ -1,9 +1,11 @@
-"""Tests for the range helpers in asmap_dashboard._prefix.
+"""Tests for asmap_dashboard._prefix.
 
 The loader and diff tests cover these helpers end-to-end through
 real ASmap binaries; the cases here pin the edge behaviour that is
 hard to reach that way (bucket dedup across ranges with a hole,
-family offsets in prefix_address_range).
+family offsets in prefix_address_range) plus the contract of the
+classification/lookup helpers that ``diff`` and ``network.metrics``
+both depend on (so a future edit cannot let the shared source drift).
 """
 
 from __future__ import annotations
@@ -11,7 +13,9 @@ from __future__ import annotations
 import ipaddress
 
 from asmap_dashboard._prefix import (
+    classify_asn_change,
     count_buckets,
+    ip_to_prefix,
     merge_ranges,
     prefix_address_range,
     total_range_size,
@@ -63,3 +67,32 @@ def test_count_buckets_dedups_ranges_sharing_a_bucket():
 
     assert ranges == [(0x10, 0x20), (0x40, 0x50), (0x300, 0x310)]
     assert count_buckets(ranges, 8) == 2
+
+
+def test_classify_asn_change_buckets():
+    assert classify_asn_change(0, 5) == "newly_mapped"
+    assert classify_asn_change(5, 0) == "unmapped"
+    assert classify_asn_change(5, 7) == "reassigned"
+
+
+def test_classify_asn_change_no_change_is_none():
+    assert classify_asn_change(5, 5) is None
+    assert classify_asn_change(0, 0) is None
+
+
+def test_ip_to_prefix_single_host_lengths():
+    # IPv4 prefixes live under ::ffff:0:0/96, so a /32 host arrives as
+    # a 96 + 32 = 128-bit list; a native IPv6 /128 host is 128 bits.
+    v4 = ip_to_prefix(ipaddress.ip_address("1.1.1.1"))
+    v6 = ip_to_prefix(ipaddress.ip_address("2001:db8::1"))
+    assert len(v4) == 128
+    assert len(v6) == 128
+
+
+def test_ip_to_prefix_unwraps_tunneled_ipv4_like_core():
+    # 2002:0101:0909::/16 (6to4) embeds 1.1.9.9. Core's GetMappedAS()
+    # looks such a peer up as that IPv4, so the tunneled address must
+    # resolve to the exact same lookup prefix as its native twin.
+    tunneled = ip_to_prefix(ipaddress.ip_address("2002:101:909::1"))
+    native = ip_to_prefix(ipaddress.ip_address("1.1.9.9"))
+    assert tunneled == native

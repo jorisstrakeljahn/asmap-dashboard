@@ -38,11 +38,9 @@ from pathlib import Path
 
 from asmap_dashboard.analyze import analyze_loaded_map
 from asmap_dashboard.diff import diff_loaded_maps
-from asmap_dashboard.loader import LoadedMap, load_map
+from asmap_dashboard.loader import LoadedMap, PathLike, load_map
 from asmap_dashboard.network.metrics import build_network_section
 from asmap_dashboard.network.snapshots import discover_snapshots
-
-PathLike = str | Path
 
 # Version of the JSON data contract between this pipeline and the
 # frontend (web/assets/js/app.js mirrors it as EXPECTED_SCHEMA_VERSION).
@@ -92,7 +90,7 @@ def discover_maps(data_dir: PathLike) -> list[DiscoveredBuild]:
     etc.) cannot accidentally feed the parser.
     """
     data_dir = Path(data_dir)
-    builds: dict[tuple, dict] = {}
+    builds: dict[tuple[str, int], dict[str, Path | None]] = {}
     year_dirs = sorted(
         p for p in data_dir.iterdir() if p.is_dir() and YEAR_DIRNAME_RE.match(p.name)
     )
@@ -128,7 +126,7 @@ def discover_maps(data_dir: PathLike) -> list[DiscoveredBuild]:
     return out
 
 
-def _classify(filename: str) -> tuple:
+def _classify(filename: str) -> tuple[int | None, str | None]:
     """Return (timestamp, "unfilled" | "filled") or (None, None).
 
     The unfilled match is checked first because both regexes share the
@@ -281,7 +279,7 @@ def _compute_pair_diffs(
     and the same daily wall-clock budget, so the switch point above
     is reached by whichever pass blows the budget first.
     """
-    diffable: list[tuple] = [
+    diffable: list[tuple[DiscoveredBuild, LoadedMap]] = [
         (build, loaded[build.unfilled_path])
         for build in builds
         if build.unfilled_path is not None
