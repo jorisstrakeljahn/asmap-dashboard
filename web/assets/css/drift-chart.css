@@ -10,48 +10,25 @@
     gap: var(--space-3);
 }
 
-.drift-chart__header {
-    display: flex;
+/* The drift card centres its header (label + unit baseline + info) and
+   lets it wrap, where the default chart-card header pins to the top.
+   Scoped to .drift-chart so the shared mountTimeSeriesCard header keeps
+   its flex-start default everywhere else. */
+.drift-chart .chart-card__header {
     align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
     flex-wrap: wrap;
 }
 
-.drift-chart__title {
-    display: flex;
-    align-items: baseline;
-    gap: var(--space-2);
-    flex-wrap: wrap;
-}
-
-.drift-chart__unit {
-    font-size: 0.8125rem;
-    letter-spacing: 0.01em;
-}
-
-.drift-chart__info {
+.drift-chart .chart-card__info {
     display: inline-flex;
     align-items: center;
 }
 
-.drift-chart__plot {
-    display: flex;
-    flex-direction: column;
-}
-
-/* The plot slot reuses the standard chart card internals, but our
-   wrapper already paints the card chrome. Strip the inner one so
-   the chart doesn't look double-bordered. */
-.drift-chart__plot .chart-card {
-    border: 0;
-    background: transparent;
-    box-shadow: none;
-    padding: 0;
-}
-
-.drift-chart__plot .card__label {
-    display: none;
+/* mountTimeSeriesCard already spaces the plot from the header; the
+   drift card stacks header, legend, and plot with a uniform gap, so
+   drop the extra top margin to avoid doubling it. */
+.drift-chart .chart-card__plot {
+    margin-top: 0;
 }
 
 /* Keep the header a single row even when the title wraps to two
@@ -60,7 +37,7 @@
    control. align-items:flex-start pins the icon to the top-right,
    level with the first title line, matching every other card. */
 @media (max-width: 600px) {
-    .drift-chart__header {
+    .drift-chart .chart-card__header {
         align-items: flex-start;
     }
 }

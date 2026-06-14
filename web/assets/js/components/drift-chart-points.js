@@ -10,14 +10,15 @@
 // indexes both consistently.
 //
 // Every present point is rendered in one drift unit at a time
-// (IPv4 coverage, IPv6 coverage, or entries — see DRIFT_* in
-// utils/diffs.js). The unit selects which pipeline fields the
-// ratios are read from; the rest of the point shape stays
-// constant, so the chart renderer does not branch on unit.
+// (IPv4 coverage or IPv6 coverage — see DRIFT_* in utils/diffs.js).
+// The unit selects which pipeline fields the ratios are read from;
+// the rest of the point shape stays constant, so the chart renderer
+// does not branch on unit.
 
 import {
     DRIFT_IPV4_COVERAGE,
     DRIFT_IPV6_COVERAGE,
+    findDirectionalDiff,
     previousDiffable,
 } from "../utils/diffs.js";
 import { unfilledProfile } from "../utils/map-variants.js";
@@ -78,7 +79,7 @@ function cumulativePoints(sortedMaps, diffs, fields) {
         if (map.name === baseline.name) {
             return zeroPoint(map, index, baseline);
         }
-        const diff = directionalDiff(diffs, baseline.name, map.name);
+        const diff = findDirectionalDiff(diffs, baseline.name, map.name);
         return diff
             ? toPoint(map, index, diff, baseline, fields)
             : gapPoint(map, index);
@@ -97,24 +98,11 @@ function stepPoints(sortedMaps, diffs, fields) {
         if (!unfilledProfile(map)) return gapPoint(map, index);
         const previous = previousDiffable(sortedMaps, map.name);
         if (!previous) return zeroPoint(map, index, null);
-        const diff = directionalDiff(diffs, previous.name, map.name);
+        const diff = findDirectionalDiff(diffs, previous.name, map.name);
         return diff
             ? toPoint(map, index, diff, previous, fields)
             : gapPoint(map, index);
     });
-}
-
-// Strict directional lookup. The pipeline emits each pair exactly
-// once with from < to chronologically, so callers passing
-// chronological (older, newer) arguments always hit the canonical
-// direction. We never want the symmetric fallback findDiff() in
-// utils/diffs.js offers, because the asymmetric category fields
-// (reassigned, newly_mapped, unmapped) only make sense in the
-// canonical direction.
-function directionalDiff(diffs, fromName, toName) {
-    return (
-        diffs.find((d) => d.from === fromName && d.to === toName) || null
-    );
 }
 
 function toPoint(map, index, diff, vs, fields) {
