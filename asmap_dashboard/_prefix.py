@@ -19,6 +19,11 @@ IPv6 /16 (2**16 /32 blocks) would blow up.
 
 from __future__ import annotations
 
+import ipaddress
+
+from asmap_dashboard._vendor.asmap import net_to_prefix
+from asmap_dashboard.netgroup import linked_ipv4
+
 V4_MAPPED_HEAD: list[bool] = [False] * 80 + [True] * 16
 IPV4_BITS = 32
 IPV6_BITS = 128
@@ -126,3 +131,39 @@ def count_buckets(ranges: list[tuple[int, int]], shift: int) -> int:
             total += last - first + 1
             prev = last
     return total
+
+
+def ip_to_prefix(ip: ipaddress._BaseAddress) -> list[bool]:
+    """Return the full-length bit prefix ``ASMap.lookup`` expects.
+
+    An IPv6 address that merely transports an IPv4 host (6to4, Teredo,
+    NAT64, ...) is looked up as that IPv4, matching Bitcoin Core's
+    ``GetMappedAS()``. This is the single source for both the diff
+    ``--addrs`` node-impact path and the live network metrics, so a
+    tunneled peer scores against the same map entry in both; keeping
+    two copies once let them diverge on the handful of tunneled peers
+    per snapshot.
+    """
+    if isinstance(ip, ipaddress.IPv6Address):
+        ip = linked_ipv4(ip) or ip
+    if isinstance(ip, ipaddress.IPv4Address):
+        return net_to_prefix(ipaddress.IPv4Network((int(ip), 32)))
+    return net_to_prefix(ipaddress.IPv6Network((int(ip), 128)))
+
+
+def classify_asn_change(old_asn: int, new_asn: int) -> str | None:
+    """Bucket one ASN transition into the three change categories.
+
+    ``0`` is the folded "no AS opinion" sentinel. Returns ``None`` when
+    the ASN is unchanged. These are the same three buckets the Diff
+    Explorer and the Network card both speak; sharing the branch keeps
+    ``diff`` and ``network.metrics`` from drifting apart on the
+    classification rule.
+    """
+    if old_asn == new_asn:
+        return None
+    if old_asn == 0:
+        return "newly_mapped"
+    if new_asn == 0:
+        return "unmapped"
+    return "reassigned"

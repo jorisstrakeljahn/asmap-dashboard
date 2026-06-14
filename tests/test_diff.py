@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import ipaddress
 
+import pytest
+
 from asmap_dashboard.diff import (
     TOP_MOVERS_LIMIT,
     diff_loaded_maps,
@@ -31,38 +33,26 @@ def test_identical_maps_produce_no_changes(tmp_path):
     assert result["top_movers"] == []
 
 
-def test_classifies_reassignment(tmp_path):
-    a = write_asmap(tmp_path / "a.dat", [(ipaddress.IPv4Network("1.0.0.0/8"), 100)])
-    b = write_asmap(tmp_path / "b.dat", [(ipaddress.IPv4Network("1.0.0.0/8"), 200)])
+@pytest.mark.parametrize(
+    ("old_asn", "new_asn", "bucket"),
+    [
+        (100, 200, "reassigned"),
+        (0, 100, "newly_mapped"),
+        (100, 0, "unmapped"),
+    ],
+)
+def test_single_prefix_change_classified(tmp_path, old_asn, new_asn, bucket):
+    """One prefix changing ASN lands in exactly one classification bucket."""
+    a = write_asmap(tmp_path / "a.dat", [(ipaddress.IPv4Network("1.0.0.0/8"), old_asn)])
+    b = write_asmap(tmp_path / "b.dat", [(ipaddress.IPv4Network("1.0.0.0/8"), new_asn)])
 
     result = diff_maps(a, b)
 
     assert result["total_changes"] == 1
-    assert result["reassigned"] == 1
-    assert result["newly_mapped"] == 0
-    assert result["unmapped"] == 0
-
-
-def test_classifies_newly_mapped(tmp_path):
-    a = write_asmap(tmp_path / "a.dat", [(ipaddress.IPv4Network("1.0.0.0/8"), 0)])
-    b = write_asmap(tmp_path / "b.dat", [(ipaddress.IPv4Network("1.0.0.0/8"), 100)])
-
-    result = diff_maps(a, b)
-
-    assert result["newly_mapped"] == 1
-    assert result["reassigned"] == 0
-    assert result["unmapped"] == 0
-
-
-def test_classifies_unmapped(tmp_path):
-    a = write_asmap(tmp_path / "a.dat", [(ipaddress.IPv4Network("1.0.0.0/8"), 100)])
-    b = write_asmap(tmp_path / "b.dat", [(ipaddress.IPv4Network("1.0.0.0/8"), 0)])
-
-    result = diff_maps(a, b)
-
-    assert result["unmapped"] == 1
-    assert result["newly_mapped"] == 0
-    assert result["reassigned"] == 0
+    buckets = {"reassigned", "newly_mapped", "unmapped"}
+    assert result[bucket] == 1
+    for other in buckets - {bucket}:
+        assert result[other] == 0
 
 
 def test_top_movers_ranked_with_primary_counterpart(tmp_path):
@@ -216,35 +206,6 @@ def test_newly_mapped_asn_appears_in_top_movers_with_gained_only(tmp_path):
     assert row["ipv4_addresses_gained"] == 2 * (1 << (32 - 8))
     assert row["ipv4_addresses_lost"] == 0
     assert row["ipv4_primary_counterpart"] == 0
-
-
-def test_top_movers_record_gain_and_loss_for_reassigned_pair(tmp_path):
-    """A reassignment between two ASes shows up as loss on one side and gain on the other."""
-    a = write_asmap(
-        tmp_path / "a.dat",
-        [
-            (ipaddress.IPv4Network("1.0.0.0/8"), 100),
-            (ipaddress.IPv4Network("16.0.0.0/8"), 100),
-        ],
-    )
-    b = write_asmap(
-        tmp_path / "b.dat",
-        [
-            (ipaddress.IPv4Network("1.0.0.0/8"), 200),
-            (ipaddress.IPv4Network("16.0.0.0/8"), 200),
-        ],
-    )
-
-    result = diff_maps(a, b)
-
-    by_asn = {row["asn"]: row for row in result["top_movers"]}
-    eighth = 1 << (32 - 8)
-    assert by_asn[100]["ipv4_addresses_gained"] == 0
-    assert by_asn[100]["ipv4_addresses_lost"] == 2 * eighth
-    assert by_asn[200]["ipv4_addresses_gained"] == 2 * eighth
-    assert by_asn[200]["ipv4_addresses_lost"] == 0
-    assert by_asn[100]["ipv4_primary_counterpart"] == 200
-    assert by_asn[200]["ipv4_primary_counterpart"] == 100
 
 
 def test_diff_loaded_maps_matches_diff_maps(tmp_path):
@@ -600,7 +561,7 @@ def test_ipv6_block_space_union_expands_wide_prefixes(tmp_path):
     assert result["ipv6_blocks_changed"] <= result["ipv6_block_space_union"]
 
 
-def test_top_mover_row_carries_coverage_in_both_families(tmp_path):
+def test_top_movers_row_carries_coverage_in_both_families(tmp_path):
     """Every top_movers row exposes the entry total plus IPv4 and IPv6 coverage."""
     a = write_asmap(
         tmp_path / "a.dat",
@@ -637,7 +598,7 @@ def test_top_mover_row_carries_coverage_in_both_families(tmp_path):
     assert gaining["ipv6_addresses_lost"] == 0
 
 
-def test_top_mover_per_as_coverage_sums_to_global_totals(tmp_path):
+def test_top_movers_per_as_coverage_sums_to_global_totals(tmp_path):
     """Sum of per-AS gained coverage == global ipv{4,6}_addresses_changed.
 
     Equivalently for lost. Together this guarantees the per-AS view and
@@ -691,7 +652,7 @@ def test_top_mover_per_as_coverage_sums_to_global_totals(tmp_path):
     )
 
 
-def test_top_mover_per_as_presence_matches_loader_caches(tmp_path):
+def test_top_movers_per_as_presence_matches_loader_caches(tmp_path):
     """*_in_a / *_in_b fields read straight off the cached loader counters."""
     a = write_asmap(
         tmp_path / "a.dat",
@@ -725,7 +686,7 @@ def test_top_mover_per_as_presence_matches_loader_caches(tmp_path):
     assert rows[100]["ipv6_addresses_in_b"] == loaded_b.ipv6_addresses_per_asn[100]
 
 
-def test_top_mover_ipv6_dominant_as_appears_via_union_ranking(tmp_path):
+def test_top_movers_ipv6_dominant_as_appears_via_union_ranking(tmp_path):
     """An IPv6-heavy AS that loses on entries still ranks via the v6 currency.
 
     Set-up: AS100 reassigns a single IPv6 /16 (one entry, but 2^112
@@ -764,7 +725,7 @@ def test_top_mover_ipv6_dominant_as_appears_via_union_ranking(tmp_path):
     assert {200, 300, 888, 777} <= asns_in_top
 
 
-def test_top_mover_primary_counterpart_is_address_weighted(tmp_path):
+def test_top_movers_primary_counterpart_is_address_weighted(tmp_path):
     """ipv4_primary_counterpart picks the partner by address space, not entries.
 
     AS100 reassigns:

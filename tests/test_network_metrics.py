@@ -10,7 +10,6 @@ from asmap_dashboard.metrics import generate_dashboard_data
 from asmap_dashboard.network.metrics import (
     _Build,
     _build_node_impact,
-    _classify_change,
     _decay_curve,
     _impact_dict,
     _select_in_effect_build,
@@ -217,13 +216,6 @@ def test_decay_curve_is_anchored_on_reference_and_fixed_node_set():
     # Age is measured from the reference release backwards, never negative.
     assert points[BUILD1.name]["age_days"] == 115
     assert points[BUILD2.name]["age_days"] == 0
-
-
-def test_classify_change_buckets_like_node_impact():
-    assert _classify_change(100, 100) is None  # unchanged
-    assert _classify_change(0, 200) == "newly_mapped"  # unmapped -> mapped
-    assert _classify_change(100, 0) == "unmapped"  # mapped -> unmapped
-    assert _classify_change(100, 200) == "reassigned"  # mapped -> different AS
 
 
 def test_impact_dict_counts_overall_and_per_family():
