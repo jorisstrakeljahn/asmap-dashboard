@@ -18,6 +18,10 @@ body {
     background: var(--color-bg);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Let variable UI fonts switch to their display optical size at
+       large sizes (tighter spacing, finer detail) and back to the
+       text cut for body copy. Free, dependency-less polish. */
+    font-optical-sizing: auto;
 }
 
 h1,
@@ -27,6 +31,9 @@ h4 {
     margin: 0;
     color: var(--color-text-strong);
     font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-tight);
+    /* Even out ragged headings so a lone word never wraps alone. */
+    text-wrap: balance;
 }
 
 p {

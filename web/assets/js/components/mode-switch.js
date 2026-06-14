@@ -29,6 +29,16 @@ export function createModeSwitch({
     root.setAttribute("role", "tablist");
     if (ariaLabel) root.setAttribute("aria-label", ariaLabel);
 
+    // Sliding highlight. place() writes its width + translateX from
+    // the active button's measured box; CSS tweens between the old
+    // and new values on a mode change. aria-hidden because it is
+    // pure decoration — the active state is announced via the
+    // buttons' aria-selected.
+    const pill = document.createElement("span");
+    pill.className = "mode-switch__pill";
+    pill.setAttribute("aria-hidden", "true");
+    root.append(pill);
+
     let current = value;
 
     const buttons = options.map((opt, idx) => {
@@ -45,10 +55,35 @@ export function createModeSwitch({
         return btn;
     });
 
+    // Move the pill under the active button. ``animate`` true lets the
+    // CSS transition tween it across (a real mode change); false snaps
+    // it instantly by suspending the transition across a forced reflow
+    // — used for first layout, tab reveal, and viewport / font
+    // reflows, so the highlight is never a frame behind or seen
+    // sliding in from the left on load. clientLeft is the track's left
+    // border, the offset between the pill's left:0 (padding-box
+    // origin) and offsetLeft's border-box origin.
+    function place(animate) {
+        const active =
+            buttons.find((btn) => btn.dataset.value === current) ?? buttons[0];
+        // offsetParent is null while an ancestor is display:none (a
+        // hidden tab panel); skip until the ResizeObserver fires on
+        // reveal, when the row finally has measurable geometry.
+        if (!active || active.offsetParent === null) return;
+        if (!animate) pill.style.transition = "none";
+        pill.style.width = `${active.offsetWidth}px`;
+        pill.style.transform = `translateX(${active.offsetLeft - root.clientLeft}px)`;
+        if (!animate) {
+            void pill.offsetWidth;
+            pill.style.transition = "";
+        }
+    }
+
     function commit(next) {
         if (current === next) return;
         current = next;
         paint();
+        place(true);
         if (onChange) onChange(next);
     }
 
@@ -99,10 +134,20 @@ export function createModeSwitch({
     }
     paint();
 
+    // Snap the pill the moment the row has geometry. The rAF covers
+    // the common case (mounted into a visible parent in the same task)
+    // before the first paint; the ResizeObserver covers every later
+    // path that gives or changes the row's size — a hidden tab panel
+    // becoming visible, and viewport / font reflows that shift the
+    // button widths.
+    requestAnimationFrame(() => place(false));
+    new ResizeObserver(() => place(false)).observe(root);
+
     root.setValue = (next) => {
         if (current === next) return;
         current = next;
         paint();
+        place(true);
     };
     root.getValue = () => current;
     return root;

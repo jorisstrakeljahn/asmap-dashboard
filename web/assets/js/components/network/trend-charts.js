@@ -23,6 +23,21 @@ import {
 
 const SECONDS_PER_DAY = 86400;
 
+// Create a header mode-switch once and cache it on the chart's
+// persistent ``state`` bag (states.decay / states.hhi survive every
+// renderTrends pass). The axis / family toggles live inside the chart
+// card, which mountSeriesChart rebuilds on every re-render; recreating
+// the switch each time would hand back a fresh mode-switch that snaps
+// its pill to the new position with no transition. Reusing the same
+// instance instead lets mountSeriesChart re-parent it into the new card
+// with its pill mid-slide, so the highlight animates on click — exactly
+// like the Trends range picker, which network-tab.js mounts once into a
+// stable slot.
+function ensureToggle(state, factory) {
+    if (!state.toggle) state.toggle = factory();
+    return state.toggle;
+}
+
 // Render all four trend charts for the current range bounds. ``states``
 // carries the per-chart toggle state (hidden series, decay axis, HHI
 // family); ``rerender`` re-runs this whole pass when a chart's own
@@ -47,10 +62,15 @@ export function mountTrendCharts(network, sources, bounds, states, rerender) {
 //
 // Both views honour the 1Y/3Y/5Y/Max range picker, like every other
 // trend chart. The age view windows by age rather than by calendar:
-// because age = reference − build date, the picker's calendar cutoff
-// maps one-to-one onto a maximum map age ("builds from the last year"
-// is exactly "ages up to ~365 days"), so the same picker drives both
-// axes without a special case the user has to learn.
+// because age = reference − build date, the picker's calendar span maps
+// onto a maximum map age of the *same width* ("the last year" -> "ages
+// up to ~365 days"), so the same picker drives both axes without a
+// special case the user has to learn. The two windows are equal in
+// width but not in the exact build set they include: the date view is
+// anchored at wall-clock "now", the age view at the reference build, so
+// they coincide only while the newest build is current. That is
+// deliberate — see the ageWindowDays note below for why the age view
+// anchors at the reference instead.
 function mountDecayChart(network, sources, bounds, state, rerender) {
     const referenceTs = network.reference_timestamp;
     const ageMode = state.axis === "age";
@@ -78,18 +98,20 @@ function mountDecayChart(network, sources, bounds, state, rerender) {
         ? clampTimelineMax(buildUnionTimeline(entries), ageWindowDays)
         : clampTimeline(buildUnionTimeline(entries), bounds.cutoff);
 
-    const axisToggle = createModeSwitch({
-        options: ["age", "date"].map((value) => ({
-            value,
-            label: t(`network.decay.axis.${value}`),
-        })),
-        value: state.axis,
-        onChange: (next) => {
-            state.axis = next;
-            rerender();
-        },
-        ariaLabel: t("network.decay.axis.ariaLabel"),
-    });
+    const axisToggle = ensureToggle(state, () =>
+        createModeSwitch({
+            options: ["age", "date"].map((value) => ({
+                value,
+                label: t(`network.decay.axis.${value}`),
+            })),
+            value: state.axis,
+            onChange: (next) => {
+                state.axis = next;
+                rerender();
+            },
+            ariaLabel: t("network.decay.axis.ariaLabel"),
+        }),
+    );
 
     mountSeriesChart(document.querySelector("[data-network-decay]"), {
         title: t("network.decay.title"),
@@ -212,18 +234,20 @@ function mountHhiChart(network, sources, bounds, state, rerender) {
     }));
     const timeline = clampTimeline(dayUnionTimeline(entries), bounds.cutoff);
 
-    const familyToggle = createModeSwitch({
-        options: ["all", "ipv4", "ipv6"].map((value) => ({
-            value,
-            label: t(`network.familyToggle.${value}`),
-        })),
-        value: family,
-        onChange: (next) => {
-            state.family = next;
-            rerender();
-        },
-        ariaLabel: t("network.familyToggle.ariaLabel"),
-    });
+    const familyToggle = ensureToggle(state, () =>
+        createModeSwitch({
+            options: ["all", "ipv4", "ipv6"].map((value) => ({
+                value,
+                label: t(`network.familyToggle.${value}`),
+            })),
+            value: family,
+            onChange: (next) => {
+                state.family = next;
+                rerender();
+            },
+            ariaLabel: t("network.familyToggle.ariaLabel"),
+        }),
+    );
 
     mountSeriesChart(slot, {
         title: t("network.hhi.title"),
@@ -272,14 +296,14 @@ function mountCoverageChart(network, sources, bounds, state) {
         timestamps: timeline.timestamps,
         series: legendSeries(sources),
         valueAt: timeline.valueAt,
-        yFormat: formatCoveragePct,
+        yFormat: formatPercentNumber,
         // Coverage is a share of the snapshot's nodes: 100% is a hard
         // ceiling, so the axis must not pad past it.
         yCeil: 100,
         domainStart: bounds.domainStart,
         domainEnd: bounds.domainEnd,
         tooltipTitleAt: (i) => snapshotTitle(timeline, i),
-        tooltipRowsAt: (i) => sourceRows(sources, timeline, i, formatCoveragePct),
+        tooltipRowsAt: (i) => sourceRows(sources, timeline, i, formatPercentNumber),
         state,
     });
 }
@@ -348,8 +372,10 @@ function ageDays(referenceTs, slotMs) {
     return Math.max(0, Math.round(days));
 }
 
-// drift_pct / share percentages arrive as plain percent numbers (3.8
-// -> "3.8%"), unlike format.js formatPercent which expects a 0..1 ratio.
+// drift_pct and coverage percentages arrive as plain percent numbers
+// (3.8 -> "3.8%"), unlike format.js formatPercent which expects a
+// 0..1 ratio. One decimal keeps the snapshot-to-snapshot movement
+// legible without implying precision the crawl does not have.
 function formatPercentNumber(value) {
     return `${value.toFixed(1)}%`;
 }
@@ -358,11 +384,4 @@ function formatPercentNumber(value) {
 // snapshot-to-snapshot movement legible on the axis and in tooltips.
 function formatHhi(value) {
     return value.toFixed(3);
-}
-
-// Coverage lives in a narrow band near 98 %; one decimal keeps the
-// snapshot-to-snapshot movement legible without implying precision
-// the crawl does not have.
-function formatCoveragePct(value) {
-    return `${value.toFixed(1)}%`;
 }

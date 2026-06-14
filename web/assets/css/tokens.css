@@ -20,7 +20,11 @@
     --color-text-base: #1e293b;
     --color-text-muted: #475569;
     --color-text-uppercase: #64748b;
-    --color-text-subtle: #94a3b8;
+    /* Lightest text tier. Kept at slate-500 rather than slate-400 so
+       even the faintest copy (diff source lines, axis labels, dropdown
+       hints) clears the WCAG AA 4.5:1 contrast floor on white — the
+       old #94a3b8 sat at ~2.6:1 and read as washed out. */
+    --color-text-subtle: #64748b;
 
     --color-bg: #ffffff;
     --color-surface: #ffffff;
@@ -69,19 +73,28 @@
     --color-on-fill: #ffffff;
 
     /* ── Typography ───────────────────────────────────────── */
+    /* One typeface, no web-font dependency: the platform UI font
+       (SF Pro on Apple, Segoe UI on Windows, Roboto on Android/
+       Linux). system-ui leads so every OS uses its native UI face;
+       the rest are explicit fallbacks for older engines. Numbers
+       use font-variant-numeric: tabular-nums where they need to
+       align — that's the same font, not a separate mono family. */
     --font-sans:
-        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-        "Helvetica Neue", Arial, sans-serif;
-    --font-mono:
-        ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+        system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, "Helvetica Neue", Arial, sans-serif;
 
-    --font-size-xs: 11px;
-    --font-size-sm: 13px;
-    --font-size-base: 15px;
-    --font-size-lg: 19px;
-    --font-size-xl: 24px;
-    --font-size-2xl: 29px;
-    --font-size-3xl: 36px;
+    /* Base scale. Body lands at 16px so reading text clears the
+       ~16px comfort floor on every viewport (phones already sat
+       here, see the media query below); supplementary text at 14px
+       and micro-labels at 12px match the widely cited readability
+       minimums. The headline steps grow proportionally. */
+    --font-size-xs: 12px;
+    --font-size-sm: 14px;
+    --font-size-base: 16px;
+    --font-size-lg: 20px;
+    --font-size-xl: 25px;
+    --font-size-2xl: 31px;
+    --font-size-3xl: 38px;
 
     --font-weight-regular: 400;
     --font-weight-medium: 500;
@@ -99,6 +112,15 @@
        because they sit on a smaller font size. */
     --letter-uppercase: 0.06em;
     --letter-uppercase-tight: 0.04em;
+
+    /* Negative tracking for large display text (headlines, the big
+       metric numbers, section titles, the logo). UI fonts are drawn
+       loose at large sizes; pulling the glyphs ~1-2% closer is the
+       main lever that makes them read as engineered display type
+       instead of blown-up body copy. Body text keeps default
+       spacing — tightening small text only hurts legibility. */
+    --letter-tight: -0.01em;
+    --letter-tighter: -0.02em;
 
     /* ── Spacing ──────────────────────────────────────────── */
     --space-1: 4px;
@@ -132,6 +154,12 @@
     --motion-base: 0.12s;
     --motion-slow: 0.16s;
     --motion-ease: ease;
+    /* Sliding mode-switch pill. Longer than the state-change
+       durations above and on a decelerating curve so the highlight
+       glides across the segments and settles, rather than snapping
+       like a hover tint. */
+    --motion-pill: 0.22s;
+    --ease-decelerate: cubic-bezier(0.22, 1, 0.36, 1);
 
     /* ── Z-index scale ────────────────────────────────────── */
     /* Tooltip lives inside a card; popover lives above the
@@ -158,22 +186,14 @@
     --chart-min-height: 240px;
 }
 
-/* Mobile typography + control scale. Phones get a larger base so
-   body text clears the ~16px comfort floor (and text inputs avoid
-   iOS Safari's sub-16px focus auto-zoom), supplementary text lands
-   at 14px, and micro-labels never drop below 12px — matching the
-   widely cited mobile-readability minimums. Line height opens up to
-   1.5 for the smaller reading distance, and the form-control
-   geometry grows toward a 44px touch target. Centralised here so
-   every component scales from a single source instead of carrying
-   its own per-file mobile overrides. */
+/* Mobile reading + control scale. The font sizes already match the
+   base scale (16px body clears iOS Safari's sub-16px focus auto-zoom
+   too), so phones only open the line height up for the shorter
+   reading distance and grow the form controls toward a 44px touch
+   target. Centralised here so every component scales from one source
+   instead of carrying its own per-file mobile overrides. */
 @media (max-width: 640px) {
     :root {
-        --font-size-xs: 12px;
-        --font-size-sm: 14px;
-        --font-size-base: 16px;
-        --font-size-lg: 20px;
-
         --line-normal: 1.5;
 
         --control-height: 44px;

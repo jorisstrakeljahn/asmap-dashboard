@@ -84,6 +84,8 @@
     font-weight: var(--font-weight-semibold);
     color: var(--color-text-strong);
     line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: var(--letter-tight);
 }
 
 .match-banner__caption {
@@ -111,8 +113,12 @@
 .match-banner__source {
     grid-column: 2;
     grid-row: 3;
+    /* Set identically to the detail line above (same size, colour, and
+       tabular figures) so the two stacked lines read as one block
+       rather than a detail line and a fainter footnote. */
     font-size: var(--font-size-sm);
-    color: var(--color-text-subtle);
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
 }
 
 /* Real node impact: a downstream banner under the prefix breakdown.
@@ -138,6 +144,8 @@
     font-weight: var(--font-weight-semibold);
     color: var(--color-text-strong);
     line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: var(--letter-tight);
 }
 
 .node-impact__caption {
@@ -162,7 +170,8 @@
     grid-column: 2;
     grid-row: 3;
     font-size: var(--font-size-sm);
-    color: var(--color-text-subtle);
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
 }
 
 .node-impact__info {

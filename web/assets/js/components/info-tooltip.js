@@ -28,7 +28,7 @@ export function createInfoTooltip({ text, body, ariaLabel } = {}) {
     // Two-stage open / close model:
     //
     //   open   — popover is currently visible (hover or click)
-    //   sticky — committed via click; mouseleave no longer auto-closes
+    //   sticky — committed via click; mouseleave does not auto-close
     //
     // The "click toggles open" pattern fights hover-preview (a
     // click on an already-hovered icon would close it again), so
@@ -43,6 +43,13 @@ export function createInfoTooltip({ text, body, ariaLabel } = {}) {
     const HOVER_WARM_WINDOW_MS = 320;
     let hoverOpenTimer = 0;
     let warmUntil = 0;
+
+    // Close keeps the panel in the DOM until the collapse transition
+    // finishes, then hides it. Matches --motion-slow in tokens.css;
+    // under prefers-reduced-motion the CSS transition is ~instant and
+    // this timer just hides the (already invisible) panel a touch later.
+    const CLOSE_MS = 160;
+    let closeTimer = 0;
 
     function cancelPendingOpen() {
         if (hoverOpenTimer) {
@@ -64,26 +71,54 @@ export function createInfoTooltip({ text, body, ariaLabel } = {}) {
         if (open === next) return;
         open = next;
         trigger.setAttribute("aria-expanded", String(next));
-        popover.hidden = !next;
         root.classList.toggle("is-open", next);
 
         if (next) {
+            // A close transition may still be running; cancel its
+            // pending hide so the panel re-opens from wherever it is.
+            if (closeTimer) {
+                clearTimeout(closeTimer);
+                closeTimer = 0;
+            }
+            popover.hidden = false;
+            // Paint the collapsed state first, place the panel (which
+            // also reads layout, flushing that state), then drop the
+            // class on the next frame so the scale+fade animates open.
+            popover.classList.add("is-collapsed");
             dismiss.attach();
             // Escape-to-close is unique to the tooltip (the dropdown
             // handles Escape on its trigger keydown), so it stays here.
             document.addEventListener("keydown", handleKey, true);
-            // Two passes: the first reads a stale layout, the
-            // rAF reads the committed layout.
             placePopover();
-            requestAnimationFrame(placePopover);
+            requestAnimationFrame(() => {
+                placePopover();
+                popover.classList.remove("is-collapsed");
+            });
         } else {
             sticky = false;
             warmUntil = Date.now() + HOVER_WARM_WINDOW_MS;
             dismiss.detach();
             document.removeEventListener("keydown", handleKey, true);
-            popover.style.top = "";
-            popover.style.left = "";
+            // Collapse back toward the icon, then hide once the
+            // transition has had time to run.
+            popover.classList.add("is-collapsed");
+            if (closeTimer) clearTimeout(closeTimer);
+            closeTimer = setTimeout(finishClose, CLOSE_MS);
         }
+    }
+
+    // Final teardown after the collapse transition: pull the panel out
+    // of the layout and reset the inline placement so the next open
+    // starts clean. Bailed if a re-open beat the timer.
+    function finishClose() {
+        closeTimer = 0;
+        if (open) return;
+        popover.hidden = true;
+        popover.classList.remove("is-collapsed");
+        popover.style.top = "";
+        popover.style.left = "";
+        popover.style.transformOrigin = "";
+        popover.style.removeProperty("--tip-enter-shift");
     }
 
     // position:fixed against the viewport so overflow:auto
@@ -91,10 +126,12 @@ export function createInfoTooltip({ text, body, ariaLabel } = {}) {
     function placePopover() {
         if (!open) return;
         const triggerRect = trigger.getBoundingClientRect();
-        const popoverRect = popover.getBoundingClientRect();
+        // offset* is the untransformed layout size; the open/close
+        // scale on the panel must not skew the placement maths.
+        const popoverWidth = popover.offsetWidth;
+        const popoverHeight = popover.offsetHeight;
         const spaceBelow = window.innerHeight - triggerRect.bottom - VIEWPORT_MARGIN;
         const spaceAbove = triggerRect.top - VIEWPORT_MARGIN;
-        const popoverHeight = popoverRect.height;
         const openUp = popoverHeight > spaceBelow && spaceAbove > spaceBelow;
         if (openUp) {
             popover.style.top = `${triggerRect.top - PANEL_GAP - popoverHeight}px`;
@@ -105,12 +142,20 @@ export function createInfoTooltip({ text, body, ariaLabel } = {}) {
         const triggerCentre = triggerRect.left + triggerRect.width / 2;
         const minLeft = VIEWPORT_MARGIN;
         const maxLeft =
-            window.innerWidth - VIEWPORT_MARGIN - popoverRect.width;
+            window.innerWidth - VIEWPORT_MARGIN - popoverWidth;
         const clamped = Math.min(
-            Math.max(triggerCentre - popoverRect.width / 2, minLeft),
+            Math.max(triggerCentre - popoverWidth / 2, minLeft),
             Math.max(maxLeft, minLeft),
         );
         popover.style.left = `${clamped}px`;
+
+        // Anchor the open/close scale to the icon: origin x tracks the
+        // trigger centre even when the panel is clamped to the viewport
+        // edge, and the vertical edge + enter shift flip when the panel
+        // opens upward so it always grows out of (and back into) the "i".
+        const originX = triggerCentre - clamped;
+        popover.style.transformOrigin = `${originX}px ${openUp ? "bottom" : "top"}`;
+        popover.style.setProperty("--tip-enter-shift", openUp ? "4px" : "-4px");
     }
 
     function handleKey(ev) {
