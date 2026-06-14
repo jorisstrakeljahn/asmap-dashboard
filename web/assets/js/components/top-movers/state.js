@@ -2,8 +2,7 @@
 // predicates that read the state object.
 //
 // ``unit`` is controlled by the Diff Explorer master family
-// toggle now (the card used to own its own IPv4 / IPv6 picker);
-// the orchestrator passes the unit into createState() so a
+// toggle: the orchestrator passes the unit into createState() so a
 // family switch outside the card flips the cells, sort, and
 // share denominator together.
 

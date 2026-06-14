@@ -168,6 +168,15 @@
     white-space: nowrap;
 }
 
+/* No-match state: a single cell spanning every column so the header
+   row stays put while a filter narrows to nothing. Centered and
+   border-less so it reads as a placeholder, not a stray data row. */
+.top-movers__grid td.top-movers__empty {
+    padding: var(--space-5) var(--space-3);
+    text-align: center;
+    border-bottom: 0;
+}
+
 /* Sortable headers wrap their label + chevron in a single
    button so the entire affordance is one keyboard / pointer
    target. The button inherits the <th>'s muted uppercase
@@ -196,6 +205,13 @@
     outline: 2px solid var(--color-focus, var(--color-text-strong));
     outline-offset: 2px;
     border-radius: 2px;
+}
+
+/* The wide header shows the descriptive column label; the compact
+   sibling only surfaces in the mobile sort bar (see the 640px
+   block, which flips these two). */
+.top-movers__sort-label--short {
+    display: none;
 }
 
 /* The button is inline-flex, so it lives in the inline flow of
@@ -495,10 +511,22 @@
     }
 
     .top-movers__grid thead th {
-        width: auto;
         padding: 0;
         border: 0;
         white-space: nowrap;
+    }
+
+    /* Drop the fixed-table percentage widths so each sort chip
+       shrinks to its label. The per-column width rules above carry
+       higher specificity than a bare `thead th`, so the override
+       has to name the columns to win — otherwise the AS chip keeps
+       its 34% slot, leaving a gap that shoves "Direction" onto a
+       second line. */
+    .top-movers__grid thead th.top-movers__rank,
+    .top-movers__grid thead th.top-movers__asn,
+    .top-movers__grid thead th.top-movers__num,
+    .top-movers__grid thead th.top-movers__direction {
+        width: auto;
     }
 
     .top-movers__grid thead th.top-movers__rank {
@@ -507,6 +535,24 @@
 
     .top-movers__grid thead th.top-movers__num {
         padding-right: 0;
+    }
+
+    /* Swap the descriptive header for the short label so the three
+       sort chips fit on one line instead of wrapping "Direction"
+       onto a second row. */
+    .top-movers__sort-label--full {
+        display: none;
+    }
+
+    .top-movers__sort-label--short {
+        display: inline;
+    }
+
+    /* The sort bar sits apart from the cards here, so unlike the
+       wide table we accent the active sort: the bar is the only
+       cue for which order the cards are in. */
+    .top-movers__grid thead .top-movers__sort-button.is-active {
+        color: var(--color-accent);
     }
 
     /* Body rows → stacked cards. Rank is orientation-only and the
@@ -546,26 +592,18 @@
         color: var(--color-text-strong);
     }
 
+    /* Direction is the card's secondary line: just the flow arrow
+       and counterpart, no repeated "Direction" tag. The arrow
+       (↗ gained, ↘ lost, ↔ exchanged) carries the meaning, the
+       sort bar above names the column, and the info popover
+       documents it — a per-card label only added clutter. */
     .top-movers__grid tbody td.top-movers__direction {
         grid-area: direction;
-    }
-
-    /* Name the direction line inline. The sort bar names columns
-       at the top, but each card's third line sits far from it, so
-       a quiet uppercase tag keeps "↗ AS6057" unambiguous. */
-    .top-movers__grid tbody td.top-movers__direction::before {
-        content: attr(data-label);
-        display: block;
-        margin-bottom: 2px;
         font-size: var(--font-size-xs);
-        font-weight: var(--font-weight-medium);
-        letter-spacing: var(--letter-uppercase-tight);
-        text-transform: uppercase;
-        color: var(--color-text-uppercase);
+        color: var(--color-text-muted);
     }
 
-    /* Inactive direction (em-dash fallback) reads as a muted note
-       rather than a lone glyph floating under the label. */
+    /* Inactive direction (em-dash fallback) reads as a muted note. */
     .top-movers__grid tbody td.top-movers__direction--inactive {
         color: var(--color-text-subtle);
     }

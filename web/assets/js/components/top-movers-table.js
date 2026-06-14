@@ -9,6 +9,6 @@
 //   top-movers/pagination.js  — page window + page buttons
 //   top-movers/columns.js     — table header + sort affordance
 //   top-movers/rows.js        — tbody + direction cell
-//   top-movers/controls.js    — toolbar / footer controls + copy
+//   top-movers/controls.js    — toolbar / footer controls
 
 export { mount } from "./top-movers/index.js";

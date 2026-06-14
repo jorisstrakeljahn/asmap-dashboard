@@ -17,9 +17,11 @@ import {
     resolveTimeDomain,
 } from "../charts/chart-base.js";
 import {
+    attachKeyboardInspect,
     attachTouchInspect,
     clientToSvg,
     createChartShell,
+    HOVER_BLEED,
     hideTooltip,
     isTooltipVisible,
     nearestIndex,
@@ -28,12 +30,13 @@ import {
     showTooltip,
 } from "../charts/chart-interaction.js";
 import { buildTooltipBody } from "../charts/chart-tooltip.js";
+import { BAR_CORNER_RADIUS, pickBarWidth } from "../charts/bar-geometry.js";
 import {
-    BAR_CORNER_RADIUS,
-    HOVER_BLEED,
-    pickBarWidth,
-} from "../charts/bar-geometry.js";
-import { formatDate, formatNumber } from "../format.js";
+    formatCompactCount,
+    formatDate,
+    formatNumber,
+    formatSignedNumber,
+} from "../format.js";
 import { mutedNote } from "../utils/dom.js";
 import { previousDiffable } from "../utils/diffs.js";
 import { t } from "../utils/i18n.js";
@@ -109,7 +112,7 @@ function buildChart(rows, maps, width, height, layout, options) {
     renderYAxis(root, yTicks, yScale, {
         plotLeft: plot.left,
         plotRight: plot.right,
-        format: formatTick,
+        format: formatCompactCount,
     });
 
     // Zero baseline before bars: covered where positive, visible
@@ -150,7 +153,7 @@ function buildChart(rows, maps, width, height, layout, options) {
                 [
                     t("history.mapDeltaChart.deltaLabel"),
                     t("history.mapDeltaChart.deltaUnit", {
-                        value: formatSignedDelta(row.delta),
+                        value: formatSignedNumber(row.delta),
                     }),
                 ],
                 [
@@ -220,6 +223,13 @@ function buildChart(rows, maps, width, height, layout, options) {
         hide,
     });
 
+    attachKeyboardInspect(shell, {
+        count: rows.length,
+        show: showRow,
+        hide,
+        xAt,
+    });
+
     const ticks = pickTimeAxisTicks(
         domainStart,
         domainEnd,
@@ -228,13 +238,4 @@ function buildChart(rows, maps, width, height, layout, options) {
     renderTimeAxis(root, ticks, xScale, plot.bottom);
 
     return shell;
-}
-
-function formatSignedDelta(value) {
-    return value > 0 ? `+${formatNumber(value)}` : formatNumber(value);
-}
-
-function formatTick(value) {
-    const abs = Math.abs(value);
-    return abs >= 1000 ? `${Math.round(value / 1000)}k` : String(value);
 }

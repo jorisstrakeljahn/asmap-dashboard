@@ -15,10 +15,9 @@ import { svg } from "./svg.js";
 // paddingLeft has to fit the widest y-axis tick label across all
 // charts. The current set tops out at four-character labels like
 // "460k" (entries chart) which fit comfortably in ~48 px including
-// the 8 px gap to plot.left. The previous 60 px was sized for a
-// rotated "Mapped size (MB)" gutter title that no chart renders
-// anymore — every chart now lets its card title speak for the y
-// axis, so the gutter shrinks back to what the ticks need.
+// the 8 px gap to plot.left. No chart renders a rotated gutter
+// title — the card title speaks for the y axis — so the gutter
+// only needs room for the ticks.
 //
 // paddingRight is generous on purpose: the rightmost X label uses
 // anchor="end" so it sits flush with the plot's right edge, and
@@ -33,6 +32,24 @@ const DEFAULT_LAYOUT = {
     paddingTop: 20,
     paddingBottom: 30,
 };
+
+// Registry of every mounted chart's width-watcher. A chart re-mount
+// (tab / range / family switch) either replaces a parent's children or
+// rebuilds the whole container from an ancestor; in both cases the old
+// slot leaves the document but its ResizeObserver / resize listener would
+// keep firing render() against the detached node forever. Sweeping the
+// registry for detached slots on every new mount disconnects those
+// orphans, so watchers never accumulate across re-mounts.
+const liveCharts = new Set();
+
+function sweepDetachedCharts() {
+    for (const entry of liveCharts) {
+        if (!entry.slot.isConnected) {
+            entry.teardown();
+            liveCharts.delete(entry);
+        }
+    }
+}
 
 // Public: mount a chart card under ``parent`` whose inner SVG
 // re-renders whenever the chart's container width changes, or
@@ -55,6 +72,9 @@ export function mountResponsiveChart(
     { title, draw, info, legend, layout = {} },
 ) {
     if (!parent) return undefined;
+    // Drop watchers whose slot this (or a sibling) re-mount just detached.
+    sweepDetachedCharts();
+
     const settings = { ...DEFAULT_LAYOUT, ...layout };
 
     const card = createChartCard(title);
@@ -85,13 +105,30 @@ export function mountResponsiveChart(
 
     render();
 
+    let teardown = () => {};
     if (typeof ResizeObserver !== "undefined") {
-        new ResizeObserver(() => render()).observe(card.slot);
+        const observer = new ResizeObserver(() => render());
+        observer.observe(card.slot);
+        teardown = () => observer.disconnect();
     } else if (typeof window !== "undefined") {
-        window.addEventListener("resize", () => render());
+        const onResize = () => render();
+        window.addEventListener("resize", onResize);
+        teardown = () => window.removeEventListener("resize", onResize);
     }
 
-    return { rerender: () => render(true) };
+    const entry = { slot: card.slot, teardown };
+    liveCharts.add(entry);
+
+    return {
+        rerender: () => render(true),
+        // Lets a caller drop the width watcher explicitly. The detached-
+        // slot sweep on the next mount already covers the usual re-mount
+        // path, so most callers never need this.
+        destroy: () => {
+            teardown();
+            liveCharts.delete(entry);
+        },
+    };
 }
 
 // ``title`` is optional: callers that wrap the chart in their own
@@ -222,10 +259,16 @@ export function resolveTimeDomain(timestamps, options = {}) {
 // across charts and any future chart-wide attribute lands here
 // instead of three separate creation sites.
 export function createChartSvg(width, height, ariaLabel) {
+    // A labelled chart is a graphic worth announcing, so it takes
+    // role="img" + its aria-label. Without a label it is decorative
+    // scaffolding (the surrounding card carries the meaning) and
+    // stays role="presentation"; the two were previously combined,
+    // which is contradictory — a presentation node drops its own
+    // aria-label.
     const root = svg("svg", {
         viewBox: `0 0 ${width} ${height}`,
         class: "chart",
-        role: "presentation",
+        role: ariaLabel ? "img" : "presentation",
     });
     if (ariaLabel) root.setAttribute("aria-label", ariaLabel);
     return root;
