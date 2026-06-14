@@ -18,6 +18,7 @@ import { mountResponsiveChart } from "../charts/chart-base.js";
 import { buildTooltipBody } from "../charts/chart-tooltip.js";
 import { buildLineChart } from "../charts/line-chart.js";
 import {
+    formatCompactCount,
     formatDate,
     formatNumber,
     formatSignedNumber,
@@ -110,7 +111,7 @@ function buildChart(maps, points, width, height, layout, options) {
             valueAt: (_key, slotIndex) => points[slotIndex].value,
             yMin: Math.max(0, yMin - padding),
             yMax: yMax + padding,
-            yFormat: formatYTick,
+            yFormat: formatCompactCount,
             yTitle: null,
             ariaLabel: t("history.diversityChart.ariaLabel"),
             tooltipBodyAt: (slotIndex) =>
@@ -157,10 +158,4 @@ function footerFor(point) {
         count: formatSignedNumber(point.deltaSinceBaseline),
         date: formatDate(point.baseline.released_at),
     });
-}
-
-function formatYTick(value) {
-    const abs = Math.abs(value);
-    if (abs >= 1000) return `${Math.round(value / 1000)}k`;
-    return String(value);
 }

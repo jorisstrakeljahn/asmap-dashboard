@@ -1,11 +1,11 @@
-// Top Movers card orchestrator. Builds the scaffold once and
-// re-runs render() on every state change.
+// Top Movers card orchestrator. Builds the scaffold and a single
+// persistent <table> once, then splits redraws into a head pass and
+// a body pass so a filter keystroke swaps only <tbody> + pagination.
 //
 // ``mount(parent, diff, { family })`` — the family is driven by
 // the Diff Explorer master toggle and decides which currency
-// the cells, sort, and share denominator speak. The card used
-// to host its own IPv4 / IPv6 picker; it now reads the value
-// from the parent and the picker is gone.
+// the cells, sort, and share denominator speak. The card reads
+// the family from the parent rather than owning its own picker.
 
 import { mutedNote } from "../../utils/dom.js";
 import { t } from "../../utils/i18n.js";
@@ -34,12 +34,26 @@ export function mount(parent, diff, { family } = {}) {
     const state = createState({ family });
     const card = buildCardScaffold();
 
-    const filterInput = buildFilterInput(state, () => render());
-    const directionControl = buildDirectionFilter(state, () => render());
+    // One <table> for the card's life. The <thead> (sortable header
+    // buttons + their listeners) only changes on a unit or sort
+    // change; the <tbody> changes on every filter / page move. Keeping
+    // them as separate persistent elements means typing never rebuilds
+    // the header or rebinds its listeners.
+    const table = document.createElement("table");
+    table.className = "top-movers__grid";
+    const thead = document.createElement("thead");
+    const tbody = document.createElement("tbody");
+    table.append(thead, tbody);
+    card.tableWrap.append(table);
+
+    const filterInput = buildFilterInput(state, () => renderBody());
+    const directionControl = buildDirectionFilter(state, () => renderBody());
     card.toolbarFields.append(filterInput.elem, directionControl.elem);
 
+    // The view-mode switch only flips a CSS class on the table, so it
+    // skips both passes — no row recompute, no head rebuild.
     card.headerControls.append(
-        viewModeSwitch(state, () => render(), saveShowNames),
+        viewModeSwitch(state, applyNamesClass, saveShowNames),
     );
     // Pin the info trigger to the card's top-right corner (like the
     // overview cards) instead of trailing the view-mode switch. On a
@@ -50,13 +64,29 @@ export function mount(parent, diff, { family } = {}) {
     info.classList.add("info-tooltip--card-corner");
     card.root.append(info);
     card.footer.append(
-        pageSizeControl(state, () => render()),
+        pageSizeControl(state, () => renderBody()),
         card.pagination,
     );
 
     parent.replaceChildren(card.root);
 
-    function render() {
+    // A sort click mutates state then asks for a refresh: the header
+    // moves its active column / chevron / aria-sort (head) and the
+    // rows reorder (body), so it is the one path that runs both.
+    function onSort() {
+        renderHead();
+        renderBody();
+    }
+
+    function renderHead() {
+        thead.replaceChildren(...tableHead(state, onSort).childNodes);
+    }
+
+    function applyNamesClass() {
+        table.classList.toggle("top-movers__grid--no-names", !state.showNames);
+    }
+
+    function renderBody() {
         const active = pruneInactive(diff.top_movers, state.unit);
         const filtered = filterMovers(
             active,
@@ -65,9 +95,9 @@ export function mount(parent, diff, { family } = {}) {
             state.unit,
         );
         clampPageIndex(state, filtered.length);
-        card.tableWrap.replaceChildren(renderTable(filtered, diff, state, render));
+        tbody.replaceChildren(...bodyRows(filtered, diff, state));
         card.pagination.replaceChildren(
-            ...renderPagination(filtered, state, render),
+            ...renderPagination(filtered, state, renderBody),
         );
         renderClearButton(card.clearSlot, isFiltering(state), () => {
             state.filterText = "";
@@ -75,10 +105,13 @@ export function mount(parent, diff, { family } = {}) {
             state.pageIndex = 0;
             filterInput.setValue("");
             directionControl.setValue("all");
-            render();
+            renderBody();
         });
     }
-    render();
+
+    renderHead();
+    applyNamesClass();
+    renderBody();
 }
 
 // Drop rows the active currency has nothing to say about. The
@@ -94,9 +127,15 @@ function pruneInactive(rows, unit) {
     return rows.filter((row) => rowChanges(row) > 0);
 }
 
-function renderTable(filteredMovers, diff, state, onChange) {
+// The <tr> set for the current page, dropped straight into the
+// persistent <tbody>. When the filter matches nothing it returns a
+// single full-width empty-state row instead, so the <thead> stays put
+// across an into / out-of empty transition (no head rebuild) and the
+// table markup stays valid (no <tbody>-less note floating in the
+// wrap, as the old single-element render produced).
+function bodyRows(filteredMovers, diff, state) {
     if (!filteredMovers.length) {
-        return mutedNote(t("topMovers.noMatches"));
+        return [emptyRow()];
     }
     const sorted = sortMovers(
         filteredMovers,
@@ -107,15 +146,21 @@ function renderTable(filteredMovers, diff, state, onChange) {
     const start = state.pageIndex * state.pageSize;
     const rows = sorted.slice(start, start + state.pageSize);
     const unitTotal = accessorsFor(state.unit).diffTotal(diff);
+    return [...tableBody(rows, unitTotal, start, state.unit).childNodes];
+}
 
-    const table = document.createElement("table");
-    table.className = "top-movers__grid";
-    if (!state.showNames) table.classList.add("top-movers__grid--no-names");
-    table.append(
-        tableHead(state, onChange),
-        tableBody(rows, unitTotal, start, state.unit),
-    );
-    return table;
+// The grid has four columns (rank, AS, share, direction); the
+// empty-state note spans all of them.
+const COLUMN_COUNT = 4;
+
+function emptyRow() {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.className = "top-movers__empty";
+    td.colSpan = COLUMN_COUNT;
+    td.append(mutedNote(t("topMovers.noMatches")));
+    tr.append(td);
+    return tr;
 }
 
 function buildCardScaffold() {

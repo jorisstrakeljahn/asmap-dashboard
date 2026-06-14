@@ -29,9 +29,11 @@ import {
     resolveTimeDomain,
 } from "./chart-base.js";
 import {
+    attachKeyboardInspect,
     attachTouchInspect,
     clientToSvg,
     createChartShell,
+    HOVER_BLEED,
     hideTooltip,
     isTooltipVisible,
     nearestIndex,
@@ -39,11 +41,7 @@ import {
     positionTooltip,
     showTooltip,
 } from "./chart-interaction.js";
-import {
-    BAR_CORNER_RADIUS,
-    HOVER_BLEED,
-    pickBarWidth,
-} from "./bar-geometry.js";
+import { BAR_CORNER_RADIUS, pickBarWidth } from "./bar-geometry.js";
 
 // Only the outer corners of the *whole stack* round (handled in
 // drawStacks via BAR_CORNER_RADIUS). Middle segments keep square
@@ -311,6 +309,8 @@ function attachHover(root, geometry, spec, groups) {
         show: showSlot,
         hide,
     });
+
+    attachKeyboardInspect(shell, { count: slotCount, show: showSlot, hide, xAt });
 
     return shell;
 }

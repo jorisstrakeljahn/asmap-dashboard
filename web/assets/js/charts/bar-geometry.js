@@ -1,8 +1,8 @@
 // Shared geometry for the two history bar charts: the map-delta chart
 // (one bar per release) and the stacked drift-per-build chart. Keeping
-// the widths, corner radius, and hover bleed in one place means both
-// charts pick the same bar sizes under the same range picker and read
-// as a visually consistent pair.
+// the widths and corner radius in one place means both charts pick the
+// same bar sizes under the same range picker and read as a visually
+// consistent pair.
 
 // Uniform bar width (no "fatter bar = bigger value" misreading),
 // sized from the smallest neighbour gap so dense clusters never
@@ -15,10 +15,6 @@ const BAR_FILL_FRACTION = 0.7;
 // Outer-corner rounding (px) so a bar — or the whole stack — reads as
 // one rounded shape rather than a sharp rectangle.
 export const BAR_CORNER_RADIUS = 2;
-
-// Hover tolerance past the plot edge so a touch resolve in the gutter
-// still maps to the nearest bar / column.
-export const HOVER_BLEED = 12;
 
 // Bar width sized from the smallest gap between adjacent slot
 // timestamps, clamped to [MIN_BAR_WIDTH, MAX_BAR_WIDTH]. Falls back to

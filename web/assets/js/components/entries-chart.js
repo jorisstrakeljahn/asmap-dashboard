@@ -1,12 +1,13 @@
 // Dual-line entries-over-time chart (one line per variant). The
-// file_size_bytes view used to be its own chart but tracks
-// entries with sub-percent variance (~4 B / entry), so the size
-// in MB rides along inside the tooltip instead.
+// file_size_bytes view tracks entries with sub-percent variance
+// (~4 B / entry), so rather than a separate chart the size in MB
+// rides along inside the tooltip.
 
 import { mountResponsiveChart } from "../charts/chart-base.js";
 import { buildTooltipBody } from "../charts/chart-tooltip.js";
 import { buildLineChart } from "../charts/line-chart.js";
 import {
+    formatCompactCount,
     formatDate,
     formatMegabytes,
     formatNumber,
@@ -97,7 +98,7 @@ function buildChart(maps, hidden, width, height, layout, options) {
             valueAt,
             yMin: Math.min(...visibleValues),
             yMax: Math.max(...visibleValues),
-            yFormat: formatEntriesTick,
+            yFormat: formatCompactCount,
             yTitle: null,
             ariaLabel: t("history.entriesChart.ariaLabel"),
             tooltipBodyAt: (slotIndex) =>
@@ -111,14 +112,6 @@ function buildChart(maps, hidden, width, height, layout, options) {
         layout,
         options,
     );
-}
-
-// Compact tick labels: literal numbers ("412,539") are wider
-// than the gutter can afford.
-function formatEntriesTick(value) {
-    const abs = Math.abs(value);
-    if (abs >= 1000) return `${Math.round(value / 1000)}k`;
-    return String(value);
 }
 
 function hoverRows(map, series) {

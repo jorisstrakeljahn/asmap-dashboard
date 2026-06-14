@@ -73,6 +73,30 @@
     position: relative;
 }
 
+/* Keyboard users land on the shell (role="application") to scrub the
+   chart with arrow keys; give that focus a visible ring like every
+   other interactive control. */
+.chart-shell:focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-accent);
+    outline-offset: var(--focus-ring-offset);
+    border-radius: var(--radius-sm);
+}
+
+/* Spoken-only mirror of the tooltip text for screen readers. Clipped,
+   not display:none, so the live region stays in the accessibility
+   tree and its updates are announced. */
+.chart-shell__live {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 .chart-shell .chart {
     margin-top: 0;
 }

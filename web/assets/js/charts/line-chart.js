@@ -1,9 +1,9 @@
-// Shared time-series line chart. Both the map size chart and the
-// drift chart used to carry a near-identical buildChart() — same
-// geometry, axes, line and dot drawing, and hover handling, only
-// the data shape, the y formatter, and the tooltip body differed.
-// This module hosts the common scaffold so each chart shrinks to
-// its own SERIES definition, value accessor, and tooltip builder.
+// Shared time-series line chart for the map size chart and the
+// drift chart, which need near-identical geometry, axes, line and
+// dot drawing, and hover handling — only the data shape, the y
+// formatter, and the tooltip body differ. This module hosts the
+// common scaffold so each chart is just its own SERIES definition,
+// value accessor, and tooltip builder.
 //
 // The scaffold is pure rendering: it does not own state, does not
 // render the legend or header, and does not decide what counts as
@@ -23,9 +23,11 @@ import {
     resolveTimeDomain,
 } from "./chart-base.js";
 import {
+    attachKeyboardInspect,
     attachTouchInspect,
     clientToSvg,
     createChartShell,
+    HOVER_BLEED,
     hideTooltip,
     nearestIndex,
     placeTooltipNextFrame,
@@ -33,10 +35,6 @@ import {
 } from "./chart-interaction.js";
 
 const DOT_RADIUS = 3;
-// Hover tolerance: how far past the plot bounds we still treat
-// the cursor as "over the chart". Keeps the tooltip from
-// flickering off when the mouse grazes the gutter.
-const HOVER_BLEED = 12;
 
 // Render a time-series line chart and return its hover shell.
 //
@@ -241,6 +239,8 @@ function attachHover(root, geometry, spec) {
         show,
         hide,
     });
+
+    attachKeyboardInspect(shell, { count: slotCount, show, hide, xAt });
 
     return shell;
 }
