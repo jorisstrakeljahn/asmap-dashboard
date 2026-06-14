@@ -7,6 +7,58 @@
     min-height: auto;
 }
 
+/* Header-bearing chart card (mountTimeSeriesCard): label, an optional
+   control, and the info tooltip on one row. The control is pushed to
+   the right so the label stays flush left and groups with the info
+   affordance; the info never shrinks below its icon. */
+.chart-card__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.chart-card__header-extra {
+    margin-left: auto;
+}
+
+/* Label + secondary note (e.g. the active drift unit) on one baseline,
+   wrapping together when the header runs out of room. */
+.chart-card__title {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.chart-card__subtitle {
+    font-size: 0.8125rem;
+    letter-spacing: 0.01em;
+}
+
+.chart-card__info {
+    flex-shrink: 0;
+}
+
+.chart-card__plot {
+    margin-top: var(--space-2);
+}
+
+/* The plot slot reuses the standard chart card internals from
+   mountResponsiveChart, but the wrapper already paints the card
+   chrome. Strip the inner one so the chart is not double-bordered and
+   uses the card's full width. */
+.chart-card__plot .chart-card {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+}
+
+.chart-card__plot .card__label {
+    display: none;
+}
+
 /* Stable resize anchor: the inner chart is re-rendered whenever
    this slot's width changes, so the ResizeObserver needs an
    element that lives across renders. The chart-shell inside

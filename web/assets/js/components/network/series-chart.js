@@ -14,13 +14,12 @@
 // isolate KIT or Bitnodes (or default vs ASmap buckets) without the
 // other line compressing the axis.
 
-import { mountResponsiveChart } from "../../charts/chart-base.js";
+import { mountTimeSeriesCard } from "../../charts/chart-card.js";
 import { buildTooltipBody } from "../../charts/chart-tooltip.js";
 import { buildLineChart } from "../../charts/line-chart.js";
 import { mutedNote } from "../../utils/dom.js";
 import { t } from "../../utils/i18n.js";
 import { createChartLegend } from "../chart-legend.js";
-import { createInfoTooltip } from "../info-tooltip.js";
 
 // Fraction of the data range left as breathing room above and below
 // the plotted lines so the extreme dots never sit on the card edge.
@@ -65,10 +64,9 @@ export function mountSeriesChart(parent, config) {
         return;
     }
 
-    const card = document.createElement("article");
-    card.className = "card chart-card network-chart";
-
-    const header = buildHeader(title, info, infoAria, headerExtra);
+    // ctrl is the mountTimeSeriesCard handle; the legend toggle closure
+    // below calls it on click, by which point it is assigned.
+    let ctrl;
     const legend = createChartLegend({
         entries: series.map((s) => ({
             key: s.key,
@@ -83,14 +81,13 @@ export function mountSeriesChart(parent, config) {
         },
     });
 
-    const slot = document.createElement("div");
-    slot.className = "network-chart__plot";
-    card.append(header, legend, slot);
-    parent.replaceChildren(card);
-
-    const ctrl = mountResponsiveChart(slot, {
-        title: null,
-        draw: ({ width, height, layout }) =>
+    ctrl = mountTimeSeriesCard(parent, {
+        title,
+        info,
+        infoAria,
+        headerExtra,
+        legend,
+        drawPlot: ({ width, height, layout }) =>
             drawPlot(
                 {
                     timestamps,
@@ -113,28 +110,6 @@ export function mountSeriesChart(parent, config) {
                 layout,
             ),
     });
-}
-
-function buildHeader(title, info, infoAria, headerExtra) {
-    const header = document.createElement("div");
-    header.className = "network-chart__header";
-
-    const label = document.createElement("span");
-    label.className = "card__label uppercase-label";
-    label.textContent = (title ?? "").toUpperCase();
-    header.append(label);
-
-    if (headerExtra) {
-        headerExtra.classList.add("network-chart__header-extra");
-        header.append(headerExtra);
-    }
-
-    if (info) {
-        const tip = createInfoTooltip({ body: info, ariaLabel: infoAria });
-        tip.classList.add("network-chart__info");
-        header.append(tip);
-    }
-    return header;
 }
 
 function drawPlot(spec, width, height, layout) {

@@ -18,14 +18,13 @@
 // colour across all bars (assigned by aggregate share over the
 // window), so the eye can follow an operator through reshuffles.
 
-import { mountResponsiveChart } from "../../charts/chart-base.js";
+import { mountTimeSeriesCard } from "../../charts/chart-card.js";
 import { buildTooltipBody } from "../../charts/chart-tooltip.js";
 import { buildStackedBarChart } from "../../charts/stacked-bar-chart.js";
-import { formatDate } from "../../format.js";
+import { formatDate, formatPercent } from "../../format.js";
 import { nameFor } from "../../asn-names.js";
 import { mutedNote } from "../../utils/dom.js";
 import { t } from "../../utils/i18n.js";
-import { createInfoTooltip } from "../info-tooltip.js";
 
 // How many operators each bar breaks out. Five is the conventional
 // concentration cut (CR5) and keeps a stack legible.
@@ -47,38 +46,13 @@ export function mountOperatorsChart(parent, { snapshots, bounds }) {
     }
     const palette = assignColors(rows);
 
-    const card = document.createElement("article");
-    card.className = "card chart-card network-chart";
-    card.append(buildHeader());
-
-    const slot = document.createElement("div");
-    slot.className = "network-chart__plot";
-    card.append(slot);
-    parent.replaceChildren(card);
-
-    mountResponsiveChart(slot, {
-        title: null,
-        draw: ({ width, height, layout }) =>
+    mountTimeSeriesCard(parent, {
+        title: t("network.concentration.operatorsTitle"),
+        info: t("network.concentration.operatorsInfo"),
+        infoAria: t("network.concentration.operatorsInfoAria"),
+        drawPlot: ({ width, height, layout }) =>
             drawPlot(rows, palette, bounds, width, height, layout),
     });
-}
-
-function buildHeader() {
-    const header = document.createElement("div");
-    header.className = "network-chart__header";
-
-    const label = document.createElement("span");
-    label.className = "card__label uppercase-label";
-    label.textContent = t("network.concentration.operatorsTitle").toUpperCase();
-    header.append(label);
-
-    const tip = createInfoTooltip({
-        body: t("network.concentration.operatorsInfo"),
-        ariaLabel: t("network.concentration.operatorsInfoAria"),
-    });
-    tip.classList.add("network-chart__info");
-    header.append(tip);
-    return header;
 }
 
 // One row per snapshot inside the picked range: the snapshot's own
@@ -170,12 +144,12 @@ function drawPlot(rows, palette, bounds, width, height, layout) {
 function tooltipBody(row, palette) {
     const rows = row.top.map((entry) => [
         operatorLabel(entry.asn),
-        formatShare(entry.share),
+        formatPercent(entry.share),
         `chart-legend__swatch--op${palette.get(entry.asn)}`,
     ]);
     rows.push([
         t("network.concentration.combinedLabel", { count: row.top.length }),
-        formatShare(row.combined),
+        formatPercent(row.combined),
     ]);
     return buildTooltipBody({ title: formatDate(row.label), rows });
 }
@@ -184,8 +158,4 @@ function tooltipBody(row, palette) {
 // the tooltip self-explanatory in the absence of a legend.
 function operatorLabel(asn) {
     return nameFor(asn) ?? `AS${asn}`;
-}
-
-function formatShare(share) {
-    return `${(share * 100).toFixed(1)}%`;
 }

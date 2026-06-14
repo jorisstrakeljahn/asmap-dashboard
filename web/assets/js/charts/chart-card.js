@@ -1,0 +1,134 @@
+// Shared chrome for the dashboard's header-bearing chart cards: the
+// card shell, an optional header (label + caller-supplied control +
+// info tooltip on one row), an optional legend, and a plot slot that
+// delegates the responsive SVG to mountResponsiveChart.
+//
+// This is the one card path the Network series charts, the top-operator
+// breakdown, and (via plan 003) the Maps drift chart all share, instead
+// of each assembling the same .chart-card__header markup by hand.
+//
+// Reuse: when the same chart re-renders into the same slot (a range /
+// axis / family switch re-runs a whole section), the existing card is
+// kept and only its legend + plot are swapped, so a header control like
+// a mode switch is never re-parented. Re-parenting it would reset its
+// in-flight pill transition and snap the highlight instead of sliding
+// it. The identity check on ``headerExtra`` keeps the reuse scoped to
+// genuinely the same chart + control (charts without a control compare
+// null === null and reuse too).
+
+import { mountResponsiveChart } from "./chart-base.js";
+import { createInfoTooltip } from "../components/info-tooltip.js";
+
+// Mount (or re-render into) a header-bearing chart card under
+// ``parent`` and return the mountResponsiveChart handle so a clickable
+// legend can call ``ctrl.rerender()`` after a toggle.
+//
+//   title:       card label text (rendered upper-cased)
+//   subtitle:    secondary label beside the title (e.g. active unit),
+//                optional; changing it rebuilds the header
+//   info:        info-tooltip body Element, optional
+//   infoAria:    accessible name for the info affordance, optional
+//   headerExtra: Element placed between label and info (e.g. a mode
+//                switch), optional; its identity gates card reuse
+//   legend:      pre-built legend Element placed above the plot, optional
+//   drawPlot:    ({ width, height, layout }) -> Element, the plot body
+//   cardClass:   extra class(es) for the outer <article>, optional
+//   layout:      mountResponsiveChart layout overrides, optional
+export function mountTimeSeriesCard(parent, config) {
+    if (!parent) return undefined;
+    const {
+        title,
+        subtitle = null,
+        info,
+        infoAria,
+        headerExtra = null,
+        legend = null,
+        drawPlot,
+        cardClass = "",
+        layout = {},
+    } = config;
+
+    // Reuse the card already in this slot only when its header content
+    // is unchanged: same title, same subtitle, and the very same
+    // headerExtra element. Reuse keeps a header control (a mode switch)
+    // from being re-parented, which would reset its in-flight pill
+    // transition. A changed subtitle (e.g. the drift unit flipped from
+    // IPv4 to IPv6) must rebuild so the header reflects it.
+    const existing = parent.firstElementChild;
+    const reused =
+        existing &&
+        existing.classList.contains("chart-card") &&
+        existing.__title === title &&
+        existing.__subtitle === subtitle &&
+        existing.__headerExtra === headerExtra
+            ? existing
+            : null;
+
+    let card = reused;
+    if (card) {
+        // Strip the previous legend + plot, keep the header (first
+        // child). The detached plot slot's width watcher is swept by
+        // the next mountResponsiveChart call below.
+        while (card.lastElementChild && card.lastElementChild !== card.__header) {
+            card.lastElementChild.remove();
+        }
+    } else {
+        card = document.createElement("article");
+        card.className = `card chart-card${cardClass ? ` ${cardClass}` : ""}`;
+        const header = buildHeader(title, subtitle, info, infoAria, headerExtra);
+        card.__header = header;
+        card.__title = title;
+        card.__subtitle = subtitle;
+        card.__headerExtra = headerExtra;
+        card.append(header);
+        parent.replaceChildren(card);
+    }
+
+    if (legend) card.append(legend);
+
+    const slot = document.createElement("div");
+    slot.className = "chart-card__plot";
+    card.append(slot);
+
+    return mountResponsiveChart(slot, {
+        title: null,
+        draw: drawPlot,
+        layout,
+    });
+}
+
+function buildHeader(title, subtitle, info, infoAria, headerExtra) {
+    const header = document.createElement("div");
+    header.className = "chart-card__header";
+
+    const label = document.createElement("span");
+    label.className = "card__label uppercase-label";
+    label.textContent = (title ?? "").toUpperCase();
+
+    if (subtitle) {
+        // Group the label and its secondary text so they stay together
+        // when the header wraps; the subtitle reads as a smaller note
+        // sitting beside the title.
+        const group = document.createElement("div");
+        group.className = "chart-card__title";
+        const sub = document.createElement("span");
+        sub.className = "chart-card__subtitle muted";
+        sub.textContent = subtitle;
+        group.append(label, sub);
+        header.append(group);
+    } else {
+        header.append(label);
+    }
+
+    if (headerExtra) {
+        headerExtra.classList.add("chart-card__header-extra");
+        header.append(headerExtra);
+    }
+
+    if (info) {
+        const tip = createInfoTooltip({ body: info, ariaLabel: infoAria });
+        tip.classList.add("chart-card__info");
+        header.append(tip);
+    }
+    return header;
+}
