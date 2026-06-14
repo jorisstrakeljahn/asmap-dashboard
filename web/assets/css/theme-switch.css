@@ -1,0 +1,49 @@
+/* Header theme switch. The widget itself is the shared segmented
+   mode-switch (see mode-switch.css) carrying the .theme-switch
+   modifier; the rules here only cover its place in the header and the
+   responsive collapse to icon-only on tight viewports.
+
+   The control lives inside .site-header__actions, the right-hand
+   cluster that also holds the mobile burger. */
+
+.site-header__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    /* Right-hand cluster. On desktop the centred nav's auto side
+       margins push this flush to the right edge on their own; on
+       mobile the header switches to space-between (nav lifts out of
+       flow), which pins the cluster right — so no margin is needed
+       here in either case. */
+}
+
+.theme-switch {
+    flex: 0 0 auto;
+}
+
+/* Icon-only at every width: the sun / moon glyph carries the control,
+   so the text label is dropped visually but kept in the accessibility
+   tree (clipped, not display:none) so each segment keeps its name for
+   screen readers and the active state stays announced. */
+.theme-switch .mode-switch__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* With the label gone the segment is a square-ish icon button; even
+   side padding keeps the two glyphs balanced under the sliding pill. */
+.theme-switch.mode-switch--with-icons .mode-switch__btn {
+    gap: 0;
+    padding: 0 var(--space-3);
+}
+
+/* On phones the burger owns the right edge; the switch sits just left
+   of it. Both stay vertically centred in the header row via the
+   actions flexbox above — no extra rules needed below 720px. */

@@ -14,9 +14,16 @@
 //       ariaLabel: "Comparison mode",
 //   })
 //
+// An option may carry an ``icon`` (an inline SVG markup string).
+// When present, the segment renders the icon followed by the label
+// in their own spans (.mode-switch__icon / .mode-switch__label) so a
+// caller can show both or collapse to icon-only via CSS; segments
+// without an icon keep the plain text-node rendering byte-for-byte.
+//
 // Returns the root element exposing setValue(v) for external
 // state sync (does NOT fire onChange, mirroring the native
-// <select>.value = x semantic).
+// <select>.value = x semantic) and setLabel(value, text) for
+// late localisation of a segment's visible + accessible name.
 
 export function createModeSwitch({
     options,
@@ -28,6 +35,9 @@ export function createModeSwitch({
     root.className = "mode-switch";
     root.setAttribute("role", "tablist");
     if (ariaLabel) root.setAttribute("aria-label", ariaLabel);
+    if (options.some((opt) => opt.icon)) {
+        root.classList.add("mode-switch--with-icons");
+    }
 
     // Sliding highlight. place() writes its width + translateX from
     // the active button's measured box; CSS tweens between the old
@@ -48,7 +58,21 @@ export function createModeSwitch({
         btn.setAttribute("role", "tab");
         btn.dataset.value = opt.value;
         btn.dataset.idx = String(idx);
-        btn.textContent = opt.label;
+        if (opt.icon) {
+            // Icon is decorative — the adjacent label (visible, or
+            // hidden-but-present via CSS) carries the accessible name,
+            // which setLabel() can refresh after i18n strings arrive.
+            const icon = document.createElement("span");
+            icon.className = "mode-switch__icon";
+            icon.setAttribute("aria-hidden", "true");
+            icon.innerHTML = opt.icon;
+            const label = document.createElement("span");
+            label.className = "mode-switch__label";
+            label.textContent = opt.label;
+            btn.append(icon, label);
+        } else {
+            btn.textContent = opt.label;
+        }
         btn.addEventListener("click", () => commit(opt.value));
         btn.addEventListener("keydown", handleKeydown);
         root.append(btn);
@@ -60,9 +84,10 @@ export function createModeSwitch({
     // it instantly by suspending the transition across a forced reflow
     // — used for first layout, tab reveal, and viewport / font
     // reflows, so the highlight is never a frame behind or seen
-    // sliding in from the left on load. clientLeft is the track's left
-    // border, the offset between the pill's left:0 (padding-box
-    // origin) and offsetLeft's border-box origin.
+    // sliding in from the left on load. offsetLeft and the pill's
+    // left:0 share the same origin (the track's padding edge), so the
+    // button's offsetLeft is the exact translateX — no border fudge,
+    // which would push the pill 1px off and unbalance the inset.
     function place(animate) {
         const active =
             buttons.find((btn) => btn.dataset.value === current) ?? buttons[0];
@@ -72,7 +97,7 @@ export function createModeSwitch({
         if (!active || active.offsetParent === null) return;
         if (!animate) pill.style.transition = "none";
         pill.style.width = `${active.offsetWidth}px`;
-        pill.style.transform = `translateX(${active.offsetLeft - root.clientLeft}px)`;
+        pill.style.transform = `translateX(${active.offsetLeft}px)`;
         if (!animate) {
             void pill.offsetWidth;
             pill.style.transition = "";
@@ -150,5 +175,19 @@ export function createModeSwitch({
         place(true);
     };
     root.getValue = () => current;
+
+    // Late-binding setter so a caller that mounted the switch before
+    // i18n strings loaded can swap in the localised label without
+    // rebuilding the control. Updates the visible label span (icon
+    // segments) or the button text (plain segments), and re-snaps the
+    // pill since the new text can change the active segment's width.
+    root.setLabel = (value, text) => {
+        const btn = buttons.find((b) => b.dataset.value === value);
+        if (!btn) return;
+        const label = btn.querySelector(".mode-switch__label");
+        if (label) label.textContent = text;
+        else btn.textContent = text;
+        place(false);
+    };
     return root;
 }

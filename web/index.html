@@ -4,12 +4,39 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>ASmap Dashboard</title>
+        <!-- Resolve the theme before the stylesheets apply, so a
+             dark-preference reload paints dark on the first frame
+             instead of flashing the light palette. Mirrors
+             components/theme-switch.js: an explicit stored "light" /
+             "dark" wins; anything else (no choice yet) follows the OS.
+             Kept inline and dependency-free so nothing can defer it
+             past first paint. -->
+        <script>
+            (function () {
+                try {
+                    var pref = localStorage.getItem("asmap.theme");
+                    var dark =
+                        pref === "dark" ||
+                        (pref !== "light" &&
+                            window.matchMedia &&
+                            window.matchMedia("(prefers-color-scheme: dark)").matches);
+                    document.documentElement.setAttribute(
+                        "data-theme",
+                        dark ? "dark" : "light",
+                    );
+                } catch (e) {
+                    /* storage/matchMedia unavailable: fall back to the
+                       light default the stylesheets already ship. */
+                }
+            })();
+        </script>
         <link rel="stylesheet" href="assets/css/tokens.css" />
         <link rel="stylesheet" href="assets/css/base.css" />
         <link rel="stylesheet" href="assets/css/layout.css" />
     <link rel="stylesheet" href="assets/css/skeleton.css" />
     <link rel="stylesheet" href="assets/css/dropdown.css" />
     <link rel="stylesheet" href="assets/css/mode-switch.css" />
+    <link rel="stylesheet" href="assets/css/theme-switch.css" />
     <link rel="stylesheet" href="assets/css/info-tooltip.css" />
     <link rel="stylesheet" href="assets/css/overview.css" />
         <link rel="stylesheet" href="assets/css/charts.css" />
@@ -22,26 +49,29 @@
     <body>
         <header class="site-header">
             <a class="site-header__logo" href="./" data-i18n="header.title">ASmap Dashboard</a>
-            <button
-                class="site-header__burger"
-                type="button"
-                data-nav-toggle
-                aria-expanded="false"
-                aria-controls="site-nav"
-                data-i18n-attr="aria-label:header.nav.menuAria"
-                aria-label="Menu"
-            >
-                <svg class="site-header__burger-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-                    <line class="site-header__burger-line site-header__burger-line--top" x1="4" y1="7" x2="20" y2="7" />
-                    <line class="site-header__burger-line site-header__burger-line--mid" x1="4" y1="12" x2="20" y2="12" />
-                    <line class="site-header__burger-line site-header__burger-line--bot" x1="4" y1="17" x2="20" y2="17" />
-                </svg>
-            </button>
             <nav class="site-header__nav" id="site-nav" data-i18n-attr="aria-label:header.nav.primary" aria-label="Primary">
                 <a class="site-header__nav-link" href="#network" data-tab-link="network" data-network-nav hidden data-i18n="header.nav.network">Network</a>
                 <a class="site-header__nav-link is-active" href="#maps" data-tab-link="maps" aria-current="page" data-i18n="header.nav.maps">Maps</a>
                 <a class="site-header__nav-link" href="#diff" data-tab-link="diff" data-i18n="header.nav.diff">Diff Explorer</a>
             </nav>
+            <div class="site-header__actions">
+                <div class="site-header__theme" data-theme-switch></div>
+                <button
+                    class="site-header__burger"
+                    type="button"
+                    data-nav-toggle
+                    aria-expanded="false"
+                    aria-controls="site-nav"
+                    data-i18n-attr="aria-label:header.nav.menuAria"
+                    aria-label="Menu"
+                >
+                    <svg class="site-header__burger-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                        <line class="site-header__burger-line site-header__burger-line--top" x1="4" y1="7" x2="20" y2="7" />
+                        <line class="site-header__burger-line site-header__burger-line--mid" x1="4" y1="12" x2="20" y2="12" />
+                        <line class="site-header__burger-line site-header__burger-line--bot" x1="4" y1="17" x2="20" y2="17" />
+                    </svg>
+                </button>
+            </div>
         </header>
 
         <main class="content">

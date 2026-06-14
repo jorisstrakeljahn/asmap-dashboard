@@ -15,6 +15,12 @@
  * Anything used in more than one place belongs here.
  */
 :root {
+    /* Native UA surfaces (form controls, scrollbars, the canvas
+       behind a rubber-band overscroll) follow the active theme.
+       The dark override flips this to ``dark`` so they never flash
+       a white scrollbar track over the near-black page. */
+    color-scheme: light;
+
     /* ── Color ────────────────────────────────────────────── */
     --color-text-strong: #0f172a;
     --color-text-base: #1e293b;
@@ -159,6 +165,10 @@
        glides across the segments and settles, rather than snapping
        like a hover tint. */
     --motion-pill: 0.22s;
+    /* Whole-page light/dark cross-fade. Long enough to read as a
+       deliberate palette ease (see .theme-transition in base.css),
+       short enough not to feel sluggish on a toggle. */
+    --motion-theme: 0.36s;
     --ease-decelerate: cubic-bezier(0.22, 1, 0.36, 1);
 
     /* ── Z-index scale ────────────────────────────────────── */
@@ -184,6 +194,93 @@
     --page-gutter: 40px;
     --header-height: 69px;
     --chart-min-height: 240px;
+}
+
+/*
+ * Dark theme. Applied by setting ``data-theme="dark"`` on <html>
+ * (an inline boot script in index.html resolves the saved
+ * preference before first paint; components/theme-switch.js owns
+ * the toggle afterwards). This block overrides ONLY the structural
+ * neutrals — the page/surface backgrounds, the text tiers, the
+ * hairlines, the tracks, and the elevation shadows. The brand
+ * accent and every semantic / categorical hue (success, warning,
+ * the ten chart series) are deliberately left untouched so the
+ * data colours read identically in both themes; only the canvas
+ * they sit on changes.
+ *
+ * Greys are tuned to the transitions.dev palette: a near-black
+ * #121212 page with #181818 cards, white-on-black text tiers, and
+ * translucent-white hairlines so borders read as lifts off the
+ * surface rather than drawn lines.
+ */
+html[data-theme="dark"] {
+    color-scheme: dark;
+
+    /* Text tiers. White → light-grey, each step kept above the
+       WCAG AA 4.5:1 floor on the #121212 page and the #181818
+       cards (the faintest, --color-text-subtle, lands ~6:1). The
+       light theme's ordering is preserved: -base is the body tone,
+       -muted a touch quieter, -subtle the faintest readable tier. */
+    --color-text-strong: #f4f4f5;
+    --color-text-base: #dcdce1;
+    --color-text-muted: #b4b4bd;
+    --color-text-uppercase: #9a9aa4;
+    --color-text-subtle: #9a9aa4;
+
+    --color-bg: #121212;
+    --color-surface: #181818;
+    /* Hairlines as translucent white so they brighten with whatever
+       sits beneath them (page vs card) instead of reading as a flat
+       drawn line, mirroring the transitions.dev card treatment. */
+    --color-border: rgba(255, 255, 255, 0.09);
+    --color-border-strong: rgba(255, 255, 255, 0.18);
+    --color-divider: rgba(255, 255, 255, 0.07);
+    --color-track: rgba(255, 255, 255, 0.08);
+
+    /* Neutral lifted off slate-500 so the dashed "total drift"
+       overlay and other neutral marks stay legible on near-black. */
+    --color-neutral: #94a3b8;
+
+    /* ── Accent & data hues, retuned for dark ──────────────────
+       Fully saturated mid-tones (the light theme's 500/600 hues)
+       "vibrate" against a near-black canvas — the chroma + lightness
+       jump at the edges reads as glare/halation. So for dark we shift
+       every accent and data colour to a lifted, slightly desaturated
+       tone (≈ the 400 tier): same hue and brand identity, calmer on
+       the eye, and still well clear of the contrast floor. This is
+       the standard light-vs-dark tonal-palette split (Material, Apple
+       HIG); the LIGHT theme palette is left exactly as-is. */
+    --color-accent: #818cf8;
+    --color-accent-soft: #c4b5fd;
+    --color-success: #4cc79a;
+    --color-warning: #e0a35c;
+
+    /* The lifted fills above are too light for white label text, so
+       the on-fill ink flips to near-black in dark mode. It rides on
+       the accent pill (mode switch, pagination) and the three diff
+       breakdown-bar segments (accent / success / warning) — dark text
+       reads cleanly on all of them now that they are 400-tier tones. */
+    --color-on-fill: #15161d;
+
+    /* Categorical series, same desaturate-and-lift treatment so the
+       network operator breakdown stays a calm, readable set on dark
+       rather than ten competing neons. Series 1 follows --color-accent
+       automatically (see :root). */
+    --color-series-2: #db8db5;
+    --color-series-3: #e0a35c;
+    --color-series-4: #5cb6d6;
+    --color-series-5: #5cbf9a;
+    --color-series-6: #e08585;
+    --color-series-7: #a99cf0;
+    --color-series-8: #a8c25e;
+    --color-series-9: #4fb8ac;
+    --color-series-10: #94a3b8;
+
+    /* Elevation reads as depth-of-black on a dark canvas; the slate
+       tint used in the light theme would wash out, so the shadows
+       deepen to near-opaque black and gain spread. */
+    --shadow-tooltip: 0 6px 28px rgba(0, 0, 0, 0.5);
+    --shadow-popover: 0 12px 36px rgba(0, 0, 0, 0.62);
 }
 
 /* Mobile reading + control scale. The font sizes already match the

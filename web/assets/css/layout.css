@@ -86,7 +86,6 @@
     justify-content: center;
     width: var(--control-height);
     height: var(--control-height);
-    margin-left: auto;
     padding: 0;
     border: 1px solid transparent;
     border-radius: var(--radius);
@@ -314,6 +313,19 @@
         rgba(255, 255, 255, 0) 100%
     );
     animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+/* The shimmer band is a near-white gradient tuned for the light
+   theme; at 55% alpha it would glare against the near-black dark
+   surfaces. Dim it to a faint white sweep so the placeholder still
+   reads as "loading" without flashing. */
+html[data-theme="dark"] .skeleton::after {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.07) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
 }
 
 @keyframes skeleton-shimmer {
