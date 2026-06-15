@@ -22,10 +22,10 @@ import { accessorsFor } from "./units.js";
 // Each row also carries a native title attribute that spells out
 // the longer story (raw IPv4 address count or raw IPv6 block
 // count, the AS footprint on either side, the Touched ratio).
-// Touched is no longer a dedicated column because Share answers
-// the more common question (how big was this AS inside this
-// diff). The hover text keeps Touched discoverable without
-// claiming a column slot.
+// Touched is not a dedicated column because Share answers the
+// more common question (how big was this AS inside this diff).
+// The hover text keeps Touched discoverable without claiming a
+// column slot.
 export function tableBody(rows, unitTotalChanges, startIndex, unit) {
     const accessors = accessorsFor(unit);
     const tbody = document.createElement("tbody");
@@ -124,10 +124,6 @@ function directionCell(row, unit) {
     const lost = accessors.rowLost(row);
     const counterpart = accessors.rowPrimaryCounterpart(row);
     const td = cell("", "top-movers__direction");
-    // Drives the inline "Direction" tag the stacked mobile card
-    // shows via td.top-movers__direction::before; ignored on the
-    // wide table where the column header carries the label.
-    td.dataset.label = t("topMovers.columns.direction");
 
     if (gained === 0 && lost === 0) {
         td.textContent = EM_DASH;

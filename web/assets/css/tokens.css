@@ -178,6 +178,11 @@
        re-numbering. */
     --z-tooltip: 5;
     --z-popover: 30;
+    /* Full-screen mobile nav overlay and the sticky header that sits
+       above it: the header keeps the burger / close control reachable
+       while the menu covers the page beneath it. */
+    --z-overlay: 40;
+    --z-header: 50;
 
     /* ── Form controls ────────────────────────────────────── */
     --control-height: 36px;

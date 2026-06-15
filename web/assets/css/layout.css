@@ -98,8 +98,13 @@
         background var(--motion-base) var(--motion-ease);
 }
 
-.site-header__burger:hover {
-    border-color: var(--color-border-strong);
+/* Only real pointer devices get the hover hairline. On touch the
+   :hover state sticks after a tap, which painted a lingering box
+   around the burger / X — gating it on hover capability drops that. */
+@media (hover: hover) {
+    .site-header__burger:hover {
+        border-color: var(--color-border-strong);
+    }
 }
 
 .site-header__burger:focus-visible {
@@ -386,7 +391,7 @@ html[data-theme="dark"] .skeleton::after {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-2);
+    gap: var(--space-5);
     text-align: center;
 }
 
@@ -405,6 +410,77 @@ html[data-theme="dark"] .skeleton::after {
 .site-footer a:hover {
     color: var(--color-text-strong);
     text-decoration-color: var(--color-text-subtle);
+}
+
+/* Caption + its source list ride together as one block, tight, so the
+   inner gap above only has to separate the sources from the repo row. */
+.site-footer__sources-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* The three credits read as one centred line that wraps gracefully on
+   narrow viewports; generous column spacing keeps them distinct. */
+.site-footer__sources {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-5);
+}
+
+.site-footer__source {
+    display: inline-flex;
+    align-items: baseline;
+}
+
+/* The role each source plays, quiet so the link stays the anchor. */
+.site-footer__source-desc {
+    margin-left: var(--space-1);
+    color: var(--color-text-subtle);
+    font-size: var(--font-size-xs);
+}
+
+.site-footer__source-desc::before {
+    content: "(";
+}
+
+.site-footer__source-desc::after {
+    content: ")";
+}
+
+/* Bottom row: the repo link (with its mark) and the refreshed stamp.
+   Centres as one line, wraps to a stack when the two no longer fit. */
+.site-footer__bottom {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+}
+
+/* The repo link carries an icon, so it drops the shared underline and
+   leans on the mark plus a hover colour shift instead. The `a`
+   qualifier lifts specificity past the generic `.site-footer a`
+   underline rule above. */
+a.site-footer__repo {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    text-decoration: none;
+}
+
+.site-footer__repo-icon {
+    flex-shrink: 0;
+    /* block strips the inline-baseline gap an SVG inherits, so the mark
+       sits centred against the label rather than a hair high. */
+    display: block;
+}
+
+.site-footer__repo:hover .site-footer__repo-icon {
+    color: var(--color-text-strong);
 }
 
 @media (max-width: 1024px) {
@@ -441,51 +517,148 @@ html[data-theme="dark"] .skeleton::after {
 }
 
 /* Below 720px the inline nav collapses behind the burger so the
-   header stays a clean single row (logo left, burger right). The
-   nav re-renders as a dropdown panel anchored under the burger,
-   shown only while the burger reports aria-expanded="true" (the
-   `is-open` class is toggled by components/nav-menu.js). */
+   header stays a clean single row (logo left, burger right). Tapping
+   the burger expands the nav into a full-screen overlay: the tabs
+   stack large down the left and the theme switch — relocated here by
+   components/nav-menu.js — pins to the bottom. The header stays sticky
+   on top with the burger morphed into an X, so the same control that
+   opened the menu dismisses it. The panel is shown only while the
+   burger reports aria-expanded="true" (the `is-open` class is toggled
+   by components/nav-menu.js). */
 @media (max-width: 720px) {
     .site-header {
-        position: relative;
+        position: sticky;
+        top: 0;
+        z-index: var(--z-header);
         justify-content: space-between;
     }
     .site-header__burger {
         display: inline-flex;
     }
+    /* The overlay is a child of the header, so lift the logo and the
+       burger above it: they stay visible and the burger — now an X —
+       stays tappable to dismiss the menu it opened. */
+    .site-header__logo,
+    .site-header__actions {
+        position: relative;
+        z-index: var(--z-header);
+    }
     .site-header__nav {
-        position: absolute;
-        top: calc(100% + var(--space-1));
-        right: var(--space-4);
-        left: auto;
-        z-index: var(--z-popover);
+        position: fixed;
+        inset: 0;
+        z-index: var(--z-overlay);
         flex-direction: column;
         align-items: stretch;
-        gap: var(--space-1);
+        gap: 0;
         margin: 0;
-        min-width: 200px;
-        padding: var(--space-2);
-        border: 1px solid var(--color-border-strong);
-        border-radius: var(--radius);
+        /* Clear the sticky header at the top; respect the home-bar
+           safe area at the bottom so the theme switch never tucks
+           under the iOS gesture indicator. */
+        padding:
+            calc(var(--header-height) + var(--space-6))
+            var(--page-gutter)
+            calc(var(--space-12) + env(safe-area-inset-bottom, 0px));
         background: var(--color-bg);
-        box-shadow: var(--shadow-popover);
+        overflow-y: auto;
+        overscroll-behavior: contain;
     }
     .site-header__nav:not(.is-open) {
         display: none;
     }
+    /* Fade the panel in, then float each row up in a quick stagger so
+       the menu assembles itself instead of snapping into place. */
+    .site-header__nav.is-open {
+        animation: nav-overlay-in var(--motion-base) var(--motion-ease);
+    }
+    .site-header__nav.is-open .site-header__nav-link,
+    .site-header__nav.is-open .site-nav__footer {
+        animation: nav-item-in var(--motion-slow) var(--ease-decelerate)
+            backwards;
+    }
+    .site-header__nav.is-open .site-header__nav-link:nth-of-type(1) {
+        animation-delay: 0.04s;
+    }
+    .site-header__nav.is-open .site-header__nav-link:nth-of-type(2) {
+        animation-delay: 0.08s;
+    }
+    .site-header__nav.is-open .site-header__nav-link:nth-of-type(3) {
+        animation-delay: 0.12s;
+    }
+    /* Big, left-aligned, stacked tap targets — the standard
+       full-screen mobile-menu treatment. The left padding reserves
+       room for the active-tab accent bar so switching tabs never
+       shifts the labels sideways. */
     .site-header__nav-link {
-        padding: var(--space-3);
-        border-radius: var(--radius-sm);
+        position: relative;
+        padding: var(--space-3) 0 var(--space-3) var(--space-4);
+        border-radius: 0;
+        font-size: var(--font-size-2xl);
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: var(--letter-tight);
+        color: var(--color-text-muted);
     }
-    /* The sliding underline suits an inline row; in the stacked
-       panel an active item reads better as a filled row, so the bar
-       (active and hover alike) is dropped here. */
+    /* The desktop sliding underline is replaced here by a vertical
+       accent bar at the left edge — the same accent, reading as a
+       "current page" marker in the stacked layout. It grows from the
+       centre on the active tab and stays collapsed otherwise. */
     .site-header__nav-link::after {
-        display: none;
+        content: "";
+        left: 0;
+        right: auto;
+        top: 50%;
+        bottom: auto;
+        width: 4px;
+        height: 1.5em;
+        border-radius: var(--radius-pill);
+        background: var(--color-accent);
+        transform: translateY(-50%) scaleY(0);
+        transform-origin: center;
+        transition: transform var(--motion-pill) var(--ease-decelerate);
     }
-    .site-header__nav-link.is-active,
     .site-header__nav-link:hover {
-        background: var(--color-divider);
+        background: transparent;
+        color: var(--color-text-strong);
+    }
+    /* Active tab: accent label plus the full-height accent bar, so the
+       current section is unmistakable at a glance. */
+    .site-header__nav-link.is-active {
+        background: transparent;
+        color: var(--color-accent);
+    }
+    .site-header__nav-link.is-active::after {
+        transform: translateY(-50%) scaleY(1);
+    }
+    /* Theme switch footer: pushed to the bottom of the panel with a
+       divider above so it reads as a settings row, not a stray tab. */
+    .site-nav__footer {
+        margin-top: auto;
+        padding-top: var(--space-6);
+        border-top: 1px solid var(--color-border);
+    }
+    /* Lock the page behind the overlay so a scroll gesture moves the
+       menu, never the dashboard underneath it. */
+    body.has-nav-open {
+        overflow: hidden;
+    }
+}
+
+@keyframes nav-overlay-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes nav-item-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
@@ -509,6 +682,16 @@ html[data-theme="dark"] .skeleton::after {
     .site-footer {
         margin-top: var(--space-8);
         padding: var(--space-5) var(--space-4) var(--space-6);
+    }
+}
+
+/* Below the width where the one-line credit fits, stack the sources as
+   a centred list rather than letting them wrap mid-row. */
+@media (max-width: 700px) {
+    .site-footer__sources {
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-1);
     }
 }
 
