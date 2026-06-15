@@ -1,22 +1,54 @@
 // Mobile navigation menu. The burger button toggles the primary
-// nav into a dropdown panel below the header. Everything here is
-// inert on desktop: the button ships `display: none`, so the
-// listeners simply never fire until a narrow viewport reveals it.
+// nav into a full-screen overlay panel. Everything here is inert on
+// desktop: the button ships `display: none`, so the listeners simply
+// never fire until a narrow viewport reveals it.
 //
 // The nav links themselves are still plain `<a href="#...">`
 // elements driving tabs.js via the hash router — this module only
-// owns the open/closed state of the panel, not tab selection.
+// owns the open/closed state of the panel (and, on a phone, where the
+// theme switch lives), not tab selection.
 
 export function initNavMenu() {
     const toggle = document.querySelector("[data-nav-toggle]");
     const nav = document.getElementById("site-nav");
     if (!toggle || !nav) return;
 
+    // The theme switch lives in the header on desktop but belongs at
+    // the bottom of the full-screen menu on a phone. Rather than mount
+    // two controls (which would fight over the same stored preference),
+    // we relocate the single existing node between the header cluster
+    // and a footer inside the nav as the viewport crosses the burger
+    // breakpoint. theme-switch.js finds the slot by selector wherever
+    // it currently sits, so the move is transparent to it; the pill
+    // re-snaps via its own ResizeObserver the moment the menu reveals.
+    const themeSlot = document.querySelector("[data-theme-switch]");
+    const actions = document.querySelector(".site-header__actions");
+    const menuFooter = document.createElement("div");
+    menuFooter.className = "site-nav__footer";
+
+    const narrow = window.matchMedia("(max-width: 720px)");
+
+    const placeTheme = () => {
+        if (!themeSlot || !actions) return;
+        if (narrow.matches) {
+            menuFooter.append(themeSlot);
+            nav.append(menuFooter);
+        } else {
+            // Back into the header cluster, ahead of the burger so the
+            // original left-of-burger order is preserved.
+            actions.insertBefore(themeSlot, toggle);
+            menuFooter.remove();
+        }
+    };
+
     const isOpen = () => nav.classList.contains("is-open");
 
     const setOpen = (open) => {
         nav.classList.toggle("is-open", open);
         toggle.setAttribute("aria-expanded", String(open));
+        // Lock the page behind the full-screen overlay so a scroll
+        // gesture moves the menu, not the dashboard underneath it.
+        document.body.classList.toggle("has-nav-open", open);
         if (open) {
             // Capture phase so a tap that lands on a tab link still
             // closes the panel before the link's own handler runs.
@@ -49,10 +81,13 @@ export function initNavMenu() {
         if (event.target.closest("[data-tab-link]")) setOpen(false);
     });
 
-    // Returning to a wide viewport (rotation, resize) must not leave
-    // a stale open panel that the now-hidden burger can't close.
-    const wide = window.matchMedia("(min-width: 721px)");
-    wide.addEventListener("change", (event) => {
-        if (event.matches) setOpen(false);
+    // Crossing the breakpoint (rotation, resize) re-homes the theme
+    // switch and clears any open panel so the now-hidden burger can't
+    // leave a stale overlay covering the desktop layout.
+    narrow.addEventListener("change", () => {
+        setOpen(false);
+        placeTheme();
     });
+
+    placeTheme();
 }

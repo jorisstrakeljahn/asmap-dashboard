@@ -27,6 +27,10 @@ function tableColumns(unit) {
         },
         {
             labelKey: accessors.shareDenominatorKey,
+            // The currency-specific header ("% of all IPv4") is too
+            // long for the single-line mobile sort bar, so the
+            // stacked card view swaps in this short label via CSS.
+            shortLabelKey: "topMovers.columns.share",
             className: "top-movers__num",
             sortable: true,
             field: "share",
@@ -80,6 +84,21 @@ function headerCell(column, state, onChange) {
     labelSpan.className = "top-movers__sort-label";
     labelSpan.textContent = label;
     button.append(labelSpan);
+
+    // When a column carries a short label, render it as a second
+    // span the mobile sort bar swaps in (CSS toggles which one
+    // shows). Marking the spans --full / --short keeps the wide
+    // header on the descriptive label and the narrow card view on
+    // the compact one without a width branch in JS.
+    if (column.shortLabelKey) {
+        labelSpan.classList.add("top-movers__sort-label--full");
+        const shortSpan = document.createElement("span");
+        shortSpan.className =
+            "top-movers__sort-label top-movers__sort-label--short";
+        shortSpan.textContent = t(column.shortLabelKey);
+        shortSpan.setAttribute("aria-hidden", "true");
+        button.append(shortSpan);
+    }
 
     if (isActive) button.append(sortChevron(state.sortDir));
 
