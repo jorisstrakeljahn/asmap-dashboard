@@ -104,13 +104,9 @@
 .chart-tooltip {
     position: absolute;
     z-index: var(--z-tooltip);
-    /* width: max-content lets the tooltip size to the longest row
-       instead of clamping to a hardcoded width and forcing
-       awkward "440,509 entries (1.81\nMB)" line breaks inside a
-       single numeric value. min-width / max-width keep the tooltip
-       readable: never narrower than 200px so the title and label
-       columns don't collapse, never wider than 92vw on small
-       screens. */
+    /* max-content sizes to the longest row instead of forcing awkward
+       line breaks inside a numeric value; min/max-width keep the title
+       and label columns from collapsing or overflowing small screens. */
     width: max-content;
     min-width: 200px;
     max-width: min(420px, 92vw);
@@ -135,6 +131,27 @@
     visibility: visible;
 }
 
+/* Docked reading strip for narrow touch devices, where a floating
+   tooltip would cover the point it describes. JS (shouldDockReadout)
+   toggles the shell class that reveals it, so the breakpoint lives in
+   one place and floating charts reserve no empty space. Inner rows
+   reuse .chart-tooltip__* so docked and floating readings can't drift. */
+.chart-readout {
+    display: none;
+}
+
+.chart-shell--readout-docked .chart-readout {
+    display: block;
+    margin-bottom: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-normal);
+    text-align: left;
+}
+
 .chart-tooltip__title {
     font-weight: var(--font-weight-medium);
     color: var(--color-text-strong);
@@ -147,12 +164,9 @@
     margin-top: var(--space-2);
 }
 
-/* The value column carries numeric facts ("440,509 entries
-   (1.81 MB)", "−12,345 entries", "Aug 14, 2025"). Each of these
-   reads as one atomic unit, so we never want the renderer to
-   split them mid-value. The label column may still wrap if it
-   ever has to — that side is verbal and tolerates a soft break
-   far better than a number does. */
+/* Numeric values read as one atomic unit, so never break them
+   mid-value. The label column may still wrap — verbal text
+   tolerates a soft break far better than a number does. */
 .chart-tooltip__kv strong {
     white-space: nowrap;
 }
@@ -182,10 +196,9 @@
     height: auto;
     margin-top: var(--space-2);
     /* Let a vertical drag scroll the page while a horizontal drag
-       scrubs the series for its tooltip (see attachTouchInspect in
-       chart-interaction.js). Without this the browser claims every
-       touch gesture for panning and the tap-to-inspect path never
-       fires on a touchscreen. */
+       scrubs the series (see attachTouchInspect in
+       chart-interaction.js). Without it the browser claims every
+       touch gesture for panning and tap-to-inspect never fires. */
     touch-action: pan-y;
 }
 
@@ -207,12 +220,9 @@
     fill: var(--color-text-subtle);
 }
 
-/* Tiny rotated mark in the left gutter that names what the y axis
-   measures. Tinted in the same subtle gray as the tick labels so
-   it reads as a quiet unit indicator rather than competing with
-   the data values for attention. Uppercase letter-spacing matches
-   the card label so the gutter mark feels stylistically of a
-   piece with the rest of the chart chrome. */
+/* Rotated y-axis unit label in the left gutter. Same subtle gray
+   as the tick labels so it reads as a quiet unit indicator, and
+   uppercase tracking matches the card label. */
 .chart__y-title {
     font-family: var(--font-sans);
     font-size: var(--font-size-xs);
@@ -309,12 +319,10 @@
     pointer-events: all;
 }
 
-/* Variant series shared by every dual-line chart that compares
-   filled and unfilled. Filled (embedded) keeps the standard
-   accent so the "what Bitcoin Core ships" line reads as the
-   primary metric. Unfilled (source) uses the soft accent token
-   already in use for IPv6 in the overview split bar, so the
-   palette stays internally consistent. */
+/* Dual-line filled-vs-unfilled series. Filled (embedded) keeps the
+   primary accent; unfilled (source) reuses the soft accent already
+   used for IPv6 in the overview split bar, so the palette stays
+   consistent. */
 .chart__line--filled,
 .chart__dot--filled {
     stroke: var(--color-accent);
@@ -335,12 +343,10 @@
     fill: none;
 }
 
-/* Drift composition series. Three semantic categories sharing one
-   axis. Reassigned uses the primary accent because it dominates
-   in real data and reads as "the headline category". Newly Mapped
-   uses the success green so growth feels positive. Unmapped uses
-   the warning amber because lost coverage is the one signal that
-   warrants attention. */
+/* Drift composition series, three categories on one axis.
+   Reassigned uses the primary accent (the dominant, headline
+   category), Newly Mapped the success green (growth), Unmapped the
+   warning amber (lost coverage warrants attention). */
 .chart__line--reassigned,
 .chart__dot--reassigned {
     stroke: var(--color-accent);
@@ -386,12 +392,20 @@
     stroke-dasharray: 6 3;
 }
 
-/* Inline legend above the chart slot. Two or more swatches plus
-   their labels read as a single line on wide screens and wrap on
-   narrow ones. Items can either be plain spans (single-mode
-   legends) or buttons (multi-series legends with a click toggle).
-   The button styling lives on a button.chart-legend__item
-   selector so the span variant keeps zero chrome. */
+/* "You are here" marker on the active slot. Fill comes from the
+   series' dot class; this rule owns only the background ring and is
+   placed after the colour modifiers so the ring stroke wins over the
+   series stroke. */
+.chart__marker {
+    stroke: var(--color-bg);
+    stroke-width: 2;
+    pointer-events: none;
+}
+
+/* Inline legend above the chart slot, wrapping on narrow screens.
+   Items are plain spans (single-mode) or buttons (multi-series with
+   a click toggle); button styling lives on button.chart-legend__item
+   so the span variant keeps zero chrome. */
 .chart-legend {
     display: flex;
     flex-wrap: wrap;
@@ -481,12 +495,9 @@ button.chart-legend__item:focus-visible {
     text-decoration: line-through;
 }
 
-/* Coarse-pointer (finger) target growth for the clickable legend
-   toggles. The mouse variant stays tight (2px 4px) so the legend
-   reads as a label row; a finger needs more, so on touch the
-   buttons gain vertical padding and a ~36px min height. Charts
-   like the Network operator breakdown carry up to six of these,
-   so they're a primary touch control, not just chrome. */
+/* Finger-target growth for the clickable legend toggles. The mouse
+   variant stays tight; on touch the buttons gain padding and a
+   ~36px min height since charts can carry up to six of these. */
 @media (pointer: coarse) {
     button.chart-legend__item {
         padding: var(--space-2) var(--space-2);
