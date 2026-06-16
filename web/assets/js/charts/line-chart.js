@@ -1,15 +1,12 @@
-// Shared time-series line chart for the map size chart and the
-// drift chart, which need near-identical geometry, axes, line and
-// dot drawing, and hover handling — only the data shape, the y
-// formatter, and the tooltip body differ. This module hosts the
-// common scaffold so each chart is just its own SERIES definition,
-// value accessor, and tooltip builder.
+// Shared time-series line chart for the map size and drift charts,
+// which share geometry, axes, line/dot drawing, and hover handling —
+// only the data shape, y formatter, and tooltip body differ. Each
+// chart is then just its own SERIES definition, value accessor, and
+// tooltip builder.
 //
-// The scaffold is pure rendering: it does not own state, does not
-// render the legend or header, and does not decide what counts as
-// an empty state. Callers handle all of that before invoking it
-// and pass the already-filtered visible series. This keeps the
-// scaffold reusable and the callers in charge of the storyboard.
+// The scaffold is pure rendering: no state, no legend/header, no
+// empty-state decision. Callers handle that and pass the already-
+// filtered visible series.
 
 import { linearScale, niceTicks, smoothPath, svg } from "./svg.js";
 import {
@@ -27,11 +24,9 @@ import {
     attachTouchInspect,
     clientToSvg,
     createChartShell,
+    createReadout,
     HOVER_BLEED,
-    hideTooltip,
-    nearestIndex,
-    placeTooltipNextFrame,
-    showTooltip,
+    nearestIndexAmong,
 } from "./chart-interaction.js";
 
 const DOT_RADIUS = 3;
@@ -45,31 +40,27 @@ const DOT_RADIUS = 3;
 //     be drawn. Each entry needs at least ``key``, ``lineClass``,
 //     and ``dotClass``. Hidden series do not appear here, but the
 //     caller is free to keep them inside ``tooltipBodyAt``.
-//   - ``valueAt(seriesKey, slotIndex)``: returns the y value for
-//     that pair, or ``null`` for a gap. Gap slots get no dot and
-//     are skipped by the line pass so the curve connects the
-//     surrounding points instead of breaking. The hover tooltip
+//   - ``valueAt(seriesKey, slotIndex)``: y value for that pair, or
+//     ``null`` for a gap. Gap slots get no dot and are skipped by
+//     the line pass so the curve connects across them; the tooltip
 //     still names the slot, so the bridge is a visual aid, not a
 //     claim of data.
-//   - ``yMin`` / ``yMax``: the y domain the caller wants. niceTicks
-//     extends this to a tick-friendly range. Letting the caller
-//     pass exact bounds keeps domain quirks (drift forcing min=0,
-//     a 1 % floor for flat-zero plots) at the caller's side.
-//   - ``yFormat`` / ``yTitle``: y tick formatter and the rotated
-//     gutter label.
+//   - ``yMin`` / ``yMax``: the y domain; niceTicks extends it to a
+//     tick-friendly range. Exact bounds keep domain quirks (drift
+//     forcing min=0, a 1 % floor for flat-zero plots) caller-side.
+//   - ``yFormat`` / ``yTitle``: y tick formatter and gutter label.
 //   - ``ariaLabel``: aria-label on the SVG root.
-//   - ``tooltipBodyAt(slotIndex)``: returns the rendered tooltip
-//     body for the slot the cursor is closest to. The caller owns
-//     the row layout, footer text, and any per-mode wording.
+//   - ``tooltipBodyAt(slotIndex)``: rendered tooltip body for the
+//     nearest slot. The caller owns row layout, footer, and wording.
 //   - ``options.domainStart`` / ``options.domainEnd``: optional
-//     calendar overrides passed through to resolveTimeDomain so
-//     the chart can span beyond the data (range picker windows).
+//     calendar overrides for resolveTimeDomain so the chart can span
+//     beyond the data (range picker windows).
 //   - ``spec.linearDomain`` / ``spec.xTicks``: opt the x axis out of
-//     calendar semantics. With ``linearDomain`` the domain is the
-//     raw numeric extent (no month snapping) and ``xTicks`` —
-//     ``{ timestamp, label }[]`` in the same numeric space — replaces
-//     the calendar ticks. Used by the decay chart's map-age view,
-//     where x is "days of map age", not a date.
+//     calendar semantics. ``linearDomain`` uses the raw numeric
+//     extent (no month snapping) and ``xTicks`` —
+//     ``{ timestamp, label }[]`` in that space — replaces the
+//     calendar ticks. Used by the decay chart's map-age view, where
+//     x is days of map age, not a date.
 export function buildLineChart(spec, width, height, layout, options = {}) {
     const geometry = computeGeometry(spec, width, height, layout, options);
     const root = createChartSvg(width, height, spec.ariaLabel);
@@ -78,13 +69,12 @@ export function buildLineChart(spec, width, height, layout, options = {}) {
     drawSeriesLines(root, geometry, spec);
     drawSeriesDots(root, geometry, spec);
 
-    return attachHover(root, geometry, spec);
+    return attachHover(root, geometry, spec, width);
 }
 
-// Single computation of plot bounds, axis ticks, and the two
-// scales every sub-pass needs. Centralised so the y ticks the axis
-// renders are guaranteed to match the y scale the lines and dots
-// are positioned with.
+// Single computation of plot bounds, axis ticks, and the two scales
+// every sub-pass needs, so the rendered y ticks always match the y
+// scale positioning lines and dots.
 function computeGeometry(spec, width, height, layout, options) {
     const plot = plotBounds(width, height, layout);
     const yTicks = niceTicks(spec.yMin, spec.yMax);
@@ -131,11 +121,9 @@ function drawAxes(root, geometry, spec, width) {
 }
 
 // One smooth path per visible series. Missing slots (``valueAt``
-// returns null) are skipped so the line connects the surrounding
-// data points instead of breaking. The dot pass keeps gap slots
-// dot-less and the hover tooltip still names them as "not
-// published" / "no diff", so the bridge is a visual aid, not a
-// claim of data.
+// returns null) are skipped so the line connects across them. The
+// dot pass keeps gap slots dot-less and the tooltip still names
+// them, so the bridge is a visual aid, not a claim of data.
 function drawSeriesLines(root, { xAt, yScale, slotCount }, spec) {
     for (const series of spec.visibleSeries) {
         const points = seriesLinePoints(spec, series, slotCount, xAt, yScale);
@@ -166,10 +154,9 @@ function drawSeriesDots(root, { xAt, yScale, slotCount }, spec) {
     }
 }
 
-// Collect the [x, y] points for one series in plot order. Slots
-// where ``valueAt`` returns null are skipped so the surrounding
-// points connect directly. smoothPath then draws one curve that
-// glides over the gap rather than two segments with a break.
+// Collect the [x, y] points for one series in plot order, skipping
+// null slots so smoothPath draws one curve gliding over the gap
+// rather than two broken segments.
 function seriesLinePoints(spec, series, slotCount, xAt, yScale) {
     const points = [];
     for (let i = 0; i < slotCount; i++) {
@@ -180,8 +167,36 @@ function seriesLinePoints(spec, series, slotCount, xAt, yScale) {
     return points;
 }
 
-function attachHover(root, geometry, spec) {
-    const { plot, xAt, slotCount } = geometry;
+// Last slot where any visible series has a value, so the docked
+// readout's idle state lands on the most recent real point, not a
+// trailing gap. Returns -1 when nothing is plotted.
+function lastSlotWithData(spec, slotCount) {
+    for (let i = slotCount - 1; i >= 0; i--) {
+        for (const series of spec.visibleSeries) {
+            if (spec.valueAt(series.key, i) != null) return i;
+        }
+    }
+    return -1;
+}
+
+// Every slot a pointer may land on: those where at least one visible
+// series carries a value. A build with no diff drops out, so hover,
+// touch, and keyboard all snap to the nearest real point.
+function selectableSlots(spec, slotCount) {
+    const slots = [];
+    for (let i = 0; i < slotCount; i++) {
+        for (const series of spec.visibleSeries) {
+            if (spec.valueAt(series.key, i) != null) {
+                slots.push(i);
+                break;
+            }
+        }
+    }
+    return slots;
+}
+
+function attachHover(root, geometry, spec, width) {
+    const { plot, xAt, yScale, slotCount } = geometry;
     const cursorLine = svg("line", {
         x1: plot.left,
         x2: plot.left,
@@ -192,21 +207,74 @@ function attachHover(root, geometry, spec) {
     });
     root.append(cursorLine);
 
-    const { shell, tip } = createChartShell(root);
+    // One emphasized marker per visible series, hidden until a slot is
+    // active. It rides the cursor line so the reader sees which point
+    // on which line the reading refers to. Drawn after the base dots
+    // so it sits on top.
+    const markers = spec.visibleSeries.map((series) => {
+        const dot = svg("circle", {
+            r: DOT_RADIUS + 2,
+            class: `chart__marker ${series.dotClass}`,
+            visibility: "hidden",
+        });
+        root.append(dot);
+        return { series, dot };
+    });
 
-    const hide = () => {
-        hideTooltip(tip);
-        cursorLine.setAttribute("visibility", "hidden");
-    };
+    const { shell, tip, readout } = createChartShell(root);
+    const ctrl = createReadout(shell, tip, readout, width);
 
-    const show = (idx, clientX, clientY) => {
+    // Slots a pointer/keyboard may rest on. Empty builds are absent,
+    // so the cursor snaps to the nearest real point instead.
+    const selectable = selectableSlots(spec, slotCount);
+
+    // Paint the cursor line and per-series markers for a slot. Markers
+    // for a gap (no value here) stay hidden so the chart never claims
+    // a point it didn't draw.
+    const paintCursor = (idx) => {
         const x = xAt(idx);
         cursorLine.setAttribute("x1", String(x));
         cursorLine.setAttribute("x2", String(x));
         cursorLine.setAttribute("visibility", "visible");
-        showTooltip(tip, spec.tooltipBodyAt(idx));
-        placeTooltipNextFrame(shell, tip, clientX, clientY);
+        for (const { series, dot } of markers) {
+            const value = spec.valueAt(series.key, idx);
+            if (value == null) {
+                dot.setAttribute("visibility", "hidden");
+                continue;
+            }
+            dot.setAttribute("cx", String(x));
+            dot.setAttribute("cy", String(yScale(value)));
+            dot.setAttribute("visibility", "visible");
+        }
     };
+
+    const clearCursor = () => {
+        cursorLine.setAttribute("visibility", "hidden");
+        for (const { dot } of markers) dot.setAttribute("visibility", "hidden");
+    };
+
+    const show = (idx, clientX, clientY) => {
+        paintCursor(idx);
+        ctrl.present(() => spec.tooltipBodyAt(idx), clientX, clientY);
+    };
+
+    // On touch the readout strip stays populated, so its reserved
+    // space never collapses and updates never shift the chart. At rest
+    // it shows the latest data point; dismissing a scrub reverts to
+    // that. The crosshair only appears while a slot is active.
+    const idleIdx = lastSlotWithData(spec, slotCount);
+    const showIdle = () => {
+        clearCursor();
+        if (ctrl.docked && idleIdx >= 0) {
+            ctrl.present(() => spec.tooltipBodyAt(idleIdx));
+        } else {
+            ctrl.clear();
+        }
+    };
+    const hide = showIdle;
+    if (ctrl.docked && idleIdx >= 0) {
+        ctrl.present(() => spec.tooltipBodyAt(idleIdx));
+    }
 
     shell.addEventListener("mousemove", (ev) => {
         const pt = clientToSvg(root, ev.clientX, ev.clientY);
@@ -220,13 +288,18 @@ function attachHover(root, geometry, spec) {
             hide();
             return;
         }
-        show(nearestIndex(pt.x, slotCount, xAt), ev.clientX, ev.clientY);
+        const idx = nearestIndexAmong(pt.x, selectable, xAt);
+        if (idx < 0) {
+            hide();
+            return;
+        }
+        show(idx, ev.clientX, ev.clientY);
     });
     shell.addEventListener("mouseleave", hide);
 
-    // Touch resolves on the x axis only: a finger lands anywhere in
-    // a column, not on the 3 px dot, so the y-band check the mouse
-    // path uses would make most taps miss. Off-plot x dismisses.
+    // Touch resolves on the x axis only: a finger lands anywhere in a
+    // column, not on the 3 px dot, so the mouse path's y-band check
+    // would make most taps miss. Off-plot x dismisses.
     attachTouchInspect(shell, {
         resolve: (clientX, clientY) => {
             const pt = clientToSvg(root, clientX, clientY);
@@ -234,13 +307,14 @@ function attachHover(root, geometry, spec) {
             if (pt.x < plot.left - HOVER_BLEED || pt.x > plot.right + HOVER_BLEED) {
                 return null;
             }
-            return nearestIndex(pt.x, slotCount, xAt);
+            const idx = nearestIndexAmong(pt.x, selectable, xAt);
+            return idx < 0 ? null : idx;
         },
         show,
         hide,
     });
 
-    attachKeyboardInspect(shell, { count: slotCount, show, hide, xAt });
+    attachKeyboardInspect(shell, { slots: selectable, show, hide, xAt });
 
     return shell;
 }

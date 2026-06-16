@@ -1,9 +1,8 @@
-// Bar chart of entry-count delta vs last diffable predecessor,
-// computed from the unfilled variant on both sides. Bars at real
-// release timestamps (not uniform slots) so a publishing pause
-// shows as a wide gap. Uses the same last-diffable-predecessor
-// bridge as the drift card and the step-drift chart, so all
-// three stay in lockstep.
+// Bar chart of entry-count delta vs the last diffable predecessor,
+// from the unfilled variant on both sides. Bars sit at real release
+// timestamps (not uniform slots) so a publishing pause shows as a
+// wide gap. Shares the last-diffable-predecessor bridge with the
+// drift card and step-drift chart, so all three stay in lockstep.
 
 import { linearScale, niceTicks, svg } from "../charts/svg.js";
 import {
@@ -21,13 +20,11 @@ import {
     attachTouchInspect,
     clientToSvg,
     createChartShell,
+    createReadout,
     HOVER_BLEED,
-    hideTooltip,
     isTooltipVisible,
     nearestIndex,
-    placeTooltipNextFrame,
     positionTooltip,
-    showTooltip,
 } from "../charts/chart-interaction.js";
 import { buildTooltipBody } from "../charts/chart-tooltip.js";
 import { BAR_CORNER_RADIUS, pickBarWidth } from "../charts/bar-geometry.js";
@@ -46,10 +43,8 @@ import { createInfoTooltip } from "./info-tooltip.js";
 export function mount(parent, maps, options = {}) {
     if (!parent || !Array.isArray(maps) || maps.length === 0) return;
     const rows = deltasBetween(maps);
-    // No diffable pair in the picked range: spell the empty state
-    // out so the slot does not silently render blank. The drift
-    // charts use the same affordance; matching them keeps the
-    // history section's empty-state vocabulary consistent.
+    // No diffable pair in range: render an explicit empty state so
+    // the slot is never silently blank, matching the drift charts.
     if (rows.length < 1) {
         parent.replaceChildren(mutedNote(t("history.mapDeltaChart.empty")));
         return;
@@ -131,7 +126,8 @@ function buildChart(rows, maps, width, height, layout, options) {
         );
     }
 
-    const { shell, tip } = createChartShell(root);
+    const { shell, tip, readout } = createChartShell(root);
+    const ctrl = createReadout(shell, tip, readout, width);
     // Tracked so a fast mouseleave on the shell (not the bar)
     // still clears the highlight.
     let activeBar = null;
@@ -140,10 +136,6 @@ function buildChart(rows, maps, width, height, layout, options) {
             activeBar.classList.remove("chart__bar--active");
             activeBar = null;
         }
-    };
-    const hide = () => {
-        hideTooltip(tip);
-        clearActive();
     };
 
     const bodyFor = (row) =>
@@ -178,9 +170,25 @@ function buildChart(rows, maps, width, height, layout, options) {
         if (!bar) return;
         bar.classList.add("chart__bar--active");
         activeBar = bar;
-        showTooltip(tip, bodyFor(rows[i]));
-        placeTooltipNextFrame(shell, tip, clientX, clientY);
+        ctrl.present(() => bodyFor(rows[i]), clientX, clientY);
     };
+
+    // On touch the readout strip shows the latest bar's reading at
+    // rest so reserved space never collapses or shifts the chart; the
+    // bar highlight fires only while a bar is engaged. Every row has a
+    // delta, so the idle slot is the last one.
+    const idleIdx = rows.length - 1;
+    const hide = () => {
+        clearActive();
+        if (ctrl.docked && idleIdx >= 0) {
+            ctrl.present(() => bodyFor(rows[idleIdx]));
+        } else {
+            ctrl.clear();
+        }
+    };
+    if (ctrl.docked && idleIdx >= 0) {
+        ctrl.present(() => bodyFor(rows[idleIdx]));
+    }
 
     rows.forEach((row, i) => {
         const top = yScale(Math.max(0, row.delta));
@@ -224,7 +232,10 @@ function buildChart(rows, maps, width, height, layout, options) {
     });
 
     attachKeyboardInspect(shell, {
-        count: rows.length,
+        // Every row is a real bar (deltasBetween already dropped the
+        // builds with no diffable predecessor), so all indices are
+        // selectable.
+        slots: rows.map((_, i) => i),
         show: showRow,
         hide,
         xAt,

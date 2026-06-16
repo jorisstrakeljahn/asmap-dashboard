@@ -24,15 +24,10 @@ import {
 const SECONDS_PER_DAY = 86400;
 
 // Create a header mode-switch once and cache it on the chart's
-// persistent ``state`` bag (states.decay / states.hhi survive every
-// renderTrends pass). The axis / family toggles live inside the chart
-// card, which mountSeriesChart rebuilds on every re-render; recreating
-// the switch each time would hand back a fresh mode-switch that snaps
-// its pill to the new position with no transition. Reusing the same
-// instance instead lets mountSeriesChart re-parent it into the new card
-// with its pill mid-slide, so the highlight animates on click — exactly
-// like the Trends range picker, which network-tab.js mounts once into a
-// stable slot.
+// persistent ``state`` bag. mountSeriesChart rebuilds the card on every
+// re-render; recreating the switch each time would snap its pill to the
+// new position with no transition. Reusing the instance lets it be
+// re-parented mid-slide, so the highlight animates on click.
 function ensureToggle(state, factory) {
     if (!state.toggle) state.toggle = factory();
     return state.toggle;
@@ -51,26 +46,18 @@ export function mountTrendCharts(network, sources, bounds, states, rerender) {
 
 // ---- Decay: drift of today's node set vs each build's age -------
 
-// Two x-axis views over the same curve, switchable in the card header:
+// Two x-axis views over the same curve, switchable in the header:
 //
-//   - "age" (default): x is the map's age in days, so the chart reads
-//     directly as the answer to the update-cadence question ("how far
-//     off is an N-day-old map for today's nodes?"). 0 days sits at the
-//     left, the oldest build at the right, drift rises with age.
-//   - "date": x is the build's release date, which lines the curve up
-//     with the calendar.
+//   - "age" (default): x is the map's age in days, answering the
+//     update-cadence question directly. Drift rises with age.
+//   - "date": x is the build's release date, lined up with the calendar.
 //
-// Both views honour the 1Y/3Y/5Y/Max range picker, like every other
-// trend chart. The age view windows by age rather than by calendar:
-// because age = reference − build date, the picker's calendar span maps
-// onto a maximum map age of the *same width* ("the last year" -> "ages
-// up to ~365 days"), so the same picker drives both axes without a
-// special case the user has to learn. The two windows are equal in
-// width but not in the exact build set they include: the date view is
-// anchored at wall-clock "now", the age view at the reference build, so
-// they coincide only while the newest build is current. That is
-// deliberate — see the ageWindowDays note below for why the age view
-// anchors at the reference instead.
+// Both honour the 1Y/3Y/5Y/Max range picker. The age view windows by
+// age, not calendar: age = reference − build date, so the picker's
+// calendar span maps onto a max map age of the same width. The two
+// windows are equal in width but not in build set — date is anchored at
+// "now", age at the reference build, so they coincide only while the
+// newest build is current (see the ageWindowDays note below).
 function mountDecayChart(network, sources, bounds, state, rerender) {
     const referenceTs = network.reference_timestamp;
     const ageMode = state.axis === "age";
@@ -82,14 +69,12 @@ function mountDecayChart(network, sources, bounds, state, rerender) {
             value: p.drift_pct,
         })),
     }));
-    // The age axis has no calendar of its own — age 0 is always the
-    // freshest build, no matter when the newest crawl ran. So the picker
-    // windows it by age span, not by wall-clock date: "1Y" keeps map ages
-    // up to ~365 days, anchored at age 0. The window width is the same
-    // 365 / 1095 / 1825 days the date view spans (the "now" terms cancel
-    // in domainEnd − cutoff), but here it never shrinks when the crawler
-    // pauses — a year of aging is always a full year on screen. "max"
-    // (cutoff −Infinity) keeps the whole curve.
+    // The age axis has no calendar — age 0 is always the freshest
+    // build. So the picker windows it by age span: "1Y" keeps map ages
+    // up to ~365 days. Same 365 / 1095 / 1825-day width the date view
+    // spans (the "now" terms cancel in domainEnd − cutoff), but it never
+    // shrinks when the crawler pauses. "max" (cutoff −Infinity) keeps
+    // the whole curve.
     const ageWindowDays =
         bounds.cutoff === -Infinity
             ? Infinity
@@ -147,24 +132,21 @@ function mountDecayChart(network, sources, bounds, state, rerender) {
     });
 }
 
-// Calendar units for the age axis, largest first. Raw day counts
-// (the previous "{days}d") read poorly on a multi-year curve — "1,825d"
-// is noise where "5y" is instantly legible. The unit is chosen from the
-// span: years past two years, months past a quarter, days below that.
-// Steps are calendar-nice within the unit (1/2/5 years, 1/3/6 months)
-// rather than the generic 2.5x picker, so ticks land on whole years and
-// quarters. The tooltip still carries the exact day count, so precision
-// is never lost — only the axis label gets cleaner.
+// Calendar units for the age axis, largest first. Raw day counts read
+// poorly on a multi-year curve ("1,825d" vs "5y"). Unit chosen from the
+// span: years past two years, months past a quarter, days below. Steps
+// are calendar-nice (1/2/5 years, 1/3/6 months) so ticks land on whole
+// years and quarters. The tooltip keeps the exact day count, so no
+// precision is lost.
 const AGE_AXIS_UNITS = [
     { minDays: 2 * 365, days: 365, steps: [1, 2, 5, 10], labelKey: "tickYears" },
     { minDays: 91, days: 30, steps: [1, 2, 3, 6], labelKey: "tickMonths" },
     { minDays: 0, days: 1, steps: [7, 14, 30, 60, 90], labelKey: "tickDays" },
 ];
 
-// The age the x axis should span. A bounded range (1Y/3Y/5Y) pins the
-// axis to the full window width — 365 / 1095 / 1825 days — so the axis
-// reads "1y" / "3y" / "5y" even when a publishing pause leaves the data
-// short of the edge, exactly as the date view shows empty space. "max"
+// The age the x axis spans. A bounded range pins the axis to the full
+// window width (365 / 1095 / 1825 days), so it reads "1y"/"3y"/"5y"
+// even when a publishing pause leaves the data short of the edge. "max"
 // (cutoff −Infinity) spans the real data extent.
 function decayAxisMax(ages, bounds) {
     const dataMax = ages.length ? ages[ages.length - 1] : 1;
@@ -200,27 +182,23 @@ function ageAxisSpec(axisMax) {
 
 // ---- AS concentration (HHI) over time ---------------------------
 
-// The headline concentration trend: the same Herfindahl-Hirschman index
-// the hero card shows, scored against the build in effect at each
-// snapshot. Unlike the per-operator breakdown below (KIT only), HHI is a
-// single normalised number comparable across crawlers of different size,
-// so this overlays every source — restoring the KIT/Bitnodes
-// concentration cross-check the operator view can't make. Two
-// independent crawls tracing the same decline is the credibility signal.
-// The y-axis auto-scales (no zero floor): HHI lives in a narrow band, so
-// flooring at zero would flatten the very trend the chart exists to show.
+// The headline concentration trend: the same HHI the hero card shows,
+// scored against the build in effect at each snapshot. Unlike the
+// per-operator breakdown below (KIT only), HHI is a single normalised
+// number comparable across crawlers, so this overlays every source —
+// two independent crawls tracing the same decline is the credibility
+// signal. The y-axis auto-scales (no zero floor): HHI lives in a narrow
+// band, so flooring at zero would flatten the trend.
 //
-// Points are bucketed by calendar day rather than exact timestamp:
-// each crawl runs at its own time of day, so KIT and Bitnodes snapshots
+// Points are bucketed by calendar day: KIT and Bitnodes snapshots
 // matched to the same map land hours apart and would otherwise sit on
-// adjacent slots with separate hovers. Collapsing them onto one slot
-// per day puts both crawlers in a single tooltip; the few-hour shift is
-// invisible at the ~monthly snapshot spacing, and genuinely different
-// days (the older best-effort matches) still stay apart.
-// A family toggle (All / IPv4 / IPv6) sits in the card header:
-// Bitcoin Core treats the two families as independent peer-diversity
-// dimensions, and the ~80/20 IPv4/IPv6 split means the combined index
-// is dominated by IPv4 — the IPv6 view would otherwise be invisible.
+// adjacent slots with separate hovers. One slot per day puts both in a
+// single tooltip; the few-hour shift is invisible at ~monthly spacing,
+// and genuinely different days still stay apart.
+//
+// A family toggle (All / IPv4 / IPv6) sits in the header: Core treats
+// the families as independent dimensions, and the ~80/20 split means the
+// combined index is IPv4-dominated, so IPv6 would otherwise be invisible.
 function mountHhiChart(network, sources, bounds, state, rerender) {
     const slot = document.querySelector("[data-network-hhi]");
     if (!slot) return;
@@ -270,10 +248,9 @@ function mountHhiChart(network, sources, bounds, state, rerender) {
 // ---- ASmap coverage of observed nodes over time ------------------
 
 // The "does the map fit the real network?" series: the share of each
-// snapshot's clearnet nodes the build in effect resolves to a real
-// AS. A sinking line means kartograf's input data is falling behind
-// the network — independent of how the mapped majority distributes,
-// which is what HHI above measures.
+// snapshot's clearnet nodes the build in effect resolves to a real AS.
+// A sinking line means kartograf's input data is falling behind the
+// network — independent of the HHI distribution above.
 function mountCoverageChart(network, sources, bounds, state) {
     const slot = document.querySelector("[data-network-coverage]");
     if (!slot) return;
@@ -310,15 +287,11 @@ function mountCoverageChart(network, sources, bounds, state) {
 
 // ---- Operator concentration over time ---------------------------
 
-// The concentration chart is the top-operator breakdown (KIT only):
-// stacked vertical bars, one per snapshot, segmented into that
-// snapshot's actual top five operators so the stack height is the
-// honest per-period CR5 (see operators-chart.js for the full
-// rationale). KIT only because it is the live crawl; the
-// KIT/Bitnodes cross-check lives in the decay chart above.
-//
-// Operator breakdown needs KIT, so without it there is nothing to plot
-// here and the chart slot stays empty (decay + cross-check still render).
+// The top-operator breakdown (KIT only): stacked bars per snapshot,
+// segmented into that snapshot's actual top five so the height is the
+// honest per-period CR5 (see operators-chart.js). KIT only because it
+// is the live crawl. Without KIT there is nothing to plot and the slot
+// stays empty (decay + cross-check still render).
 function mountConcentrationChart(network, bounds) {
     const parent = document.querySelector("[data-network-concentration]");
     if (!parent) return;
@@ -353,18 +326,14 @@ function snapshotTitle(timeline, slot) {
     return formatDate(new Date(timeline.timestamps[slot]));
 }
 
-// One tooltip row per source that has a value at this slot.
+// One row per source, always in the same order. A source with no
+// value at this slot shows an em dash instead of dropping its row,
+// so the readout's height stays constant while scrubbing.
 function sourceRows(sources, timeline, slot, format) {
-    const rows = [];
-    for (const source of sources) {
+    return sources.map((source) => {
         const value = timeline.valueAt(source, slot);
-        if (value == null) continue;
-        rows.push([sourceLabel(source), format(value)]);
-    }
-    if (rows.length === 0) {
-        return [[t("network.noSnapshot"), "\u2014"]];
-    }
-    return rows;
+        return [sourceLabel(source), value == null ? "\u2014" : format(value)];
+    });
 }
 
 function ageDays(referenceTs, slotMs) {
@@ -372,10 +341,9 @@ function ageDays(referenceTs, slotMs) {
     return Math.max(0, Math.round(days));
 }
 
-// drift_pct and coverage percentages arrive as plain percent numbers
-// (3.8 -> "3.8%"), unlike format.js formatPercent which expects a
-// 0..1 ratio. One decimal keeps the snapshot-to-snapshot movement
-// legible without implying precision the crawl does not have.
+// drift_pct and coverage arrive as plain percent numbers (3.8 ->
+// "3.8%"), unlike format.js formatPercent which expects a 0..1 ratio.
+// One decimal keeps movement legible without implying false precision.
 function formatPercentNumber(value) {
     return `${value.toFixed(1)}%`;
 }
