@@ -1,19 +1,13 @@
-// Diff Explorer tab: pick any two builds and inspect what
-// changed between them — headline match rate, the three-bucket
-// classification of entry-level changes, and the top movers
-// table. Owns the section-header IPv4 / IPv6 family toggle and
-// the diff explorer mount; the toggle re-renders results via
-// the explorer's setFamily() handle so the picker behaves
-// exactly like the History tab's drift unit picker.
+// Diff Explorer tab: pick any two builds and inspect what changed —
+// match rate, the three-bucket classification of entry-level changes,
+// and the top movers table. Owns the IPv4 / IPv6 family toggle, which
+// re-renders via the explorer's setFamily() handle.
 //
-// The tab's data (top-mover rosters) lives in the lazy-loaded
-// diffs.json, so the tab paints in two beats: mountLoading() drops
-// a layout-matching skeleton the instant the tab is first opened,
-// then mount() swaps in the real explorer once diffs.json resolves
-// (see app.js for the fetch orchestration). The swap is a plain
-// replaceChildren — the same direct skeleton -> content handoff
-// every other tab uses, so the Diff tab does not stand out with its
-// own reveal animation.
+// The tab's data (top-mover rosters) lives in lazy-loaded diffs.json,
+// so it paints in two beats: mountLoading() drops a layout-matching
+// skeleton on first open, then mount() swaps in the real explorer once
+// diffs.json resolves (fetch orchestration in app.js). The swap is a
+// plain replaceChildren, like every other tab.
 
 import * as diffExplorer from "./components/diff-explorer.js";
 import { createDiffSkeleton } from "./components/diff-explorer/skeleton.js";
@@ -24,10 +18,10 @@ import {
 } from "./components/diff-explorer/family.js";
 
 /**
- * Paint the loading skeleton into the Diff tab. Called on the first
- * Diff-tab activation, before diffs.json is fetched: a layout-matching
- * placeholder in the body plus a pill placeholder for the family
- * toggle, so the header and body do not shift when the data lands.
+ * Paint the loading skeleton into the Diff tab. Called on first
+ * activation, before diffs.json is fetched: a layout-matching body
+ * placeholder plus a pill for the family toggle, so nothing shifts
+ * when the data lands.
  */
 export function mountLoading() {
     const body = document.querySelector("[data-diff]");

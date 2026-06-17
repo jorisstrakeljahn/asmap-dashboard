@@ -1,19 +1,16 @@
 // Drift composition chart. Two modes:
 //
 //   - "cumulative" diffs each build against the oldest unfilled
-//     baseline and renders as four lines (three categories +
-//     dashed Total).
-//   - "step" diffs against the immediately previous diffable
-//     build and renders as a stacked bar per release; the total
-//     stack height equals "drift vs previous" on the overview.
+//     baseline; four lines (three categories + dashed Total).
+//   - "step" diffs against the previous diffable build; one
+//     stacked bar per release, whose height equals "drift vs
+//     previous" on the overview.
 //
-// Each render is in one drift unit at a time (IPv4 coverage or
-// IPv6 coverage — see DRIFT_* in utils/diffs.js). The unit
-// selects which pipeline fields the points read from and is
-// surfaced in the card header so the active currency is readable
-// at a glance; tooltips append a unit-aware suffix to each
-// "Total drift" row so the reader cannot mistake an IPv6 hover
-// reading for an IPv4 one.
+// One drift unit per render (IPv4 or IPv6 coverage — see DRIFT_*
+// in utils/diffs.js). The unit selects which pipeline fields the
+// points read and shows in the card header; tooltips append a
+// unit-aware suffix to each Total row so an IPv6 reading can't be
+// mistaken for IPv4.
 
 import { mountTimeSeriesCard } from "../charts/chart-card.js";
 import { buildTooltipBody } from "../charts/chart-tooltip.js";
@@ -92,10 +89,9 @@ const SERIES = [
 const seriesWithLabels = (list) =>
     list.map((s) => ({ ...s, label: t(s.labelKey) }));
 
-// Reading order varies by mode. Cumulative leads with Total
-// because the aggregate is the headline reading; step omits
-// Total entirely because the stack height *is* the total, and
-// the legend would otherwise carry a toggle that does nothing.
+// Reading order varies by mode. Cumulative leads with Total (the
+// headline reading); step omits Total since the stack height *is*
+// the total, and its legend toggle would do nothing.
 const READING_ORDER_BY_MODE = {
     cumulative: ["total", "reassigned", "newly_mapped", "unmapped"],
     step: ["reassigned", "newly_mapped", "unmapped"],
@@ -125,10 +121,9 @@ function presetFor(mode, unit) {
     };
 }
 
-// One card per mount. The caller (maps-tab) mounts twice
-// (cumulative + step), with its own ``hidden`` Set per card and
-// a shared ``unit`` so the two cards always read the same
-// currency.
+// One card per mount. maps-tab mounts twice (cumulative + step)
+// with a per-card ``hidden`` Set and a shared ``unit`` so both
+// cards always read the same currency.
 export function mount(parent, maps, diffs, options = {}) {
     if (!parent) return;
     const unit = options.unit ?? DRIFT_IPV4_COVERAGE;
@@ -176,9 +171,9 @@ export function mount(parent, maps, diffs, options = {}) {
 
     ctrl = mountTimeSeriesCard(parent, {
         title: preset.title,
-        // The active drift currency rides next to the label so the
-        // reader can never mistake a coverage view for an entry view;
-        // flipping it (IPv4 <-> IPv6) rebuilds the header.
+        // The active drift currency rides next to the label so a
+        // coverage view can't be mistaken for an entry view; flipping
+        // it (IPv4 <-> IPv6) rebuilds the header.
         subtitle: preset.unitLabel,
         info: preset.info,
         infoAria: preset.infoAria,

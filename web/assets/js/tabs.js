@@ -1,19 +1,14 @@
 // Hash-based tab router for the top-level navigation.
 //
-// Why hash and not History API: hashes work over file:// loads
-// (Bitcoin Core contributors often pull the repo and open
-// index.html without spinning up a server), survive page reloads
-// for deep links, and need no server-side rewriting. The cost is
-// the leading "#" in the URL bar, which is the right trade-off
-// for a static, GitHub-Pages-style dashboard.
+// Why hash and not History API: hashes work over file:// loads (so
+// contributors can open index.html without a server), survive reloads
+// for deep links, and need no server-side rewriting — the right
+// trade-off for a static, GitHub-Pages-style dashboard.
 //
-// The router is intentionally tiny: it does not own any UI, does
-// not depend on a framework, and only mutates two things in the
-// DOM — the `is-active` class on every `[data-tab-link]` and on
-// every `[data-tab-panel]`. CSS handles the rest (hide inactive
-// panels, underline the active link). The tab-link elements are
-// regular `<a href="#...">`, so middle-click, right-click, and
-// "copy link" do the obvious thing out of the box.
+// Intentionally tiny: no UI, no framework, only toggles the
+// `is-active` class on every `[data-tab-link]` and `[data-tab-panel]`;
+// CSS handles the rest. The links are plain `<a href="#...">`, so
+// middle-click and "copy link" work out of the box.
 
 const ACTIVE_CLASS = "is-active";
 
@@ -24,12 +19,11 @@ const ACTIVE_CLASS = "is-active";
  * @param {string} [opts.defaultTab] - tab to show when the URL
  *   carries no hash, or a hash that does not match any panel.
  * @param {(tab: string) => void} [opts.onActivate] - called with the
- *   resolved tab id whenever a tab becomes active: once at init and
- *   again on every tab navigation. Lets a caller defer per-tab work
- *   (e.g. lazy-loading the heavy diff payload only when the Diff
- *   Explorer is first opened). Fires on tab switches, not on a tab's
- *   own in-fragment state changes (those use replaceState and do not
- *   trigger a hashchange), so callers still guard against repeats.
+ *   resolved tab id whenever a tab becomes active: once at init and on
+ *   every tab navigation. Lets a caller defer per-tab work (e.g. lazy-
+ *   loading the diff payload). Fires on tab switches, not on in-fragment
+ *   state changes (those use replaceState), so callers still guard
+ *   against repeats.
  * @returns {{ activate(tab: string): void, current(): string }}
  *   Tiny handle for callers that need to read or force-switch
  *   the active tab (e.g. focus management after a deep link).
@@ -43,11 +37,9 @@ export function initTabs({ defaultTab, onActivate } = {}) {
         ? defaultTab
         : panels[0]?.dataset.tabPanel ?? null;
 
-    // Tabs may carry their own state in the fragment after a "?",
-    // e.g. "#diff?a=2026-02-05&b=2026-03-05" for a sharable Map A /
-    // Map B selection. The router only cares about the leading
-    // token; the query suffix is owned by the tab module that
-    // mounts into the matching panel.
+    // Tabs may carry their own state in the fragment after a "?", e.g.
+    // "#diff?a=2026-02-05&b=2026-03-05". The router only reads the
+    // leading token; the query suffix is owned by the tab module.
     const tabFromHash = () => {
         const raw = window.location.hash.replace(/^#/, "");
         const token = raw.split("?", 1)[0];
@@ -67,10 +59,8 @@ export function initTabs({ defaultTab, onActivate } = {}) {
             }
         }
         for (const panel of panels) {
-            // `hidden` attribute does the layout work; we still
-            // keep `is-active` in sync for hooks that want a
-            // class selector (e.g. a future highlight or
-            // animation).
+            // `hidden` does the layout work; `is-active` is kept in
+            // sync for hooks that want a class selector.
             const isActive = panel.dataset.tabPanel === next;
             panel.classList.toggle(ACTIVE_CLASS, isActive);
             panel.hidden = !isActive;

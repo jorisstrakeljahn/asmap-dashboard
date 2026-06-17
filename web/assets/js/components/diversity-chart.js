@@ -1,18 +1,12 @@
-// Peer bucket diversity chart. Plots one line per build slot
-// carrying the count of distinct autonomous systems mapped by
-// that build. The number is the per build entry from the
-// unfilled (source data) profile so the line reflects real
-// upstream routing data and not the fill heuristic.
+// Peer-bucket diversity chart: one line plotting the count of
+// distinct ASes per build, read from the unfilled profile so it
+// reflects real upstream routing, not the fill heuristic.
 //
-// Why a dedicated chart instead of folding it into drift. Drift
-// answers how much address space changed. Diversity answers how
-// many peer buckets Bitcoin Core has to work with under the
-// asmap based GetGroup() rule. The two signals are independent.
-// A diff that reassigns many prefixes between existing ASes
-// does not move this line. A diff that adds even one prefix
-// mapped to a brand new ASN moves it up by one. Showing both
-// lines side by side in the History section is what makes the
-// Bitcoin Core peer diversity story end to end.
+// Separate from drift on purpose: drift measures how much address
+// space changed, diversity measures how many peer buckets Core has
+// under the asmap GetGroup() rule. The signals are independent — a
+// diff that only reassigns prefixes between existing ASes leaves
+// this line flat; one new ASN moves it by one.
 
 import { mountResponsiveChart } from "../charts/chart-base.js";
 import { buildTooltipBody } from "../charts/chart-tooltip.js";
@@ -54,10 +48,9 @@ export function mount(parent, maps, options = {}) {
     });
 }
 
-// Anchor the baseline at the oldest build that actually publishes
-// an unfilled profile. A filled only build at the head of the
-// timeline would otherwise produce a null baseline and the delta
-// readings would all collapse to em dashes.
+// Anchor the baseline at the oldest build that publishes an
+// unfilled profile. A filled-only build at the head would yield a
+// null baseline and collapse every delta reading to an em dash.
 function collectPoints(maps) {
     let baseline = null;
     return maps.map((map) => {
@@ -90,11 +83,9 @@ function buildChart(maps, points, width, height, layout, options) {
     const yMin = Math.min(...values);
     const yMax = Math.max(...values);
     const range = yMax - yMin;
-    // Pad the y domain by a small fraction of the data range so
-    // the topmost dot does not sit on the chart edge. A flat
-    // series collapses to a single point with no range, so fall
-    // back to plus or minus one bucket which keeps the line
-    // visually centred in the plot.
+    // Pad the y domain by a fraction of the range so the top dot
+    // does not sit on the edge. A flat series has no range, so fall
+    // back to +/- one bucket to keep the line centred.
     const padding = range > 0 ? range * 0.1 : 1;
 
     return buildLineChart(

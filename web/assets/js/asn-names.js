@@ -1,9 +1,6 @@
-// Tiny registry for AS number → human-readable operator name lookups.
-//
-// The mapping is a frontend-only convenience layer. metrics.json stays
-// the only source of truth for the actual diff data; this module just
-// gives the rendered tables a friendlier label when one is available.
-// Callers always get null for unknown ASNs, so a missing or stale JSON
+// Tiny registry for AS number → operator name lookups. A frontend-only
+// convenience layer; metrics.json stays the source of truth for diff
+// data. Callers get null for unknown ASNs, so a missing or stale JSON
 // file degrades gracefully to bare "AS<num>" rendering.
 
 let names = {};
@@ -31,14 +28,11 @@ export function labelFor(asn) {
     return name ? `AS${asn} (${name})` : `AS${asn}`;
 }
 
-// Two-line cell for an ASN: the AS number on the primary line and the
-// operator name below it in muted style. The element is intentionally
-// inline-flex (column) so a parent table cell can place a leading arrow
-// or prefix next to it on the same baseline without nested wrappers.
-//
-// When the operator name is hidden via the table toggle the consumer
-// only needs a single CSS rule (`.asn-cell__name { display: none }`)
-// to collapse the layout back to bare AS numbers; no rerender required.
+// Two-line cell: AS number above, operator name below in muted style.
+// Intentionally inline-flex (column) so a parent cell can place a
+// leading arrow on the same baseline without nested wrappers. Hiding
+// the name needs only one CSS rule (`.asn-cell__name { display: none }`)
+// — no rerender.
 export function asnCell(asn) {
     const wrap = document.createElement("span");
     wrap.className = "asn-cell";

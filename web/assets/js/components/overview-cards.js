@@ -80,23 +80,17 @@ function entriesCountCard(currentPick, previousPick) {
     return card;
 }
 
-// Reads from the precomputed diff list (unfilled-vs-unfilled —
-// see metrics.py) so it inherits the variant choice made when
-// the diffs were materialised. ``previous`` is the row's shared
-// anchor; the date prints here so the other two cards can stay
-// at "vs previous".
+// Reads the precomputed diff list (unfilled-vs-unfilled — see
+// metrics.py), inheriting the variant choice from when the diffs
+// were materialised. ``previous`` is the row's shared anchor; the
+// date prints here so the other two cards stay at "vs previous".
 //
-// The headline number is IPv4 coverage drift — the share of
-// IPv4 addresses whose ASN changed between the two builds. IPv4
-// is the dominant family for Bitcoin Core peer reachability, so
-// surfacing it as the headline answers the operational question
-// "how much of the routable IPv4 space has shifted ASN?" rather
-// than "how many trie leaves moved?", which would let IPv6
-// noise drown out real BGP shifts. IPv6 coverage rides along as
-// a secondary line because the two families have independent
-// peer-diversity meaning, but the trie-leaf "entries" reading is
-// deliberately not surfaced any more (it was the exact failure
-// mode the coverage view replaces).
+// Headline is IPv4 coverage drift — the share of IPv4 addresses
+// whose ASN changed. IPv4 dominates Bitcoin Core peer reachability,
+// so it answers "how much routable IPv4 space shifted ASN?" rather
+// than "how many trie leaves moved?" (which let IPv6 noise drown
+// out real BGP shifts). IPv6 rides along as a secondary line; the
+// trie-leaf "entries" reading is deliberately dropped.
 function driftCard(current, previous, diffs) {
     const card = createCard(t("overview.drift.label"), {
         info: t("overview.drift.info"),

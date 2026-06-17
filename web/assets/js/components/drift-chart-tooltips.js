@@ -1,21 +1,19 @@
-// Tooltip copy for the drift chart: the per-category hover rows and
-// the "compared against" footer. Split out of drift-chart.js so that
-// module keeps to the chart's data model and assembly while the
-// human-facing formatting lives on its own.
+// Tooltip copy for the drift chart: per-category hover rows and the
+// "compared against" footer. Split out of drift-chart.js to keep
+// that module on data and assembly.
 //
-// ``series`` is the full reading-order list (with resolved labels);
-// hidden categories still appear in the tooltip, so the caller passes
+// ``series`` is the full reading-order list (resolved labels);
+// hidden categories still show in the tooltip, so the caller passes
 // the unfiltered list, not the visible subset.
 
 import { formatCoverage, formatDate, formatPercent } from "../format.js";
 import { t } from "../utils/i18n.js";
 
-// Reading order: cumulative leads with Total. Step surfaces it as a
-// footer because the stack height already conveys it. The Total row
-// appends a family-aware count so the hover reading names what the
-// percentage was computed against: IPv4 as raw addresses, IPv6 as /32
-// NetGroup blocks so the cell never grows into a 30-digit decimal that
-// would push the tooltip past the chart edge.
+// Reading order: cumulative leads with Total; step shows it as a
+// footer since the stack height already conveys it. The Total row
+// appends a family-aware count: IPv4 as raw addresses, IPv6 as /32
+// NetGroup blocks so the cell never becomes a 30-digit decimal that
+// overflows the tooltip.
 export function driftHoverRows(point, series, mode, family, unitCountSuffix) {
     const totalLabel = t("history.driftSeries.total");
     if (!point.present) {
@@ -41,11 +39,10 @@ function formatTotalCell(point, family, unitCountSuffix) {
     });
 }
 
-// Step mode names the gap to the compared build right in the footer:
-// the bars are not time-normalised, so a tall bar after a five-month
-// publishing pause is mostly accumulated time, not a routing event.
-// Spelling out "147 days earlier" hands the reader the denominator
-// they need to judge the bar's height.
+// Step mode names the gap to the compared build in the footer: the
+// bars are not time-normalised, so a tall bar after a long pause is
+// mostly accumulated time, not a routing event. "147 days earlier"
+// gives the reader the denominator to judge the height.
 export function driftFooter(point, mode, currentReleasedAt) {
     if (!point.present || !point.vs) return null;
     const date = formatDate(point.vs.released_at);
