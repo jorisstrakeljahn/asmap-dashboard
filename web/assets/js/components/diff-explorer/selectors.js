@@ -1,8 +1,7 @@
-// Map A / Map B selector pair. A is always chronologically
-// earlier than B so newly_mapped / unmapped read unambiguously
-// as "gained" / "lost" forward in time; the dropdowns enforce
-// the ordering by greying out impossible options and bumping
-// the counterpart on conflicting picks.
+// Map A / Map B selector pair. A is always chronologically earlier
+// than B so newly_mapped / unmapped read as "gained" / "lost"
+// forward in time; the dropdowns enforce this by greying out
+// impossible options and bumping the counterpart on conflicts.
 
 import { ARROW } from "../../utils/symbols.js";
 import { uniqueId } from "../../utils/dom.js";

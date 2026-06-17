@@ -1,10 +1,7 @@
-// Master IPv4 / IPv6 family toggle for the Diff Explorer.
-//
-// Single source of truth for which family the match banner,
-// classification cards, stacked bar, and Top Movers table all
-// render. Persisted in localStorage so the user's choice
-// survives page reloads and tab switches; the whitelist guard
-// in readSetting() drops any stale value from an old build.
+// Master IPv4 / IPv6 family toggle for the Diff Explorer: single
+// source of truth for which family every surface renders.
+// Persisted in localStorage; readSetting()'s whitelist guard
+// drops any stale value from an old build.
 
 import { FAMILY_IPV4, FAMILY_IPV6 } from "../../format.js";
 import { t } from "../../utils/i18n.js";

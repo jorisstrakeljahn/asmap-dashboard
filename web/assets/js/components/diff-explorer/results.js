@@ -45,15 +45,13 @@ export function renderResults(
         classificationRow(diff, family),
         stackedBar(diff, family),
     );
-    // AS roster delta closes the map-level picture (how many distinct
-    // ASes each build maps) right after the prefix breakdown it belongs
-    // with, as its own divided line.
+    // AS roster delta closes the map-level picture, right after the
+    // prefix breakdown it belongs with.
     const roster = rosterDeltaRow(diff);
     if (roster) card.append(roster);
-    // Optional "real node impact" line, only when network.json shipped
-    // node-impact data. Sits last because it answers the downstream
-    // question — what the diff means for live peers — that the
-    // map-level breakdown above it cannot.
+    // Optional "real node impact" line (only when network.json shipped
+    // it). Sits last: it answers the downstream question — what the
+    // diff means for live peers — that the breakdown above cannot.
     const impact = nodeImpactBanner(pairImpact, fromName, toName, family);
     if (impact) card.append(impact);
 

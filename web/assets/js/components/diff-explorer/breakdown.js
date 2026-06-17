@@ -1,9 +1,7 @@
-// Match banner, classification cells, stacked bar, and AS
-// roster delta. All four are family scoped — the Diff Explorer
-// master toggle decides which family they render, so the
-// surfaces always speak the same v4 / v6 language at the same
-// time. DIFF_CATEGORIES keeps labels, colours, and bar segments
-// in sync between the cells and the bar.
+// Match banner, classification cells, stacked bar, and AS roster
+// delta. All four are family-scoped via the Diff Explorer master
+// toggle, so they speak the same v4 / v6 language. DIFF_CATEGORIES
+// keeps labels, colours, and bar segments in sync.
 
 import {
     FAMILY_IPV4,
@@ -48,26 +46,20 @@ const UNIT_LABEL_KEY_BY_FAMILY = {
     [FAMILY_IPV6]: "diff.matchBanner.unit.ipv6",
 };
 
-// Match rate banner. One family at a time, picked by the Diff
-// Explorer master toggle. Both families speak the peer-diversity
-// bucket vocabulary Bitcoin Core's CNetAddr::GetGroup() uses
-// when no asmap is loaded: IPv4 in /16 buckets, IPv6 in /32
-// NetGroup blocks. That makes the two columns directly
-// comparable ("buckets carrying a changed prefix" /
-// "buckets the map covers") even though one is 2^32 and the
-// other is 2^128 of underlying address space.
+// Match rate banner, one family at a time. Both families use the
+// NetGroup bucket vocabulary Bitcoin Core's CNetAddr::GetGroup()
+// uses with no asmap loaded: IPv4 /16 buckets, IPv6 /32 blocks.
+// That keeps the columns comparable even though one spans 2^32
+// and the other 2^128 of address space.
 export function matchBanner(diff, family) {
     const view = matchBannerView(diff, family);
 
     const wrap = document.createElement("div");
     wrap.className = "match-banner";
 
-    // Variant caption answers what kind of comparison this is.
-    // The label is read from the diff payload so a future
-    // filled vs filled diff cannot silently masquerade as
-    // source data. It rides along as the block's third stacked
-    // line (under the bucket detail) so the banner reads on the
-    // same rail as the node-impact block below it.
+    // Variant caption: read from the diff payload so a future
+    // filled-vs-filled diff can't masquerade as source data. Rides
+    // as the block's third line, aligning with the node-impact block.
     const variantLabel = VARIANT_LABEL_KEYS[diff.variant]
         ? t(VARIANT_LABEL_KEYS[diff.variant])
         : diff.variant || t("common.variants.unknown");
@@ -83,23 +75,13 @@ export function matchBanner(diff, family) {
     return wrap;
 }
 
-// Both families speak in NetGroup buckets so the headline
-// percent is directly comparable: /16 buckets on IPv4, /32
-// blocks on IPv6. Both columns come straight from the pipeline,
-// which counts them over merged prefix ranges.
-//
-// The denominator is the union of both maps' coverage — every
-// bucket either map has an opinion about. A changed prefix is
-// mapped on at least one side, so the changed buckets are a
-// subset of the union by construction and the match percentage
-// is guaranteed to stay within [0, 100]. A single map's bucket
-// count would not give that guarantee: a newly mapped prefix
-// only exists in Map B's coverage, an unmapped one only in
-// Map A's.
-//
-// Returns the same {changed, denominator, ratio, format} shape
-// for both families so familyBlock() never has to branch on
-// family again.
+// Denominator is the union of both maps' coverage (every bucket
+// either map has an opinion about). A changed prefix is mapped on
+// at least one side, so changed buckets are a subset of the union
+// and the match percentage stays within [0, 100] — a single map's
+// bucket count would not guarantee that. matchBannerView returns
+// the same {changed, denominator, ratio, format} shape for both
+// families so familyBlock() never branches on family.
 const BANNER_FIELDS_BY_FAMILY = {
     [FAMILY_IPV4]: {
         changed: "ipv4_buckets_changed",
@@ -153,11 +135,9 @@ function familyBlock({ captionKey, view, family, variantLabel }) {
     return block;
 }
 
-// Classification cards scope to a single family so the headline
-// numbers, the stacked bar below, and the match banner all speak
-// the same currency. The caption shows the family-scoped figure
-// rather than the combined v4 + v6 total, which is more useful
-// once the user has picked a side.
+// Classification cards are family-scoped so they speak the same
+// currency as the stacked bar and match banner. The caption shows
+// the family figure, not the combined v4 + v6 total.
 export function classificationRow(diff, family) {
     const row = document.createElement("div");
     row.className = "classification-row";
@@ -186,20 +166,15 @@ function classificationCell(category, diff, family) {
     return node;
 }
 
-// Reads the per-family classification count. Falls back to
-// zero for the rare case where one family is genuinely
-// untouched in a diff (the field is always present in the
-// payload, but defensive code is cheap here).
+// Per-family classification count. Falls back to zero for the
+// rare case where one family is untouched in a diff.
 function familyValue(diff, field, family) {
     const suffix = family === FAMILY_IPV6 ? "ipv6" : "ipv4";
     return diff[`${field}_${suffix}`] ?? 0;
 }
 
-// Stacked bar shares are taken over the family-scoped total so
-// the percentages add up within the same currency as the cards
-// above. A diff with 17,819 IPv4 reassigned and 3,327 IPv6
-// reassigned would have rendered identical bars before the
-// family scope — now each family gets its own honest split.
+// Stacked bar shares are over the family-scoped total, so the
+// percentages add up in the same currency as the cards above.
 export function stackedBar(diff, family) {
     const total = Math.max(familyTotalChanges(diff, family), 1);
     const wrap = document.createElement("div");
@@ -227,19 +202,17 @@ function stackedSegment(share, modifier) {
     return fill;
 }
 
-// "appeared" / "disappeared" are AS-roster terms, deliberately
-// distinct from the prefix-entry terms "newly mapped" /
-// "unmapped": a prefix newly mapped to an existing AS does not
-// change the roster. Returns null on older payloads without
-// as_total_*, so the card never reads "0 → 0 ASes" as if it
-// were a real measurement.
+// "appeared" / "disappeared" are AS-roster terms, distinct from
+// the prefix terms "newly mapped" / "unmapped": a prefix mapped
+// to an existing AS doesn't change the roster. Returns null on
+// older payloads without as_total_*, so the card never shows a
+// fake "0 → 0 ASes".
 export function rosterDeltaRow(diff) {
     if (diff.as_total_a === undefined || diff.as_total_b === undefined) {
         return null;
     }
-    // Its own divided section with an info icon, so it reads as a
-    // distinct line (map-level AS roster) rather than a footnote
-    // glued to the stacked bar. Family-agnostic by design.
+    // Its own divided section so it reads as a distinct map-level
+    // line, not a footnote on the stacked bar. Family-agnostic.
     const section = document.createElement("div");
     section.className = "as-roster-delta";
 

@@ -1,19 +1,16 @@
-// ASN attribution agreement: a single data-quality KPI plus an
-// explanatory sentence rather than a time series (the agreement is a
-// near-constant ~93%, so a flat two-line chart added no signal and its
-// Bitnodes gap read as a bug). The headline reads off the primary crawl
-// (KIT annotates every node with an ASN); the note widens it to the
-// min/max band every scored source has stayed inside, so the figure
-// reads as a stable cross-check rather than a single asserted number.
+// ASN attribution agreement: a single data-quality KPI, not a time
+// series (it's a near-constant ~93%, so a flat chart added no signal).
+// The headline reads off the primary crawl (KIT annotates every node
+// with an ASN); the note widens it to the min/max band every scored
+// source stays inside, so it reads as a cross-check, not one number.
 
 import { t } from "../../utils/i18n.js";
 import { createInfoTooltip } from "../info-tooltip.js";
 import { sourceLabel, toMs } from "./series-data.js";
 
-// The data-quality stat summarises the whole series, so it is not
-// range-dependent and renders once. It scores every source that ships
-// an ASN, not just the primary, so the agreement band cross-validates
-// KIT against Bitnodes.
+// Summarises the whole series, so it is range-independent and renders
+// once. Scores every source that ships an ASN, so the agreement band
+// cross-validates KIT against Bitnodes.
 export function mountCrossCheckStat(network, sources, primary) {
     const slot = document.querySelector("[data-network-crosscheck]");
     if (!slot) return;

@@ -2,12 +2,10 @@
 // union-timeline assembly every cross-source line chart needs.
 //
 // KIT and Bitnodes are crawled on different days, so their snapshots
-// never share an x slot. To overlay both as toggleable lines on one
-// time axis we take the union of every source's timestamps as the
-// slot list and let each source report null on slots it has no
-// snapshot for; buildLineChart bridges those gaps so each line stays
-// continuous. This mirrors how the Maps tab bridges filled-only
-// builds in the drift chart.
+// never share an x slot. We take the union of every source's
+// timestamps as the slot list and let each source report null where
+// it has no snapshot; buildLineChart bridges those gaps so each line
+// stays continuous.
 
 import { t } from "../../utils/i18n.js";
 
@@ -45,14 +43,13 @@ export function sourceSeries(source) {
     };
 }
 
-// Assemble a union timeline from a list of per-source point arrays.
+// Assemble a union timeline from per-source point arrays.
 //
 //   entries: [{ source, points: [{ ts, value }] }]  (ts in ms)
 //
-// Returns { timestamps, valueAt, labelAt } where ``timestamps`` is
-// the sorted union of every entry's ts, ``valueAt(source, slot)``
-// looks the value up (or null), and ``labelAt(slot)`` is the ISO
-// date string for that slot's timestamp.
+// Returns { timestamps, valueAt }: ``timestamps`` is the sorted union
+// of every entry's ts, ``valueAt(source, slot)`` looks the value up
+// (or null).
 export function buildUnionTimeline(entries) {
     const tsSet = new Set();
     const bySource = new Map();

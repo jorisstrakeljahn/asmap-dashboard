@@ -1,19 +1,15 @@
 // Loading skeleton for the Diff Explorer.
 //
-// Mirrors the real explorer layout (selectors row + results card +
-// Top Movers table) so the swap into the loaded content is layout-free,
-// and keeps every *static* label real — section labels, selector
-// labels, the match caption, the classification labels, and the table
-// column headers all read correctly before diffs.json lands. Only the
-// data-derived values (percentages, counts, dropdown values, table
-// cells) are rendered as shimmer bars. This is what makes the loading
-// state read as "the page you are about to see" rather than a spinner,
-// and means the localisation is already in place at first paint instead
-// of popping in once the data lands.
+// Mirrors the real layout (selectors + results card + Top Movers
+// table) so the swap to loaded content is layout-free, and keeps
+// every static label real — only data-derived values (percentages,
+// counts, dropdown values, table cells) are shimmer bars. So the
+// loading state reads as "the page you are about to see", with
+// localisation already in place at first paint.
 //
-// The heavy diffs.json is fetched lazily on first Diff-tab open (see
-// app.js); this skeleton fills the gap. Built with the same column
-// classes as the live table (top-movers/columns.js) so widths align.
+// diffs.json is fetched lazily on first Diff-tab open (see app.js);
+// this fills the gap. Same column classes as the live table
+// (top-movers/columns.js) so widths align.
 
 import { ARROW } from "../../utils/symbols.js";
 import { t } from "../../utils/i18n.js";

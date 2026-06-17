@@ -1,13 +1,10 @@
 // Diff Explorer orchestrator: Map A / Map B selectors plus the
-// rendered comparison. The IPv4 / IPv6 master family toggle
-// lives in the section header (mounted by diff-tab.js) so it
-// shares the same visual level as the History tab's drift unit
-// and range pickers; the orchestrator only consumes the family
-// value and re-renders results when it changes.
+// rendered comparison. The IPv4 / IPv6 master toggle lives in the
+// section header (mounted by diff-tab.js); the orchestrator only
+// consumes the family value and re-renders when it changes.
 //
-// Returned API exposes ``setFamily(family)`` so the section-
-// header toggle can flip the active family without remounting
-// the whole tab. mount() is otherwise side-effect-only.
+// setFamily(family) lets the header toggle flip the active family
+// without remounting the tab. mount() is otherwise side-effect-only.
 
 import { mutedNote } from "../../utils/dom.js";
 import { t } from "../../utils/i18n.js";
@@ -21,11 +18,10 @@ export function mount(parent, payload, { family } = {}) {
         return { setFamily: () => {} };
     }
 
-    // The pipeline only emits unfilled-vs-unfilled diffs, so
-    // builds without an unfilled variant are permanently
-    // un-diffable. Hide them entirely rather than disable; the
-    // disabled state is reserved for the conditionally
-    // impossible (A >= B) case that reacts to the other side.
+    // The pipeline only emits unfilled-vs-unfilled diffs, so builds
+    // without an unfilled variant are permanently un-diffable: hide
+    // them rather than disable. The disabled state is reserved for
+    // the conditional (A >= B) case that reacts to the other side.
     const diffableMaps = payload.maps.filter((m) => m.unfilled?.present);
     if (diffableMaps.length < 2) {
         parent.replaceChildren(mutedNote(t("diff.needTwoUnfilled")));

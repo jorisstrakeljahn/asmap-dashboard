@@ -1,18 +1,15 @@
 // Generic multi-series time-series card for the Network tab.
 //
 // Decay, AS concentration, NetGroup diversity, bucketing, and the
-// ASN cross-check are all "one line per series over a shared
-// timeline" charts that differ only in their value accessor, y
-// formatter, and tooltip copy. This module hosts the common card
-// chrome (header + info tooltip + clickable legend) and delegates
-// the plot to the shared buildLineChart scaffold, the same split
-// the Maps tab's drift-chart uses. Each Network chart then shrinks
-// to a config object.
+// ASN cross-check all plot one line per series over a shared timeline,
+// differing only in value accessor, y formatter, and tooltip copy.
+// This module hosts the card chrome (header + info tooltip + legend)
+// and delegates the plot to the shared buildLineChart scaffold; each
+// chart shrinks to a config object.
 //
 // Series are toggleable: clicking a legend entry hides its line and
-// rescales the y domain to whatever stays visible, so a reader can
-// isolate KIT or Bitnodes (or default vs ASmap buckets) without the
-// other line compressing the axis.
+// rescales the y domain to what stays visible, so a reader can isolate
+// one source without the other compressing the axis.
 
 import { mountTimeSeriesCard } from "../../charts/chart-card.js";
 import { buildTooltipBody } from "../../charts/chart-tooltip.js";
