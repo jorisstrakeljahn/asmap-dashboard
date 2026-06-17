@@ -74,6 +74,8 @@ export function buildFilterInput(state, onChange) {
 
     const input = document.createElement("input");
     input.type = "search";
+    input.name = "top-movers-filter";
+    input.autocomplete = "off";
     input.className = "top-movers__filter-input";
     input.placeholder = t("topMovers.filter.placeholder");
     input.value = state.filterText;

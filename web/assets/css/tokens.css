@@ -40,6 +40,7 @@
     --color-track: #f1f5f9;
 
     --color-accent: #6366f1;
+    --color-accent-strong: #4f46e5;
     --color-accent-soft: #c4b5fd;
     --color-success: #10b981;
     --color-neutral: #94a3b8;
@@ -218,6 +219,7 @@ html[data-theme="dark"] {
        slightly desaturated ~400 tier: same hue, calmer, still clear of
        the contrast floor. The light palette is left as-is. */
     --color-accent: #818cf8;
+    --color-accent-strong: var(--color-accent);
     --color-accent-soft: #c4b5fd;
     --color-success: #4cc79a;
     --color-warning: #e0a35c;

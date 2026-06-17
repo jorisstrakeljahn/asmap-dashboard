@@ -30,7 +30,7 @@
     left: 0;
     width: 0;
     z-index: 0;
-    background: var(--color-accent);
+    background: var(--color-accent-strong);
     border-radius: var(--radius-pill);
     transform: translateX(0);
     transition:
