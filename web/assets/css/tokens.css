@@ -15,10 +15,9 @@
  * Anything used in more than one place belongs here.
  */
 :root {
-    /* Native UA surfaces (form controls, scrollbars, the canvas
-       behind a rubber-band overscroll) follow the active theme.
-       The dark override flips this to ``dark`` so they never flash
-       a white scrollbar track over the near-black page. */
+    /* Native UA surfaces (form controls, scrollbars, overscroll
+       canvas) follow the theme; the dark override flips this so they
+       never flash a white scrollbar over the near-black page. */
     color-scheme: light;
 
     /* ── Color ────────────────────────────────────────────── */
@@ -26,10 +25,8 @@
     --color-text-base: #1e293b;
     --color-text-muted: #475569;
     --color-text-uppercase: #64748b;
-    /* Lightest text tier. Kept at slate-500 rather than slate-400 so
-       even the faintest copy (diff source lines, axis labels, dropdown
-       hints) clears the WCAG AA 4.5:1 contrast floor on white — the
-       old #94a3b8 sat at ~2.6:1 and read as washed out. */
+    /* Lightest text tier, slate-500 not slate-400 so the faintest copy
+       clears WCAG AA 4.5:1 on white (the old #94a3b8 sat at ~2.6:1). */
     --color-text-subtle: #64748b;
 
     --color-bg: #ffffff;
@@ -46,21 +43,16 @@
     --color-accent-soft: #c4b5fd;
     --color-success: #10b981;
     --color-neutral: #94a3b8;
-    /* Warning hue used by the drift composition chart for the
-       Unmapped series. Picked so that Reassigned (accent indigo),
-       Newly Mapped (success green), and Unmapped (warning amber)
-       read as three distinct semantic categories rather than a
-       ranked palette. */
+    /* Warning hue for the drift chart's Unmapped series. Picked so
+       Reassigned (indigo), Newly Mapped (green), and Unmapped (amber)
+       read as three distinct categories, not a ranked palette. */
     --color-warning: #d97706;
 
-    /* Categorical palette for multi-series charts. Series 1 reuses
-       the accent so single-line charts stay tonally consistent with
-       the rest of the dashboard. The remaining hues are spaced
-       around the colour wheel so they read as distinct categories
-       at a glance, not as ordered rankings. Ten slots because the
-       network operator breakdown assigns one stable colour per
-       operator that ever enters a snapshot's top five, and that
-       union runs to about ten across the current history. */
+    /* Categorical palette for multi-series charts. Series 1 reuses the
+       accent for tonal consistency; the rest are spaced around the
+       wheel to read as distinct categories, not rankings. Ten slots
+       because the operator breakdown assigns one stable colour per
+       operator in any snapshot's top five (~ten across history). */
     --color-series-1: var(--color-accent);
     --color-series-2: #db2777;
     --color-series-3: #d97706;
@@ -72,28 +64,22 @@
     --color-series-9: #0f766e;
     --color-series-10: #64748b;
 
-    /* Text drawn on top of a saturated --color-accent /
-       --color-success / --color-neutral fill (e.g. the stacked
-       diff bar segments). Pulled out so theming or contrast
-       tuning happens in one place. */
+    /* Ink on saturated accent/success/neutral fills (e.g. the stacked
+       diff bar segments). Pulled out so theming happens in one place. */
     --color-on-fill: #ffffff;
 
     /* ── Typography ───────────────────────────────────────── */
-    /* One typeface, no web-font dependency: the platform UI font
-       (SF Pro on Apple, Segoe UI on Windows, Roboto on Android/
-       Linux). system-ui leads so every OS uses its native UI face;
-       the rest are explicit fallbacks for older engines. Numbers
-       use font-variant-numeric: tabular-nums where they need to
-       align — that's the same font, not a separate mono family. */
+    /* One typeface, no web-font dependency: the platform UI font.
+       system-ui leads so every OS uses its native face; the rest are
+       fallbacks for older engines. Numbers use tabular-nums where they
+       need to align — same font, not a separate mono family. */
     --font-sans:
         system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
         Roboto, "Helvetica Neue", Arial, sans-serif;
 
-    /* Base scale. Body lands at 16px so reading text clears the
-       ~16px comfort floor on every viewport (phones already sat
-       here, see the media query below); supplementary text at 14px
-       and micro-labels at 12px match the widely cited readability
-       minimums. The headline steps grow proportionally. */
+    /* Base scale. Body at 16px clears the comfort/iOS-zoom floor on
+       every viewport; 14px supplementary and 12px micro-labels match
+       common readability minimums. Headline steps grow proportionally. */
     --font-size-xs: 12px;
     --font-size-sm: 14px;
     --font-size-base: 16px;
@@ -119,12 +105,10 @@
     --letter-uppercase: 0.06em;
     --letter-uppercase-tight: 0.04em;
 
-    /* Negative tracking for large display text (headlines, the big
-       metric numbers, section titles, the logo). UI fonts are drawn
-       loose at large sizes; pulling the glyphs ~1-2% closer is the
-       main lever that makes them read as engineered display type
-       instead of blown-up body copy. Body text keeps default
-       spacing — tightening small text only hurts legibility. */
+    /* Negative tracking for large display text. UI fonts are drawn
+       loose at large sizes; pulling glyphs ~1-2% closer makes them
+       read as display type, not blown-up body copy. Body text keeps
+       default spacing — tightening small text hurts legibility. */
     --letter-tight: -0.01em;
     --letter-tighter: -0.02em;
 
@@ -144,26 +128,21 @@
     --radius-pill: 999px;
 
     /* ── Shadow / Elevation ───────────────────────────────── */
-    /* Floating surfaces stack on top of cards. Tooltip shadow
-       sits lower because it hovers over the chart inline; the
-       popover shadow is bigger to read against any background
-       when the dropdown panel detaches from its trigger. */
+    /* Tooltip shadow sits lower (hovers over the chart inline); the
+       popover shadow is bigger to read against any background when the
+       panel detaches from its trigger. */
     --shadow-tooltip: 0 6px 28px rgba(15, 23, 42, 0.1);
     --shadow-popover: 0 12px 36px rgba(15, 23, 42, 0.18);
 
     /* ── Motion ───────────────────────────────────────────── */
-    /* Three durations covering the dashboard's tiny interaction
-       surface. Hover/state colour changes use --motion-fast,
-       border tints use --motion-base, chevron rotation uses
-       --motion-slow so the open/close feels deliberate. */
+    /* Three durations: --motion-fast for hover/state colour, base for
+       border tints, slow for chevron rotation. */
     --motion-fast: 0.08s;
     --motion-base: 0.12s;
     --motion-slow: 0.16s;
     --motion-ease: ease;
-    /* Sliding mode-switch pill. Longer than the state-change
-       durations above and on a decelerating curve so the highlight
-       glides across the segments and settles, rather than snapping
-       like a hover tint. */
+    /* Sliding mode-switch pill: longer and decelerating so the
+       highlight glides and settles rather than snapping. */
     --motion-pill: 0.22s;
     /* Whole-page light/dark cross-fade. Long enough to read as a
        deliberate palette ease (see .theme-transition in base.css),
@@ -172,10 +151,9 @@
     --ease-decelerate: cubic-bezier(0.22, 1, 0.36, 1);
 
     /* ── Z-index scale ────────────────────────────────────── */
-    /* Tooltip lives inside a card; popover lives above the
-       layout (it can overflow card edges). Keep both far below
-       any future overlay / modal so adding one won't require
-       re-numbering. */
+    /* Tooltip lives inside a card; popover above the layout (can
+       overflow card edges). Both far below any future overlay so
+       adding one won't require re-numbering. */
     --z-tooltip: 5;
     --z-popover: 30;
     /* Full-screen mobile nav overlay and the sticky header that sits
@@ -202,30 +180,19 @@
 }
 
 /*
- * Dark theme. Applied by setting ``data-theme="dark"`` on <html>
- * (an inline boot script in index.html resolves the saved
- * preference before first paint; components/theme-switch.js owns
- * the toggle afterwards). This block overrides ONLY the structural
- * neutrals — the page/surface backgrounds, the text tiers, the
- * hairlines, the tracks, and the elevation shadows. The brand
- * accent and every semantic / categorical hue (success, warning,
- * the ten chart series) are deliberately left untouched so the
- * data colours read identically in both themes; only the canvas
- * they sit on changes.
- *
- * Greys are tuned to the transitions.dev palette: a near-black
- * #121212 page with #181818 cards, white-on-black text tiers, and
- * translucent-white hairlines so borders read as lifts off the
- * surface rather than drawn lines.
+ * Dark theme, applied via ``data-theme="dark"`` on <html> (an inline
+ * boot script in index.html resolves the saved preference before
+ * first paint; components/theme-switch.js owns the toggle after).
+ * Greys follow the transitions.dev palette: a near-black #121212 page
+ * with #181818 cards and translucent-white hairlines so borders read
+ * as lifts off the surface rather than drawn lines.
  */
 html[data-theme="dark"] {
     color-scheme: dark;
 
-    /* Text tiers. White → light-grey, each step kept above the
-       WCAG AA 4.5:1 floor on the #121212 page and the #181818
-       cards (the faintest, --color-text-subtle, lands ~6:1). The
-       light theme's ordering is preserved: -base is the body tone,
-       -muted a touch quieter, -subtle the faintest readable tier. */
+    /* Text tiers, each kept above WCAG AA 4.5:1 on the #121212 page
+       and #181818 cards (the faintest, -subtle, lands ~6:1). Light
+       theme's ordering is preserved: base → muted → subtle. */
     --color-text-strong: #f4f4f5;
     --color-text-base: #dcdce1;
     --color-text-muted: #b4b4bd;
@@ -235,8 +202,7 @@ html[data-theme="dark"] {
     --color-bg: #121212;
     --color-surface: #181818;
     /* Hairlines as translucent white so they brighten with whatever
-       sits beneath them (page vs card) instead of reading as a flat
-       drawn line, mirroring the transitions.dev card treatment. */
+       sits beneath them (page vs card) instead of a flat drawn line. */
     --color-border: rgba(255, 255, 255, 0.09);
     --color-border-strong: rgba(255, 255, 255, 0.18);
     --color-divider: rgba(255, 255, 255, 0.07);
@@ -247,30 +213,23 @@ html[data-theme="dark"] {
     --color-neutral: #94a3b8;
 
     /* ── Accent & data hues, retuned for dark ──────────────────
-       Fully saturated mid-tones (the light theme's 500/600 hues)
-       "vibrate" against a near-black canvas — the chroma + lightness
-       jump at the edges reads as glare/halation. So for dark we shift
-       every accent and data colour to a lifted, slightly desaturated
-       tone (≈ the 400 tier): same hue and brand identity, calmer on
-       the eye, and still well clear of the contrast floor. This is
-       the standard light-vs-dark tonal-palette split (Material, Apple
-       HIG); the LIGHT theme palette is left exactly as-is. */
+       Fully saturated mid-tones glare/halate against a near-black
+       canvas, so dark shifts every accent and data colour to a lifted,
+       slightly desaturated ~400 tier: same hue, calmer, still clear of
+       the contrast floor. The light palette is left as-is. */
     --color-accent: #818cf8;
     --color-accent-soft: #c4b5fd;
     --color-success: #4cc79a;
     --color-warning: #e0a35c;
 
-    /* The lifted fills above are too light for white label text, so
-       the on-fill ink flips to near-black in dark mode. It rides on
-       the accent pill (mode switch, pagination) and the three diff
-       breakdown-bar segments (accent / success / warning) — dark text
-       reads cleanly on all of them now that they are 400-tier tones. */
+    /* The lifted fills are too light for white label text, so on-fill
+       ink flips to near-black: it rides the accent pill and the diff
+       breakdown segments, all 400-tier tones now. */
     --color-on-fill: #15161d;
 
-    /* Categorical series, same desaturate-and-lift treatment so the
-       network operator breakdown stays a calm, readable set on dark
-       rather than ten competing neons. Series 1 follows --color-accent
-       automatically (see :root). */
+    /* Categorical series, same desaturate-and-lift so the operator
+       breakdown stays calm rather than ten neons. Series 1 follows
+       --color-accent automatically (see :root). */
     --color-series-2: #db8db5;
     --color-series-3: #e0a35c;
     --color-series-4: #5cb6d6;
@@ -281,19 +240,16 @@ html[data-theme="dark"] {
     --color-series-9: #4fb8ac;
     --color-series-10: #94a3b8;
 
-    /* Elevation reads as depth-of-black on a dark canvas; the slate
-       tint used in the light theme would wash out, so the shadows
-       deepen to near-opaque black and gain spread. */
+    /* On a dark canvas the light theme's slate-tinted shadows wash
+       out, so these deepen to near-opaque black and gain spread. */
     --shadow-tooltip: 0 6px 28px rgba(0, 0, 0, 0.5);
     --shadow-popover: 0 12px 36px rgba(0, 0, 0, 0.62);
 }
 
-/* Mobile reading + control scale. The font sizes already match the
-   base scale (16px body clears iOS Safari's sub-16px focus auto-zoom
-   too), so phones only open the line height up for the shorter
-   reading distance and grow the form controls toward a 44px touch
-   target. Centralised here so every component scales from one source
-   instead of carrying its own per-file mobile overrides. */
+/* Mobile reading + control scale. Phones keep the base font sizes
+   (16px body also avoids iOS focus auto-zoom) and only open up line
+   height and grow controls toward a 44px touch target. Centralised
+   so every component scales from one source. */
 @media (max-width: 640px) {
     :root {
         --line-normal: 1.5;
@@ -303,18 +259,11 @@ html[data-theme="dark"] {
     }
 }
 
-/* Reduced-motion override. Users who opt into reduced motion at
-   the OS level (macOS System Settings -> Accessibility, Windows
-   Settings -> Ease of Access, GNOME Tweaks, etc.) get a near-
-   instant variant of every transition the dashboard runs. We do
-   not zero the durations to literally 0s because some animations
-   (notably the dropdown chevron rotation) rely on a non-zero
-   duration to fire transitionend listeners reliably across
-   browsers - 1 ms is short enough to be invisible while keeping
-   the event semantics intact. The same override also disables
-   the shimmer keyframe used by the loading skeleton, so a user
-   with reduced-motion preferences sees a static placeholder
-   instead of a moving gradient. */
+/* Reduced-motion override: near-instant variants of every
+   transition. Durations are 1ms not 0s because some animations (the
+   dropdown chevron) need a non-zero duration to fire transitionend
+   reliably. Also collapses the skeleton shimmer to a static
+   placeholder. */
 @media (prefers-reduced-motion: reduce) {
     :root {
         --motion-fast: 0.001s;

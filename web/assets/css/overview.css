@@ -9,11 +9,9 @@
     gap: var(--space-3);
 }
 
-/* All cards share the same padding rhythm. The grid in .card-row
-   stretches every cell to the height of the tallest sibling, so
-   we don't need a min-height floor to keep them aligned. The
-   right padding leaves room for the corner-pinned info tooltip
-   so it never overlaps the label. */
+/* The .card-row grid stretches every cell to the tallest sibling, so
+   no min-height floor is needed. Right padding leaves room for the
+   corner-pinned info tooltip so it never overlaps the label. */
 .card {
     position: relative;
     display: flex;
@@ -66,10 +64,8 @@
     text-transform: uppercase;
 }
 
-/* Two-color rounded split bar so IPv4 and IPv6 read as distinct
-   categories (not "more vs less"). A small gap separates the
-   segments; each segment is fully pill-rounded for a clear "two
-   different things" reading. */
+/* Two-colour split bar so IPv4 and IPv6 read as distinct categories,
+   not "more vs less": a gap plus fully pill-rounded segments. */
 .split-bar {
     display: flex;
     gap: 3px;

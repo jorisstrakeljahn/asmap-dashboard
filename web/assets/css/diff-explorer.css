@@ -113,9 +113,8 @@
 .match-banner__source {
     grid-column: 2;
     grid-row: 3;
-    /* Set identically to the detail line above (same size, colour, and
-       tabular figures) so the two stacked lines read as one block
-       rather than a detail line and a fainter footnote. */
+    /* Matches the detail line above so the two stacked lines read as
+       one block, not a detail line and a fainter footnote. */
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
     font-variant-numeric: tabular-nums;
@@ -207,11 +206,8 @@
     font-weight: var(--font-weight-medium);
 }
 
-/* The label colour matches its segment in the stacked bar
-   underneath, so the eye links "Reassigned" with the right
-   slice without an extra legend row. The previous share
-   percentages were dropped because the bar already encodes
-   the same proportions visually. */
+/* Label colour matches its segment in the stacked bar below, so the
+   eye links each label to its slice without an extra legend row. */
 .classification-cell__label--reassigned {
     color: var(--color-accent);
 }
@@ -256,12 +252,9 @@
     background: var(--color-warning);
 }
 
-/* AS roster delta: its own divided section between the stacked bar
-   and the real-node-impact banner, with an info icon top-right like
-   the node-impact block. The text lives in the muted colour so the
-   entry-level numbers above stay the headline; tabular numerics keep
-   the two large totals lined up rather than dancing on variable
-   glyph widths. */
+/* AS roster delta: a divided section between the stacked bar and the
+   node-impact banner. Muted text so the numbers above stay the
+   headline; tabular figures keep the two totals aligned. */
 .as-roster-delta {
     position: relative;
     padding-top: var(--space-4);
@@ -313,10 +306,8 @@
         line-height: 1;
         transform: rotate(90deg);
     }
-    /* Keep the three counts side by side instead of stacking them
-       into a tall column — three short numbers fit a phone row and
-       the compact grid kills the dead vertical space the stack left
-       under the match banner. */
+    /* Keep the three counts side by side; three short numbers fit a
+       phone row and avoid the dead vertical space a stack leaves. */
     .classification-row {
         grid-template-columns: repeat(3, 1fr);
         gap: var(--space-2);

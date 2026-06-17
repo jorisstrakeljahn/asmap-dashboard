@@ -1,13 +1,8 @@
-/* Diff Explorer loading skeleton.
-
-   The Top Movers rosters live in the lazy-loaded diffs.json (fetched
-   on first Diff-tab open, see app.js), so the tab paints a placeholder
-   that mirrors the real layout until the data lands, then swaps it for
-   the live explorer in one replaceChildren — the same direct skeleton
-   -> content handoff every other tab uses (no cross-fade reveal).
-
-   The placeholder bars reuse the `.skeleton` shimmer from layout.css;
-   `.skel-bar` and friends only set the per-slot geometry. */
+/* Diff Explorer loading skeleton. diffs.json is lazy-loaded on first
+   Diff-tab open (app.js), so the tab paints a layout-mirroring
+   placeholder, then swaps it in one replaceChildren. Bars reuse the
+   `.skeleton` shimmer from layout.css; `.skel-bar` only sets the
+   per-slot geometry. */
 
 /* ── Placeholder bars ────────────────────────────────────────────
    Generic shimmer block sized per slot. Pair with `.skeleton` for the
