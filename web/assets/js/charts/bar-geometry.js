@@ -1,25 +1,22 @@
-// Shared geometry for the two history bar charts: the map-delta chart
-// (one bar per release) and the stacked drift-per-build chart. Keeping
-// the widths and corner radius in one place means both charts pick the
-// same bar sizes under the same range picker and read as a visually
-// consistent pair.
+// Shared bar geometry for the map-delta and stacked drift charts.
+// Keeping widths and corner radius in one place keeps both charts a
+// visually consistent pair under the same range picker.
 
-// Uniform bar width (no "fatter bar = bigger value" misreading),
-// sized from the smallest neighbour gap so dense clusters never
-// overlap and sparse ranges don't render lone bars as chart-wide
-// blocks.
+// Uniform width avoids a "fatter bar = bigger value" misreading. Sized
+// from the smallest neighbour gap so dense clusters don't overlap and
+// sparse ranges don't render lone chart-wide blocks.
 const MIN_BAR_WIDTH = 3;
 const MAX_BAR_WIDTH = 14;
 const BAR_FILL_FRACTION = 0.7;
 
-// Outer-corner rounding (px) so a bar — or the whole stack — reads as
-// one rounded shape rather than a sharp rectangle.
+// Outer-corner rounding (px) so a bar — or whole stack — reads as one
+// rounded shape, not a sharp rectangle.
 export const BAR_CORNER_RADIUS = 2;
 
-// Bar width sized from the smallest gap between adjacent slot
-// timestamps, clamped to [MIN_BAR_WIDTH, MAX_BAR_WIDTH]. Falls back to
-// MAX_BAR_WIDTH when there is only one slot and to the plot width when
-// the gaps collapse to zero.
+// Width from the smallest gap between adjacent slot timestamps,
+// clamped to [MIN_BAR_WIDTH, MAX_BAR_WIDTH]. Falls back to
+// MAX_BAR_WIDTH for a single slot, and to plot width when gaps
+// collapse to zero.
 export function pickBarWidth(timestamps, xScale, plot) {
     if (timestamps.length < 2) return MAX_BAR_WIDTH;
     let minGap = Infinity;
