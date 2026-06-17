@@ -5,10 +5,8 @@
 
 import { SVG_NS } from "../utils/dom.js";
 
-// Re-exported so existing chart code that imports SVG_NS from
-// this module keeps working unchanged. The single source of
-// truth lives in utils/dom.js alongside the other DOM API
-// constants and tiny helpers.
+// Re-exported so chart code importing SVG_NS from here keeps
+// working; the source of truth lives in utils/dom.js.
 export { SVG_NS };
 
 export function svg(name, attrs = {}) {
@@ -43,42 +41,31 @@ export function niceTicks(min, max, count = 5) {
     return ticks;
 }
 
-// Monotone cubic interpolation (Fritsch-Carlson). Treats the
-// points as a function y = f(x) and emits an SVG path "d"
-// attribute that glides through every point without overshooting
-// the data — peaks stay peaks and troughs stay troughs, so the
-// curve never claims a value above (or below) what the input
-// actually carried.
+// Monotone cubic interpolation (Fritsch-Carlson). Emits an SVG
+// path "d" that glides through every point without overshooting:
+// peaks stay peaks and troughs stay troughs, so the curve never
+// claims a value the input didn't carry.
 //
-// Why not plain Catmull-Rom? It assumes uniform parameter
-// spacing, which breaks on a calendar x axis: a wide gap (e.g. an
-// 8-month bridged segment) followed by a narrow one (a 4-week
-// step) yanks the tangent at the boundary point off-direction
-// and the curve develops a visible kink. Fritsch-Carlson sizes
-// every tangent from the real secant slopes between neighbours,
-// so non-uniform spacing produces a clean curve and a monotone
-// run of y values is rendered monotonically (no overshoot dips).
+// Plain Catmull-Rom assumes uniform parameter spacing, which kinks
+// on a calendar x axis where a wide gap meets a narrow step.
+// Fritsch-Carlson sizes each tangent from the real secant slopes,
+// so non-uniform spacing stays clean and monotone runs render
+// monotonically.
 //
 // Algorithm:
 //   1. delta[i] = secant slope between points i and i+1.
 //   2. m[i] = average of the two adjacent secants (Bessel
 //      tangent), with endpoints copying their only neighbour.
-//   3. At every local extremum (the two adjacent secants have
-//      opposite signs, or either one is zero), the tangent
-//      collapses to zero. Without this rule the curve would
-//      sail past a peak before turning back down, which is
-//      exactly the overshoot Fritsch & Carlson set out to
-//      prevent. Step 4 alone cannot fix it once the average
-//      points the wrong way.
+//   3. At every local extremum (adjacent secants of opposite sign,
+//      or either zero), the tangent collapses to zero — otherwise
+//      the curve overshoots the peak, which step 4 alone cannot fix
+//      once the average points the wrong way.
 //   4. Fritsch-Carlson constraint: alpha = m[i]/delta[i],
-//      beta = m[i+1]/delta[i]. If alpha^2 + beta^2 > 9, scale
-//      both tangents down by 3 / sqrt(alpha^2 + beta^2). This
-//      bounds the slope inside a segment when neighbours are
-//      monotone but very steep.
-//   5. Emit one cubic Bezier per segment with control points
-//      offset along the segment's x axis by dx/3, matching the
-//      Hermite-to-Bezier conversion for the tangent at each
-//      endpoint.
+//      beta = m[i+1]/delta[i]. If alpha^2 + beta^2 > 9, scale both
+//      tangents by 3 / sqrt(alpha^2 + beta^2), bounding the slope
+//      when neighbours are monotone but very steep.
+//   5. Emit one cubic Bezier per segment with control points offset
+//      along x by dx/3 (the Hermite-to-Bezier conversion).
 export function smoothPath(points) {
     if (points.length < 2) return "";
     if (points.length === 2) {
@@ -97,11 +84,10 @@ export function smoothPath(points) {
     tangents[0] = deltas[0];
     tangents[n - 1] = deltas[n - 2];
     for (let i = 1; i < n - 1; i++) {
-        // Zero the tangent at local extrema. A non-positive
-        // product means the two surrounding secants point in
-        // opposite directions (peak / trough) or that one of
-        // them is flat, so flat tangent is the only choice that
-        // keeps the cubic inside [min, max] of the neighbours.
+        // Zero the tangent at local extrema. A non-positive product
+        // means the surrounding secants oppose (peak / trough) or one
+        // is flat, so a flat tangent is the only choice that keeps the
+        // cubic within the neighbours' [min, max].
         if (deltas[i - 1] * deltas[i] <= 0) {
             tangents[i] = 0;
         } else {

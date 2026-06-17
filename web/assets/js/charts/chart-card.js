@@ -1,20 +1,15 @@
-// Shared chrome for the dashboard's header-bearing chart cards: the
-// card shell, an optional header (label + caller-supplied control +
-// info tooltip on one row), an optional legend, and a plot slot that
-// delegates the responsive SVG to mountResponsiveChart.
+// Shared chrome for header-bearing chart cards: the card shell, an
+// optional header (label + caller control + info tooltip on one row),
+// an optional legend, and a plot slot that delegates the responsive
+// SVG to mountResponsiveChart. Shared by the Network series charts,
+// the top-operator breakdown, and the Maps drift chart.
 //
-// This is the one card path the Network series charts, the top-operator
-// breakdown, and (via plan 003) the Maps drift chart all share, instead
-// of each assembling the same .chart-card__header markup by hand.
-//
-// Reuse: when the same chart re-renders into the same slot (a range /
-// axis / family switch re-runs a whole section), the existing card is
-// kept and only its legend + plot are swapped, so a header control like
-// a mode switch is never re-parented. Re-parenting it would reset its
-// in-flight pill transition and snap the highlight instead of sliding
-// it. The identity check on ``headerExtra`` keeps the reuse scoped to
-// genuinely the same chart + control (charts without a control compare
-// null === null and reuse too).
+// Reuse: when the same chart re-renders into the same slot, the
+// existing card is kept and only its legend + plot are swapped, so a
+// header control (a mode switch) is never re-parented — that would
+// reset its in-flight pill transition. The identity check on
+// ``headerExtra`` scopes reuse to the same chart + control (charts
+// without one compare null === null and reuse too).
 
 import { mountResponsiveChart } from "./chart-base.js";
 import { createInfoTooltip } from "../components/info-tooltip.js";
@@ -48,12 +43,11 @@ export function mountTimeSeriesCard(parent, config) {
         layout = {},
     } = config;
 
-    // Reuse the card already in this slot only when its header content
-    // is unchanged: same title, same subtitle, and the very same
-    // headerExtra element. Reuse keeps a header control (a mode switch)
-    // from being re-parented, which would reset its in-flight pill
-    // transition. A changed subtitle (e.g. the drift unit flipped from
-    // IPv4 to IPv6) must rebuild so the header reflects it.
+    // Reuse the card in this slot only when its header content is
+    // unchanged: same title, subtitle, and the very same headerExtra
+    // element. This keeps a header control from being re-parented
+    // (which would reset its pill transition). A changed subtitle must
+    // rebuild so the header reflects it.
     const existing = parent.firstElementChild;
     const reused =
         existing &&
@@ -66,9 +60,9 @@ export function mountTimeSeriesCard(parent, config) {
 
     let card = reused;
     if (card) {
-        // Strip the previous legend + plot, keep the header (first
-        // child). The detached plot slot's width watcher is swept by
-        // the next mountResponsiveChart call below.
+        // Strip the previous legend + plot, keep the header. The
+        // detached slot's width watcher is swept by the next
+        // mountResponsiveChart call below.
         while (card.lastElementChild && card.lastElementChild !== card.__header) {
             card.lastElementChild.remove();
         }
@@ -106,9 +100,8 @@ function buildHeader(title, subtitle, info, infoAria, headerExtra) {
     label.textContent = (title ?? "").toUpperCase();
 
     if (subtitle) {
-        // Group the label and its secondary text so they stay together
-        // when the header wraps; the subtitle reads as a smaller note
-        // sitting beside the title.
+        // Group label and subtitle so they stay together when the
+        // header wraps; the subtitle reads as a smaller note.
         const group = document.createElement("div");
         group.className = "chart-card__title";
         const sub = document.createElement("span");

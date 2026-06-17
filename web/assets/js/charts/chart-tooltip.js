@@ -1,11 +1,10 @@
-// Declarative builder for the contents of a chart tooltip so each
-// chart only has to describe what to show, not how to wire up the
-// DOM. ``rows`` is an array of [label, value, swatchClass?] tuples;
-// label and value stay as plain strings so the tooltip can never
-// accidentally inject HTML from a data field. The optional third
-// element renders a small colour dot before the label, used by
-// charts whose tooltip is the only place a colour gets named (the
-// operator breakdown has no static legend).
+// Declarative builder for a chart tooltip's contents so each chart
+// describes what to show, not how to wire the DOM. ``rows`` is an
+// array of [label, value, swatchClass?] tuples; label and value stay
+// plain strings so the tooltip can never inject HTML from a data
+// field. The optional swatchClass renders a small colour dot before
+// the label, used where the tooltip is the only place a colour gets
+// named (the operator breakdown has no static legend).
 
 export function buildTooltipBody({ title, rows = [], footer }) {
     const frag = document.createDocumentFragment();

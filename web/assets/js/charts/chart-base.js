@@ -1,28 +1,22 @@
 // Shared chart scaffolding: builds the card + label + chart slot
-// every chart on the dashboard wears, then re-renders the inner
-// chart whenever the slot's width changes. Concrete pixel
-// dimensions are passed into ``draw`` so the SVG's viewBox can
-// match the on-screen size. That keeps axis labels at a real
-// pixel size (~11 px) instead of being squashed down to 3-4 px
-// when the chart scales below ~400 px wide.
+// and re-renders the inner chart on slot width changes. Pixel
+// dimensions are passed into ``draw`` so the SVG's viewBox matches
+// the on-screen size, keeping axis labels at ~11 px instead of
+// being squashed to 3-4 px below ~400 px wide.
 
 import { svg } from "./svg.js";
 
-// Defaults tuned to look balanced from phone (~320 px) up to the
-// dashboard's content max (~1024 px). Each chart can override
-// individual fields via the ``layout`` arg if needed.
+// Defaults tuned from phone (~320 px) to the dashboard's content
+// max (~1024 px); each chart can override fields via ``layout``.
 //
-// paddingLeft has to fit the widest y-axis tick label across all
-// charts. The current set tops out at four-character labels like
-// "460k" (entries chart) which fit comfortably in ~48 px including
-// the 8 px gap to plot.left. No chart renders a rotated gutter
-// title — the card title speaks for the y axis — so the gutter
-// only needs room for the ticks.
+// paddingLeft fits the widest y-axis tick label across charts,
+// topping out at four chars like "460k" in ~48 px (incl. the 8 px
+// gap to plot.left). No chart draws a rotated gutter title, so the
+// gutter only needs room for ticks.
 //
-// paddingRight is generous on purpose: the rightmost X label uses
-// anchor="end" so it sits flush with the plot's right edge, and
-// the rightmost data dot still needs a few pixels of gutter so it
-// doesn't kiss the card border.
+// paddingRight is generous so the rightmost X label (anchor="end")
+// sits flush with the plot edge and the rightmost dot keeps a few
+// pixels off the card border.
 const DEFAULT_LAYOUT = {
     minWidth: 280,
     fallbackWidth: 720,
@@ -33,13 +27,12 @@ const DEFAULT_LAYOUT = {
     paddingBottom: 30,
 };
 
-// Registry of every mounted chart's width-watcher. A chart re-mount
-// (tab / range / family switch) either replaces a parent's children or
-// rebuilds the whole container from an ancestor; in both cases the old
-// slot leaves the document but its ResizeObserver / resize listener would
-// keep firing render() against the detached node forever. Sweeping the
-// registry for detached slots on every new mount disconnects those
-// orphans, so watchers never accumulate across re-mounts.
+// Registry of every mounted chart's width-watcher. A re-mount (tab /
+// range / family switch) detaches the old slot, but its
+// ResizeObserver / resize listener would keep firing render() against
+// the detached node forever. Sweeping the registry for detached slots
+// on each new mount disconnects those orphans so watchers never
+// accumulate.
 const liveCharts = new Set();
 
 function sweepDetachedCharts() {
@@ -52,21 +45,15 @@ function sweepDetachedCharts() {
 }
 
 // Public: mount a chart card under ``parent`` whose inner SVG
-// re-renders whenever the chart's container width changes, or
-// whenever the caller asks for it via the returned ``rerender``
-// handle (used by clickable legends to redraw after a toggle).
+// re-renders on container width changes, or when the caller invokes
+// the returned ``rerender`` handle (used by clickable legends).
 //
 //   draw({ width, height, layout }) -> Element
-//   info?:   Element built by createInfoTooltip()
-//   legend?: () -> Element
+//   info?:   Element built by createInfoTooltip(), pinned top-right
+//   legend?: () -> Element, built once between title and slot
 //
-// ``draw`` is called once synchronously (so the chart is on
-// screen before paint) and then on every observed width change.
-// ``info`` is optional and pinned to the top-right corner of the
-// card, matching the affordance used on overview cards. ``legend``
-// is optional and built once at mount time. It sits between the
-// title and the chart slot for multi-series charts that need to
-// label their lines.
+// ``draw`` runs once synchronously (chart on screen before paint)
+// and then on every observed width change.
 export function mountResponsiveChart(
     parent,
     { title, draw, info, legend, layout = {} },
@@ -89,10 +76,9 @@ export function mountResponsiveChart(
     parent.replaceChildren(card.root);
 
     let lastWidth = 0;
-    // ``force`` lets callers ask for a redraw even when the slot
-    // width has not changed (e.g. legend toggles updating series
-    // visibility). The width-change branch keeps its sub-pixel
-    // skip so scrollbar wobble does not cause repaints.
+    // ``force`` redraws even when width is unchanged (e.g. legend
+    // toggles). The width-change branch keeps a sub-pixel skip so
+    // scrollbar wobble doesn't cause repaints.
     const render = (force = false) => {
         const measured = card.slot.clientWidth || settings.fallbackWidth;
         const width = Math.max(settings.minWidth, measured);
@@ -121,9 +107,9 @@ export function mountResponsiveChart(
 
     return {
         rerender: () => render(true),
-        // Lets a caller drop the width watcher explicitly. The detached-
-        // slot sweep on the next mount already covers the usual re-mount
-        // path, so most callers never need this.
+        // Drop the width watcher explicitly. The detached-slot sweep on
+        // the next mount covers the usual re-mount path, so most callers
+        // never need this.
         destroy: () => {
             teardown();
             liveCharts.delete(entry);
@@ -131,10 +117,9 @@ export function mountResponsiveChart(
     };
 }
 
-// ``title`` is optional: callers that wrap the chart in their own
-// custom card chrome (drift chart, future composite charts) pass
-// null to get just the slot, while the standard card label is
-// rendered when a title string is supplied.
+// ``title`` is optional: callers wrapping the chart in their own
+// card chrome pass null to get just the slot; a string renders the
+// standard card label.
 function createChartCard(title) {
     const root = document.createElement("article");
     root.className = "card chart-card";
@@ -178,18 +163,15 @@ export function renderYAxis(root, ticks, yScale, { plotLeft, plotRight, format }
     }
 }
 
-// Render each calendar tick as an X-axis label at its scaled X
-// position. Every label is centered on its tick so the spacing
-// between consecutive labels stays uniform; the previous
-// start/end anchoring made the first and last labels visually
-// closer to their neighbours than the middle labels were to
-// each other. Labels can extend slightly into the left/right
-// gutter, which paddingLeft and paddingRight reserve enough
-// room for at typical chart widths.
+// Render each calendar tick as an X-axis label at its scaled X.
+// Labels are centered on their tick for uniform spacing (the old
+// start/end anchoring crowded the first and last labels). Labels
+// may extend slightly into the gutters, which paddingLeft/Right
+// reserve room for.
 //
-// ``ticks`` is the output of pickTimeAxisTicks(): an array of
-// ``{ timestamp, label }`` already sorted ascending. Gridlines
-// aren't drawn here so each chart can theme them on its own.
+// ``ticks`` is pickTimeAxisTicks() output: ``{ timestamp, label }``
+// sorted ascending. Gridlines aren't drawn here so each chart can
+// theme them.
 export function renderTimeAxis(root, ticks, xScale, plotBottom) {
     if (ticks.length === 0) return;
     for (let i = 0; i < ticks.length; i++) {
@@ -205,13 +187,11 @@ export function renderTimeAxis(root, ticks, xScale, plotBottom) {
     }
 }
 
-// Render a small rotated label in the left gutter that names what
-// the y axis measures. Sits halfway up the plot and rotates 90°
-// counter-clockwise so it reads bottom-to-top - the standard
-// convention in scientific and analytics charts. The x coordinate
-// sits flush with the SVG's left edge so the tick text (which
-// anchors to plot.left - 8) has enough breathing room between it
-// and the title.
+// Render a small rotated label in the left gutter naming what the
+// y axis measures. Sits halfway up the plot, rotated 90° CCW to
+// read bottom-to-top (the usual chart convention). Its x sits flush
+// with the SVG's left edge so the tick text (anchored at
+// plot.left - 8) has breathing room.
 export function renderYAxisTitle(root, text, plot) {
     if (!text) return;
     const x = 8;
@@ -227,24 +207,22 @@ export function renderYAxisTitle(root, text, plot) {
     root.append(label);
 }
 
-// Snap a millisecond timestamp down to the first day of its month
-// in UTC. Used by the history charts so they pin the leftmost
-// x-axis label to plot.left: if data starts mid-month, the
-// domain extends back to the first of that month so the first
-// calendar tick lands on the plot's left edge instead of floating
-// 30-60 days inside it.
+// Snap a millisecond timestamp down to the first of its month in
+// UTC. History charts use this to pin the leftmost x-axis label to
+// plot.left: data starting mid-month extends the domain back to the
+// first, so the first tick lands on the left edge instead of
+// floating 30-60 days inside it.
 export function snapToMonthStart(timestampMs) {
     const d = new Date(timestampMs);
     return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
 }
 
 // Resolve the x-axis time domain for a history chart.
-// ``options.domainStart`` / ``options.domainEnd`` (typically
-// supplied by resolveHistoryRange() in utils/history-range.js) override the
-// data-derived bounds, so the calendar window the picker promised
-// is honoured even when no build sits at its edge. The start is
-// always snapped to the first of its month so the leftmost
-// calendar tick lands flush with plot.left.
+// ``options.domainStart`` / ``options.domainEnd`` (typically from
+// resolveHistoryRange() in utils/history-range.js) override the
+// data-derived bounds, so the picker's calendar window is honoured
+// even when no build sits at its edge. The start is snapped to the
+// first of its month so the leftmost tick sits flush with plot.left.
 export function resolveTimeDomain(timestamps, options = {}) {
     const rawStart = options.domainStart ?? timestamps[0];
     const rawEnd = options.domainEnd ?? timestamps[timestamps.length - 1];
@@ -254,17 +232,14 @@ export function resolveTimeDomain(timestamps, options = {}) {
     };
 }
 
-// Create the SVG root every chart uses. Centralised so the
-// viewBox, base class, and accessibility role stay consistent
-// across charts and any future chart-wide attribute lands here
-// instead of three separate creation sites.
+// Create the SVG root every chart uses. Centralised so viewBox,
+// base class, and accessibility role stay consistent and any future
+// chart-wide attribute lands in one place.
 export function createChartSvg(width, height, ariaLabel) {
-    // A labelled chart is a graphic worth announcing, so it takes
-    // role="img" + its aria-label. Without a label it is decorative
-    // scaffolding (the surrounding card carries the meaning) and
-    // stays role="presentation"; the two were previously combined,
-    // which is contradictory — a presentation node drops its own
-    // aria-label.
+    // A labelled chart is announceable: role="img" + aria-label.
+    // Without a label it is decorative scaffolding (the card carries
+    // the meaning) and stays role="presentation" — combining the two
+    // is contradictory, as a presentation node drops its aria-label.
     const root = svg("svg", {
         viewBox: `0 0 ${width} ${height}`,
         class: "chart",
@@ -274,10 +249,8 @@ export function createChartSvg(width, height, ariaLabel) {
     return root;
 }
 
-// Calendar-friendly step sizes in months. Picked so a few-month
-// range steps up cleanly to a few-year range without producing
-// awkward 4- or 5-month intervals that don't read as familiar
-// calendar units.
+// Calendar-friendly step sizes in months, chosen to avoid awkward
+// 4- or 5-month intervals that don't read as familiar units.
 const TIME_STEP_MONTHS = [1, 2, 3, 6, 12, 24];
 const AVG_MONTH_MS = 30.44 * 24 * 60 * 60 * 1000;
 const MONTH_ABBR = [
@@ -286,14 +259,11 @@ const MONTH_ABBR = [
 ];
 
 // Pick at most ``maxLabels`` calendar boundaries evenly spaced
-// across [startMs, endMs]. Each returned tick lands on the first
-// day of a month in UTC, so labels never drift across daylight-
-// saving boundaries. The step is the smallest entry in
-// TIME_STEP_MONTHS that fits the requested density: wide ranges
-// step up to yearly labels (e.g. "2025"), shorter ranges step
-// down to monthly labels (e.g. "Jul 25").
-//
-// Returns ``{ timestamp, label }[]`` sorted ascending.
+// across [startMs, endMs]. Each tick lands on the first of a month
+// in UTC, so labels never drift across DST boundaries. The step is
+// the smallest TIME_STEP_MONTHS entry that fits the density: wide
+// ranges step up to yearly labels ("2025"), shorter ranges down to
+// monthly ("Jul 25"). Returns ``{ timestamp, label }[]`` ascending.
 export function pickTimeAxisTicks(startMs, endMs, maxLabels = 5) {
     if (!(endMs > startMs)) return [];
     const totalMonths = (endMs - startMs) / AVG_MONTH_MS;
@@ -306,10 +276,9 @@ export function pickTimeAxisTicks(startMs, endMs, maxLabels = 5) {
     const baseYear = startDate.getUTCFullYear();
     let monthOffset = startDate.getUTCMonth();
 
-    // First candidate is the start of the start's month. If that
-    // falls before the data range (i.e. data starts mid-month),
-    // step forward so the first label only appears inside the
-    // plotted range and never extends past plot.left.
+    // First candidate is the start of the start's month. If it falls
+    // before the data range (data starts mid-month), step forward so
+    // the first label stays inside the plotted range.
     let cursor = Date.UTC(baseYear, monthOffset, 1);
     if (cursor < startMs) {
         monthOffset += step;
@@ -329,10 +298,9 @@ export function pickTimeAxisTicks(startMs, endMs, maxLabels = 5) {
     return ticks;
 }
 
-// Pick a comfortable label density based on the chart's pixel
-// width. Roughly one label per ~64 px so "Mar 26" / "Aug 25"
-// labels don't overlap at 11 px font. The minimum of 3 keeps the
-// axis readable even on a 280 px phone.
+// Label density from pixel width: ~one label per 64 px so labels
+// don't overlap at 11 px font. The minimum of 3 keeps the axis
+// readable on a 280 px phone.
 const LABEL_SLOT_PX = 64;
 const MIN_LABELS = 3;
 export function labelDensityForWidth(width) {
@@ -340,8 +308,7 @@ export function labelDensityForWidth(width) {
 }
 
 // Compute the inner plot rectangle from outer dimensions plus
-// padding. Centralised so individual charts can't drift apart on
-// the gutter math.
+// padding. Centralised so charts can't drift apart on gutter math.
 export function plotBounds(width, height, { paddingLeft, paddingRight, paddingTop, paddingBottom }) {
     return {
         left: paddingLeft,
