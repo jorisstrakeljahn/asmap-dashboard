@@ -1,15 +1,9 @@
-// Tiny DOM helpers shared across components.
-//
-// Kept deliberately small — anything bigger than a one-liner
-// belongs in the component that uses it. The point of this
-// module is to remove duplication, not to grow an abstraction.
+// Tiny DOM helpers shared across components. Kept small on
+// purpose: anything past a one-liner belongs in its component.
 
-// XML namespace required by createElementNS for every <svg> child
-// element. Lives here (and not next to the text symbols in
-// utils/symbols.js) because it is a DOM API constant, not a
-// rendered glyph — the consumers are charts and icon-building
-// components, all of which already import other DOM helpers from
-// this module.
+// XML namespace required by createElementNS for <svg> children.
+// Lives here, not in symbols.js, because it's a DOM API constant
+// rather than a rendered glyph.
 export const SVG_NS = "http://www.w3.org/2000/svg";
 
 let idCounter = 0;
@@ -22,10 +16,8 @@ export function uniqueId(prefix = "id") {
     return `${prefix}-${idCounter}`;
 }
 
-// Standard "this component cannot render right now" placeholder.
-// Bundled here so the empty-state copy across the dashboard is
-// rendered with the same muted styling and a future style or
-// markup tweak lives in one place.
+// Shared empty-state placeholder so muted styling stays consistent
+// and a future markup tweak lives in one place.
 export function mutedNote(text) {
     const note = document.createElement("p");
     note.className = "muted";

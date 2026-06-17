@@ -93,10 +93,9 @@ export function buildFilterInput(state, onChange) {
     };
 }
 
-// CSS pins a min-width on .top-movers__direction-dropdown so
-// the trigger stays the same size as the longest label
-// ("Exchanged ↔"); without that the toolbar would shift around
-// when the user picked a shorter option.
+// CSS pins a min-width on .top-movers__direction-dropdown to the
+// longest label ("Exchanged ↔") so the toolbar doesn't shift
+// when a shorter option is picked.
 export function buildDirectionFilter(state, onChange) {
     const dropdown = createDropdown({
         options: DIRECTION_FILTER_VALUES.map((value) => ({

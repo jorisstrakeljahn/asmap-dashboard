@@ -7,13 +7,9 @@ import { t } from "../../utils/i18n.js";
 import { accessorsFor } from "./units.js";
 
 // labelKey resolves at render time so a locale swap repaints
-// headers without rebuilding the array. The Share column reads
-// its key off the accessor bundle so the header renames with the
-// currency picker. defaultDir flips direction on first click.
-// Numeric columns land big first (desc), ordinal columns asc.
-//
-// Raw moved counts live in the row hover tooltip so the grid
-// stays scannable.
+// headers without a rebuild; Share reads its key off the accessor
+// bundle so it renames with the currency picker. defaultDir sets
+// first-click direction: numeric desc, ordinal asc.
 function tableColumns(unit) {
     const accessors = accessorsFor(unit);
     return [
@@ -85,11 +81,8 @@ function headerCell(column, state, onChange) {
     labelSpan.textContent = label;
     button.append(labelSpan);
 
-    // When a column carries a short label, render it as a second
-    // span the mobile sort bar swaps in (CSS toggles which one
-    // shows). Marking the spans --full / --short keeps the wide
-    // header on the descriptive label and the narrow card view on
-    // the compact one without a width branch in JS.
+    // Short label rides as a second span; CSS (--full / --short)
+    // toggles which one shows, so no width branch in JS.
     if (column.shortLabelKey) {
         labelSpan.classList.add("top-movers__sort-label--full");
         const shortSpan = document.createElement("span");

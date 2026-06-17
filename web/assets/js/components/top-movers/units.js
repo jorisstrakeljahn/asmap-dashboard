@@ -1,40 +1,31 @@
-// Top Movers unit accessors. The card renders one currency at a
-// time (IPv4 addresses moved, IPv6 addresses moved) and lets the
-// user flip between them with a picker. Every consumer (sort,
-// filter, row rendering, header labels, the "% of all"
-// denominator) needs to read the same currency for the table to
-// stay consistent, so all the field choices live here and the
-// callers receive a fully resolved accessor bundle.
+// Top Movers unit accessors. The card shows one currency at a
+// time; every consumer (sort, filter, rows, headers, the "% of
+// all" denominator) must read the same one, so the field choices
+// live here and callers get a fully resolved accessor bundle.
 //
-// Field bindings come straight from the backend rows produced by
-// ``_PerAsActivity.row`` in asmap_dashboard/diff.py, which writes
-// the IPv4 and IPv6 coverage fields side by side on every
-// top_movers entry (plus the family-agnostic ``changes`` entry
-// total the row tooltip shows). Adding a currency later (e.g.
-// bitnodes-weighted coverage) is one entry in this table plus the
-// matching backend row fields; the rest of the component does not
-// branch on unit.
+// Field bindings come from the backend rows in
+// ``_PerAsActivity.row`` (asmap_dashboard/diff.py), which writes
+// IPv4 and IPv6 coverage fields side by side on every top_movers
+// entry. Adding a currency is one entry here plus the matching
+// backend fields; nothing else branches on unit.
 
 import { FAMILY_IPV4, FAMILY_IPV6 } from "../../format.js";
 import { DRIFT_IPV4_COVERAGE, DRIFT_IPV6_COVERAGE } from "../../utils/diffs.js";
 
 export const DEFAULT_UNIT = DRIFT_IPV4_COVERAGE;
 
-// Map the Diff Explorer family toggle value (FAMILY_IPV4 /
-// FAMILY_IPV6) onto the top-movers unit key. Keeping the two
-// vocabularies separate is intentional: ``family`` is a
-// product-level concept the user toggles, ``unit`` is the
-// per-cell accessor lookup, and the two could grow apart (e.g.
-// a future ``ipv4_buckets`` unit that the family toggle does
-// not surface).
+// Map the Diff Explorer family value (FAMILY_IPV4 / FAMILY_IPV6)
+// onto a unit key. The two vocabularies stay separate on purpose:
+// ``family`` is the user-facing toggle, ``unit`` is the accessor
+// lookup, and they could grow apart (e.g. a future ``ipv4_buckets``
+// unit the toggle doesn't surface).
 export function familyToUnit(family) {
     return family === FAMILY_IPV6 ? DRIFT_IPV6_COVERAGE : DRIFT_IPV4_COVERAGE;
 }
 
-// ``family`` rides next to each unit so callers can route a row
-// value through formatCoverage() without re-deriving the family
-// from a string compare. ``shareDenominatorKey`` resolves to the
-// Share column header ("% of all IPv4", "% of all IPv6").
+// ``family`` rides next to each unit so callers can route a value
+// through formatCoverage() without re-deriving it.
+// ``shareDenominatorKey`` is the Share column header.
 const ACCESSORS = {
     [DRIFT_IPV4_COVERAGE]: {
         family: FAMILY_IPV4,
