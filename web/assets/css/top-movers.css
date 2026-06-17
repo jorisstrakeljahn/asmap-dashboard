@@ -4,9 +4,7 @@
    - table   : the grid itself, sortable per column
    - footer  : page-size selector (left) and pagination (right)
 
-   Header / toolbar / footer each carry one job so neither row
-   gets cluttered when more controls land later (e.g. a network
-   pivot or a column-visibility menu). */
+   Each row carries one job so none gets cluttered as controls land. */
 
 /* ── Header ──────────────────────────────────────────────────── */
 
@@ -73,18 +71,15 @@
     border-color: transparent;
 }
 
-/* Lock the direction dropdown trigger to a fixed width so
-   short labels (Lost, Gained) don't shrink it and shift the
-   filter input around. The floor matches the longest option
-   ("Exchanged") plus the chevron. */
+/* Fixed width so short labels (Lost, Gained) don't shrink the
+   trigger and shift the filter input. Floor matches the longest
+   option ("Exchanged") plus the chevron. */
 .top-movers__direction-dropdown .dropdown__trigger {
     min-width: 8rem;
 }
 
-/* Clear-filter slot sits on the right of the toolbar; it stays
-   empty (and collapses out of the flow) when no filter narrows
-   the matrix, so the toolbar reads as a single field row in the
-   default state. */
+/* Clear-filter slot on the right; collapses out of flow when no
+   filter is active, so the toolbar reads as one field row. */
 .top-movers__clear-slot {
     margin-left: auto;
     display: inline-flex;
@@ -132,17 +127,11 @@
     overflow-x: auto;
 }
 
-/* Fixed table layout pins each column to the percentages declared
-   below so the grid does not reflow when the user toggles
-   Compact and Detailed (which adds or removes the operator name
-   under each AS number). Without this, a long operator name like
-   "Earthlink Telecommunications Equipment Trading and Services
-   DMCC" would push the AS column wide on that row and shove the
-   Moved and Direction columns over.
-
-   min-width keeps the grid legible on narrow viewports. The
-   table wrap above provides horizontal scrolling once the card
-   gets narrower than 640px. */
+/* Fixed layout pins each column to the percentages below so the grid
+   doesn't reflow when toggling Compact/Detailed (which adds/removes
+   the operator name under each AS number); otherwise a long name
+   would widen the AS column on that row. min-width keeps it legible;
+   the wrap above scrolls horizontally below 640px. */
 .top-movers__grid {
     width: 100%;
     min-width: 640px;
@@ -177,12 +166,10 @@
     border-bottom: 0;
 }
 
-/* Sortable headers wrap their label + chevron in a single
-   button so the entire affordance is one keyboard / pointer
-   target. The button inherits the <th>'s muted uppercase
-   typography on purpose: we don't strengthen the colour on the
-   active column because the filled chevron is signal enough.
-   Two competing "look here" signals would muddy the table. */
+/* Sortable headers wrap label + chevron in one button, so the whole
+   affordance is a single target. The active column keeps the muted
+   header colour on purpose: the filled chevron is signal enough, and
+   two "look here" cues would muddy the table. */
 .top-movers__sort-button {
     display: inline-flex;
     align-items: center;
@@ -214,37 +201,25 @@
     display: none;
 }
 
-/* The button is inline-flex, so it lives in the inline flow of
-   its <th> and inherits the cell's text-align (left for AS,
-   right for the numeric Changes column). That keeps the chevron
-   on the trailing side of each label without per-column overrides.
-
-   Chevron only renders for the currently sorted column (see
-   headerCell in top-movers-table.js); cold columns stay text-
-   only. The chevron inherits the header text's colour so it
-   doesn't introduce a second tonal layer next to the label. */
+/* inline-flex keeps the button in the cell's inline flow, inheriting
+   text-align so the chevron stays on each label's trailing side with
+   no per-column override. The chevron renders only for the sorted
+   column (top-movers-table.js) and inherits the header colour. */
 
 .top-movers__sort-chevron {
     color: inherit;
     flex-shrink: 0;
-    /* display: block strips the inline-baseline offset that SVGs
-       inherit by default; without it the chevron sits a hair
-       above the text mid-line and reads as misaligned. */
+    /* block strips the inline-baseline offset SVGs inherit, which
+       otherwise sits the chevron a hair above the text mid-line. */
     display: block;
 }
 
 /* ── Columns ─────────────────────────────────────────────────── */
 
-/* Column widths (table-layout: fixed picks these up). Five
-   columns share the row. A narrow leading rank, the AS identity,
-   one Share column, and the Direction column for the counterpart.
-   The AS and Direction columns get the widest allocation because
-   both render an asn-cell stack. Compact mode shows one line,
-   Detailed mode shows two. On the Direction side an arrow is
-   followed by another asn-cell stack.
-
-   Raw moved counts and the touched ratio live in the row hover
-   tooltip so the grid stays scannable. */
+/* Column widths (table-layout: fixed). AS and Direction get the
+   widest slots since both render an asn-cell stack (one line in
+   Compact, two in Detailed). Raw counts and the touched ratio live
+   in the row hover tooltip so the grid stays scannable. */
 .top-movers__grid th.top-movers__rank {
     width: 4%;
 }
@@ -268,20 +243,16 @@
     text-align: right;
 }
 
-/* Pull the numeric columns slightly inward on the right so the
-   header label and the sort chevron do not kiss the next column,
-   and the digits underneath get a touch of breathing room
-   against the Direction cell. The extra padding only applies to
-   the numeric columns; the surrounding cells keep the standard
-   horizontal rhythm. */
+/* Extra right padding on the numeric columns so the label, chevron,
+   and digits don't kiss the Direction cell. Other cells keep the
+   standard rhythm. */
 .top-movers__grid th.top-movers__num,
 .top-movers__grid td.top-movers__num {
     padding-right: var(--space-5);
 }
 
-/* Row numbers ride along with each row purely as an orientation
-   cue (where am I in the current page) — they stay subtle so the
-   AS / Changes / Direction trio carries the actual information. */
+/* Row numbers are an orientation cue only, kept subtle so the AS /
+   Changes / Direction trio carries the actual information. */
 .top-movers__rank {
     color: var(--color-text-subtle);
     font-variant-numeric: tabular-nums;
@@ -316,10 +287,9 @@
     display: none;
 }
 
-/* Flex sits on the inner span so the <td> stays a regular table
-   cell - browsers ignore table layout sizing on cells with
-   `display: flex`, which was making the column collapse to
-   content width instead of filling the allocated 180 px. */
+/* Flex on the inner span so the <td> stays a real table cell:
+   `display: flex` on a cell makes browsers ignore the fixed-layout
+   width and collapse the column to content width. */
 .top-movers__direction-inner {
     display: inline-flex;
     align-items: center;
@@ -398,13 +368,9 @@
     user-select: none;
 }
 
-/* Coarse-pointer hit area expansion. The sort buttons and the
-   pagination buttons stay visually compact for mouse / trackpad
-   (28 px and ~text-height respectively, matching the table's
-   tight rhythm), but a finger needs roughly 44 px to land
-   reliably. The ::before pseudo-element grows the pointer-events
-   surface without nudging layout, so neighbours don't reflow on
-   a touch device. */
+/* Coarse-pointer hit-area growth. Sort and pagination buttons stay
+   visually compact for mouse, but a finger needs ~44px; the ::before
+   grows the pointer-events surface without nudging layout. */
 @media (pointer: coarse) {
     .top-movers__sort-button,
     .top-movers__page {
@@ -443,10 +409,8 @@
     .top-movers__filter-input {
         min-width: 0;
         width: 100%;
-        /* 16px floor: keeps iOS Safari from zooming the viewport when
-           the search field takes focus (it auto-zooms sub-16px
-           inputs). The token base is already 16px on phones; this
-           overrides the field's own --font-size-sm declaration. */
+        /* 16px floor stops iOS Safari auto-zooming on focus; overrides
+           the field's own --font-size-sm. */
         font-size: var(--font-size-base);
     }
     .top-movers__clear-slot {
@@ -472,14 +436,11 @@
     }
 }
 
-/* Below 640px the 640px-wide fixed grid would force a horizontal
-   scroll that hides the Direction column — the most informative
-   one — off the right edge. Instead of scrolling sideways, the
-   table reflows into a stack of one card per row: the AS identity
-   and its share sit on the top line, the direction flow spans a
-   full-width second line beneath them. The header row is not
-   dropped (that would kill column sorting); it collapses into a
-   compact sort bar so the sort buttons survive on touch. */
+/* Below 640px the fixed grid would scroll the Direction column off
+   the right edge, so the table reflows into one card per row: AS +
+   share on top, the direction flow on a full-width line below. The
+   header collapses into a compact sort bar (instead of being dropped)
+   so column sorting survives on touch. */
 @media (max-width: 640px) {
     /* No scroll container needed once the grid stops being 640px
        wide; the info-tooltip popover is position:fixed anyway, so
@@ -516,12 +477,10 @@
         white-space: nowrap;
     }
 
-    /* Drop the fixed-table percentage widths so each sort chip
-       shrinks to its label. The per-column width rules above carry
-       higher specificity than a bare `thead th`, so the override
-       has to name the columns to win — otherwise the AS chip keeps
-       its 34% slot, leaving a gap that shoves "Direction" onto a
-       second line. */
+    /* Drop the fixed-table widths so each sort chip shrinks to its
+       label. Must name the columns to out-specify the per-column
+       rules above — otherwise the AS chip keeps its 34% slot and
+       shoves "Direction" onto a second line. */
     .top-movers__grid thead th.top-movers__rank,
     .top-movers__grid thead th.top-movers__asn,
     .top-movers__grid thead th.top-movers__num,
@@ -555,9 +514,8 @@
         color: var(--color-accent);
     }
 
-    /* Body rows → stacked cards. Rank is orientation-only and the
-       row order already conveys it, so it drops out on mobile to
-       keep each card focused on AS / share / direction. */
+    /* Body rows → stacked cards. Rank is orientation-only and row
+       order conveys it, so it drops out here. */
     .top-movers__grid tbody tr {
         display: grid;
         grid-template-columns: 1fr auto;
@@ -592,11 +550,9 @@
         color: var(--color-text-strong);
     }
 
-    /* Direction is the card's secondary line: just the flow arrow
-       and counterpart, no repeated "Direction" tag. The arrow
-       (↗ gained, ↘ lost, ↔ exchanged) carries the meaning, the
-       sort bar above names the column, and the info popover
-       documents it — a per-card label only added clutter. */
+    /* Direction is the card's secondary line: the flow arrow (↗/↘/↔)
+       and counterpart, no repeated "Direction" tag — the sort bar and
+       info popover already name it. */
     .top-movers__grid tbody td.top-movers__direction {
         grid-area: direction;
         font-size: var(--font-size-xs);

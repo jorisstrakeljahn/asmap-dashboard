@@ -1,12 +1,9 @@
-/* Custom combobox-style dropdown that replaces every native
-   <select> across the dashboard. The native popover is browser-
-   and OS-controlled and breaks the visual language on mobile
-   (iOS / Android show their own picker sheet); our own popover
-   matches the card / shadow / border tokens consistently.
+/* Custom combobox-style dropdown replacing every native <select>:
+   native popovers break the visual language on mobile (OS picker
+   sheets), so our own matches the card/shadow/border tokens.
 
-   JS lives in components/dropdown.js. Layout: trigger button
-   (chevron right) plus an absolutely-positioned listbox panel
-   beneath it; the panel flips above the trigger automatically
+   JS in components/dropdown.js. Layout: trigger button plus an
+   absolutely-positioned listbox panel that flips above the trigger
    when the viewport edge would clip it. */
 
 .dropdown {
@@ -111,11 +108,10 @@
     font-weight: var(--font-weight-medium);
 }
 
-/* Disabled options stay in the list so the user can see "this
-   value exists, just not for this side", but read as muted and
-   are non-interactive. The is-highlighted / hover rules above
-   never fire on them because dropdown.js skips them in keyboard
-   nav and in the mouseenter handler. */
+/* Disabled options stay in the list (so the value is visibly
+   present, just not selectable) but read as muted. dropdown.js
+   skips them in keyboard nav and hover, so the highlight never
+   fires on them. */
 .dropdown__option--disabled {
     color: var(--color-text-subtle);
     cursor: not-allowed;
@@ -141,8 +137,8 @@
     font-size: var(--font-size-sm);
 }
 
-/* Per-usage tweaks: only width / min-width belongs here, the
-   look is driven by the dropdown classes themselves. */
+/* Per-usage tweaks: only width / min-width belongs here; the look
+   is driven by the dropdown classes themselves. */
 .build-selector {
     min-width: 200px;
 }

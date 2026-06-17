@@ -1,30 +1,22 @@
-/* Header theme switch. The widget itself is the shared segmented
-   mode-switch (see mode-switch.css) carrying the .theme-switch
-   modifier; the rules here only cover its place in the header and the
-   responsive collapse to icon-only on tight viewports.
-
-   The control lives inside .site-header__actions, the right-hand
-   cluster that also holds the mobile burger. */
+/* Header theme switch: the shared mode-switch (mode-switch.css) with
+   the .theme-switch modifier. These rules only cover its place in the
+   header (inside .site-header__actions) and the icon-only collapse. */
 
 .site-header__actions {
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    /* Right-hand cluster. On desktop the centred nav's auto side
-       margins push this flush to the right edge on their own; on
-       mobile the header switches to space-between (nav lifts out of
-       flow), which pins the cluster right — so no margin is needed
-       here in either case. */
+    /* Right-hand cluster. The centred nav's auto margins (desktop) and
+       space-between (mobile) pin this right, so no margin needed. */
 }
 
 .theme-switch {
     flex: 0 0 auto;
 }
 
-/* Icon-only at every width: the sun / moon glyph carries the control,
-   so the text label is dropped visually but kept in the accessibility
-   tree (clipped, not display:none) so each segment keeps its name for
-   screen readers and the active state stays announced. */
+/* Icon-only at every width: the sun/moon glyph carries the control,
+   so the label is clipped (not display:none) to keep each segment's
+   name and active state for screen readers. */
 .theme-switch .mode-switch__label {
     position: absolute;
     width: 1px;

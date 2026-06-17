@@ -1,11 +1,8 @@
-/* Small "i" affordance with a click-/hover-revealed popover.
-   JS lives in components/info-tooltip.js; the placement logic
-   mirrors dropdown.css (panel flips above when the viewport
-   edge would clip it, see placePopover in JS).
-
-   Drop one of these next to any label that needs more context
-   than fits in the label itself — overview cards, table column
-   headers, chart titles. Keep the popover text short. */
+/* Small "i" affordance with a click-/hover-revealed popover. JS in
+   components/info-tooltip.js; placement mirrors dropdown.css (flips
+   above when the viewport edge would clip it, see placePopover).
+   Drop one next to any label that needs more context; keep the
+   popover text short. */
 
 .info-tooltip {
     position: relative;
@@ -34,13 +31,10 @@
         background var(--motion-fast) var(--motion-ease);
 }
 
-/* Invisible hit-area halo so the pointer does not slip off the
-   18 px icon. The visual size stays 18 px; the ::before only grows
-   the pointer-events surface, and its absolute positioning leaves
-   the layout untouched. A small 4 px halo (~26 px target) applies to
-   every pointer so a fast or sensitive mouse still lands on the icon
-   without reaching neighbouring controls; coarse pointers (finger,
-   stylus) widen it toward a comfortable ~32 px tap target. */
+/* Invisible hit-area halo so the pointer does not slip off the 18px
+   icon. The ::before only grows the pointer-events surface, leaving
+   layout untouched: ~26px target for every pointer, widened toward
+   ~32px for coarse pointers below. */
 .info-tooltip__trigger::before {
     content: "";
     position: absolute;
@@ -71,21 +65,14 @@
     height: 14px;
 }
 
-/* Card-corner modifier pins the trigger to the upper-right of
-   its containing card. The host card needs `position: relative`
-   for the absolute anchor to land in the right coordinate
-   system. Gap from the edge matches the card padding rhythm so
-   the icon reads as part of the card chrome rather than as
-   floating chrome.
+/* Card-corner modifier pins the trigger to the card's upper-right;
+   the host card needs `position: relative` for the anchor.
 
-   No z-index on purpose: being position:absolute already paints
-   the trigger above the card's in-flow content, and adding a
-   z-index here would make this element a stacking context that
-   traps its own fixed-position popover. A trapped popover paints
-   below a later card's card-corner icon (which would establish
-   its own sibling context), so the icon shows through the open
-   popover. Leaving z-index auto lets the popover (z-popover) rise
-   to the nearest shared context and cover sibling icons. */
+   No z-index on purpose: a z-index here would make this a stacking
+   context that traps its own fixed popover, which would then paint
+   below a later card's icon. Leaving it auto lets the popover
+   (z-popover) rise to the nearest shared context and cover sibling
+   icons. */
 .info-tooltip--card-corner {
     position: absolute;
     top: var(--space-3);
@@ -119,14 +106,11 @@
        style.maxWidth wins at runtime; this rule is the fallback for
        any future caller that bypasses the JS factory. */
     max-width: 400px;
-    /* Open / close animation. The panel unfolds out of the "i": JS
-       points transform-origin back at the trigger and sets the
-       vertical shift direction (--tip-enter-shift) per open side, so
-       the scale+fade reads as the panel growing from the icon and
-       collapsing back into it. The steady visible state is the bare
-       rule here; the collapsed state below is only carried for one
-       frame on open and across the close transition, so a non-JS
-       caller still gets a fully visible panel. */
+    /* Open/close animation: the panel unfolds out of the "i". JS sets
+       transform-origin and the per-side shift (--tip-enter-shift) so
+       scale+fade reads as growing from the icon. The bare rule here is
+       the visible state; the collapsed state below is carried only
+       during the transition, so a non-JS caller stays fully visible. */
     transform-origin: top center;
     transition:
         opacity var(--motion-slow) var(--ease-decelerate),
@@ -142,10 +126,9 @@
     display: none;
 }
 
-/* Paragraphs read as a stacked explainer; first paragraph hugs
-   the top edge, subsequent paragraphs pick up vertical rhythm.
-   The bold lead is the labelled prefix used by multi-bucket
-   tooltips ("Reassigned. ..."). */
+/* Stacked explainer paragraphs; the first hugs the top edge, the
+   rest pick up vertical rhythm. The bold lead is the labelled
+   prefix used by multi-bucket tooltips. */
 .info-tooltip__paragraph {
     margin: 0;
 }

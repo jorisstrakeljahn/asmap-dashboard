@@ -38,13 +38,10 @@
     transition: color var(--motion-base) var(--motion-ease);
 }
 
-/* Thick sliding underline. Every link carries the bar; it grows from
-   the centre to half width on hover and locks to full width on the
-   active tab, so the indicator animates between states instead of
-   snapping a static rule onto a new link. The bar reuses the
-   dashboard accent — the reference's lime would glare on the light
-   theme — and the 4px radius rounds the top of the 3px bar into a
-   half-pill cap. */
+/* Sliding underline: grows from centre to half width on hover and
+   full width on the active tab, so it animates between states rather
+   than snapping. Reuses the dashboard accent (the reference's lime
+   would glare on light). */
 .site-header__nav-link::after {
     content: "";
     position: absolute;
@@ -140,14 +137,9 @@
     padding: var(--space-8) var(--page-gutter) var(--space-12);
 }
 
-/* Tab panels: the dashboard runs two panels (Maps + Diff
-   Explorer) inside the same document and toggles them with the
-   `hidden` attribute set by tabs.js. Inactive panels stay in
-   the DOM so their state (selected build, dropdown values,
-   chart toggles) survives a tab switch, but `hidden` removes
-   them from layout, paint, and assistive tech. Using the
-   attribute keeps the contract obvious: any panel with no
-   `hidden` is shown, no CSS class machinery in between. */
+/* Tab panels toggled via the `hidden` attribute (tabs.js). Inactive
+   panels stay in the DOM so their state survives a tab switch, while
+   `hidden` removes them from layout, paint, and assistive tech. */
 .tab-panel[hidden] {
     display: none;
 }
@@ -196,20 +188,15 @@
     justify-content: flex-end;
     gap: var(--space-3);
     flex-wrap: wrap;
-    /* Stay pinned to the right edge even after the header wraps the
-       tools onto their own line on a phone — keeps the IPv4/IPv6 and
-       time-range switches right-aligned instead of dropping flush
-       left under the heading. */
+    /* Stay pinned right even after the header wraps the tools onto
+       their own line, instead of dropping flush left. */
     margin-left: auto;
 }
 
-/* Section toolbar: sits between the heading and the body when a
-   section needs a control surface (e.g. the build picker that
-   scopes the Overview cards). The control sits on the left so the
-   eye lands on it after reading the heading; the meta note (e.g.
-   build age) trails next to it, anchored to the control's bottom
-   edge so it reads as a footnote on the picker rather than a
-   second equally-weighted control. */
+/* Section toolbar between heading and body (e.g. the build picker
+   scoping the Overview cards). Control on the left; the meta note
+   trails it, anchored to its bottom edge so it reads as a footnote
+   rather than a second equally-weighted control. */
 .section__toolbar {
     margin-top: var(--space-4);
     display: flex;
@@ -229,13 +216,11 @@
     color: var(--color-text-muted);
 }
 
-/* Visible failure surface when metrics.json cannot be loaded.
-   Replaces every tab panel inside main.content so the user sees
-   the cause instead of an empty page. Styled as a calm muted
-   block rather than an alarm banner because the most common
-   failure modes (CI did not run yet, GitHub Pages is rebuilding)
-   self-heal on the next refresh. role="alert" on the element
-   surfaces it to screen readers regardless of styling. */
+/* Failure surface when metrics.json cannot load; replaces every tab
+   panel so the user sees the cause, not an empty page. Styled calm
+   rather than alarming because the common failures (CI not run yet,
+   Pages rebuilding) self-heal on refresh. role="alert" surfaces it
+   to screen readers. */
 .load-error {
     margin-top: var(--space-8);
     padding: var(--space-6);
@@ -287,18 +272,11 @@
     cursor: progress;
 }
 
-/* Loading skeletons. Pre-rendered placeholders that sit in every
-   data-* slot until the matching tab module mounts and calls
-   replaceChildren on the slot. Strategy here is "show the layout
-   the user is about to see, not a spinner": three card-shaped
-   blocks where the Overview cards will land, four chart-shaped
-   blocks where the History charts will land, and one tall block
-   for the Diff Explorer until both fetches resolve.
-
-   The shimmer is a single keyframe animation moving a soft band
-   of lighter pixels left-to-right across the placeholder. Under
-   prefers-reduced-motion the animation collapses to a static
-   gradient via the global *::after override in tokens.css. */
+/* Loading skeletons: placeholders in every data-* slot until the tab
+   module mounts and calls replaceChildren. Strategy is "show the
+   layout, not a spinner". The shimmer is one keyframe sweeping a
+   light band across the placeholder; prefers-reduced-motion collapses
+   it to a static gradient via the *::after override in tokens.css. */
 .skeleton {
     position: relative;
     overflow: hidden;
@@ -320,10 +298,8 @@
     animation: skeleton-shimmer 1.4s ease-in-out infinite;
 }
 
-/* The shimmer band is a near-white gradient tuned for the light
-   theme; at 55% alpha it would glare against the near-black dark
-   surfaces. Dim it to a faint white sweep so the placeholder still
-   reads as "loading" without flashing. */
+/* The 55%-alpha light-theme band would glare on the near-black dark
+   surfaces, so dim it to a faint white sweep. */
 html[data-theme="dark"] .skeleton::after {
     background: linear-gradient(
         90deg,
@@ -516,15 +492,11 @@ a.site-footer__repo {
     }
 }
 
-/* Below 720px the inline nav collapses behind the burger so the
-   header stays a clean single row (logo left, burger right). Tapping
-   the burger expands the nav into a full-screen overlay: the tabs
-   stack large down the left and the theme switch — relocated here by
-   components/nav-menu.js — pins to the bottom. The header stays sticky
-   on top with the burger morphed into an X, so the same control that
-   opened the menu dismisses it. The panel is shown only while the
-   burger reports aria-expanded="true" (the `is-open` class is toggled
-   by components/nav-menu.js). */
+/* Below 720px the inline nav collapses behind the burger; tapping it
+   expands a full-screen overlay (tabs stacked left, theme switch
+   relocated to the bottom by components/nav-menu.js). The header
+   stays sticky with the burger morphed into an X to dismiss. The
+   `is-open` class (toggled by nav-menu.js) gates the panel. */
 @media (max-width: 720px) {
     .site-header {
         position: sticky;

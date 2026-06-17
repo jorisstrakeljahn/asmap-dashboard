@@ -1,18 +1,13 @@
-/* Network tab: chart card chrome plus the line/dot/swatch colours
-   for the source-comparison series (KIT vs Bitnodes). Geometry and
-   the shared tooltip live in charts.css; this file only adds the new
-   semantic colour assignments and the small header layout the
-   Network charts wear (label + info tooltip on one row, matching
-   the Maps tab's drift-chart header). */
+/* Network tab: source-comparison series colours (KIT vs Bitnodes)
+   and the small chart header layout. Geometry and the shared tooltip
+   live in charts.css; this file only adds the semantic colours. */
 
-/* The Network hero carries six cards in a 3x2 grid that pairs them
-   thematically: "what we see" (nodes + coverage + concentration) on
-   top, "what that means for an attacker / for Core" (Nakamoto +
-   buckets + staleness) below. Higher specificity than the base rule
-   so this wins without touching the shared overview grid. */
-/* Skeleton mirror of the 2+3 hero so the page does not reflow when
-   the real cards swap in: first two placeholders span 3 columns,
-   the remaining three span 2. */
+/* Network hero: six cards paired thematically (what we see on top,
+   what it means below). Higher specificity than the base overview
+   grid so it wins without touching the shared rule. */
+/* Skeleton mirror of the hero so the page does not reflow when the
+   real cards swap in: first two placeholders span 3 columns, the
+   rest span 2. */
 .skeleton-grid--network-hero {
     grid-template-columns: repeat(6, minmax(0, 1fr));
 }
@@ -26,9 +21,8 @@
 }
 
 /* Two cards per row, paired by theme (see overview.js). A uniform
-   2-column grid reads cleaner than the old 2+3+1 spans now that the
-   optional latest-update card brings the count to six. Cards collapse
-   to a single column on narrow viewports. */
+   2-column grid reads cleaner than the old 2+3+1 spans; collapses to
+   one column on narrow viewports. */
 [data-network-overview] .card-row {
     grid-template-columns: repeat(2, 1fr);
 }
@@ -71,15 +65,12 @@
     background: var(--color-success);
 }
 
-/* Per-operator colours for the top-operator breakdown bars. Drawn
-   from the shared categorical palette (tokens.css --color-series-*)
-   so operators read as distinct categories, not a ranked gradient.
-   Each operator that ever enters a snapshot's top five keeps one
-   colour across every bar, so the eye can follow an operator through
-   the tier reshuffles. The bar class paints the SVG stack segment;
-   the swatch class paints the matching dot in the hover tooltip
-   (this chart carries no static legend — the per-period top five
-   changes, so identity lives in the tooltip). */
+/* Per-operator colours for the breakdown bars, from the shared
+   categorical palette (tokens.css --color-series-*) so operators read
+   as distinct categories. Each operator keeps one colour across every
+   bar so the eye can follow it through tier reshuffles. Bar class
+   paints the segment, swatch class the tooltip dot — this chart has no
+   static legend since the top five changes per period. */
 .chart__bar--op1 {
     fill: var(--color-series-1);
 }
@@ -160,11 +151,10 @@
     background: var(--color-series-10);
 }
 
-/* Data-quality stat that closes the Trends section: a single KPI plus
-   an explanatory sentence (the ASN-attribution agreement is near
-   constant, so it is a stat, not a chart). The note is capped to a
-   readable measure so the full-width card does not stretch the
-   sentence into one long line. */
+/* Data-quality stat closing the Trends section: a single KPI plus a
+   sentence (the ASN-attribution agreement is near constant, so a stat
+   not a chart). Capped to a readable measure so the full-width card
+   doesn't stretch the sentence into one long line. */
 .network-quality__note {
     margin-top: var(--space-2);
     max-width: 72ch;

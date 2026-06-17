@@ -1,18 +1,13 @@
-/* Mode switch: pill-style segmented control (drift-chart "vs
-   previous / vs baseline", top-movers compact / detailed, the
-   IPv4 / IPv6 family toggles, etc.). The outer track carries a
-   hairline border so it sits in the same visual language as
-   dropdown triggers; a single sliding pill highlights the active
+/* Mode switch: pill-style segmented control (vs previous/baseline,
+   compact/detailed, IPv4/IPv6, etc.). Hairline track matching the
+   dropdown triggers, with one sliding pill marking the active
    segment.
 
-   The highlight is one element (.mode-switch__pill) that JS moves
-   under the active button — it writes the pill's width + translateX
-   from the button's measured box (see mode-switch.js), so switching
-   modes tweens the highlight across the track instead of repainting
-   a static fill on a different button each time. On first layout,
-   tab reveal, and viewport resize the JS snaps the pill into place
-   without a transition, so the highlight is always correct on the
-   first frame and only animates on an actual mode change. */
+   JS (mode-switch.js) writes the pill's width + translateX from the
+   active button's measured box, so a mode change tweens the highlight
+   across the track. On first layout, tab reveal, and resize it snaps
+   without a transition, so the pill is correct on the first frame and
+   only animates on an actual change. */
 
 .mode-switch {
     position: relative;
@@ -24,10 +19,10 @@
     background: var(--color-bg);
 }
 
-/* width + transform are written inline by JS; top/bottom inset by
-   the track padding so the pill spans the button row height without
-   hard-coding it. Sits under the labels (z-index 0) so the active
-   label reads on top of the accent fill. */
+/* width + transform written inline by JS; top/bottom inset by the
+   track padding so the pill spans the button row without a hard-coded
+   height. Under the labels (z-index 0) so the active label reads on
+   top of the accent fill. */
 .mode-switch__pill {
     position: absolute;
     top: 2px;

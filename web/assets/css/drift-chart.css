@@ -31,11 +31,10 @@
     margin-top: 0;
 }
 
-/* Keep the header a single row even when the title wraps to two
-   lines: stacking it into a column dropped the lone info icon onto
-   its own line below the title, reading as a detached, orphaned
-   control. align-items:flex-start pins the icon to the top-right,
-   level with the first title line, matching every other card. */
+/* Keep the header a single row even when the title wraps: stacking
+   into a column dropped the lone info icon onto its own line, reading
+   as orphaned. flex-start pins it top-right, level with the first
+   title line. */
 @media (max-width: 600px) {
     .drift-chart .chart-card__header {
         align-items: flex-start;
