@@ -1,11 +1,10 @@
-// Top Movers card orchestrator. Builds the scaffold and a single
-// persistent <table> once, then splits redraws into a head pass and
-// a body pass so a filter keystroke swaps only <tbody> + pagination.
+// Top Movers card orchestrator. Builds the scaffold and one
+// persistent <table>, then splits redraws into a head pass and a
+// body pass so a filter keystroke swaps only <tbody> + pagination.
 //
-// ``mount(parent, diff, { family })`` — the family is driven by
-// the Diff Explorer master toggle and decides which currency
-// the cells, sort, and share denominator speak. The card reads
-// the family from the parent rather than owning its own picker.
+// mount(parent, diff, { family }): family comes from the Diff
+// Explorer master toggle and picks the currency the cells, sort,
+// and share denominator speak; the card owns no picker of its own.
 
 import { mutedNote } from "../../utils/dom.js";
 import { t } from "../../utils/i18n.js";
@@ -34,11 +33,10 @@ export function mount(parent, diff, { family } = {}) {
     const state = createState({ family });
     const card = buildCardScaffold();
 
-    // One <table> for the card's life. The <thead> (sortable header
-    // buttons + their listeners) only changes on a unit or sort
-    // change; the <tbody> changes on every filter / page move. Keeping
-    // them as separate persistent elements means typing never rebuilds
-    // the header or rebinds its listeners.
+    // One <table> for the card's life. <thead> changes only on a
+    // unit or sort change, <tbody> on every filter / page move;
+    // keeping them separate means typing never rebuilds the header
+    // or rebinds its listeners.
     const table = document.createElement("table");
     table.className = "top-movers__grid";
     const thead = document.createElement("thead");
@@ -55,11 +53,10 @@ export function mount(parent, diff, { family } = {}) {
     card.headerControls.append(
         viewModeSwitch(state, applyNamesClass, saveShowNames),
     );
-    // Pin the info trigger to the card's top-right corner (like the
-    // overview cards) instead of trailing the view-mode switch. On a
-    // phone the header wraps and a switch-trailing icon drifted onto
-    // a second row, detached from the title; the corner anchor keeps
-    // it locked to the top edge at every width.
+    // Pin the info trigger to the card's top-right corner instead
+    // of trailing the view-mode switch: on a phone the header wraps
+    // and a trailing icon drifted onto a second row, detached from
+    // the title.
     const info = cardInfoTooltip();
     info.classList.add("info-tooltip--card-corner");
     card.root.append(info);
@@ -115,24 +112,20 @@ export function mount(parent, diff, { family } = {}) {
 }
 
 // Drop rows the active currency has nothing to say about. The
-// backend top_movers set is a union of the top-N rankings under
-// each currency, so a row that ranked in IPv6 but never moved
-// IPv4 arrives with zero IPv4 activity. Showing it under the
-// IPv4 picker means a long tail of em-dash directions and zero
-// shares, which obscures the real story. The union itself ships
-// in the lazy-loaded diffs.json; this is the per-currency view
-// filter.
+// backend top_movers set is a union of the per-currency top-N
+// rankings, so a row that ranked in IPv6 but never moved IPv4
+// arrives with zero IPv4 activity; showing it under the IPv4
+// picker is a tail of em-dashes and zero shares. This is the
+// per-currency view filter.
 function pruneInactive(rows, unit) {
     const rowChanges = accessorsFor(unit).rowChanges;
     return rows.filter((row) => rowChanges(row) > 0);
 }
 
-// The <tr> set for the current page, dropped straight into the
-// persistent <tbody>. When the filter matches nothing it returns a
-// single full-width empty-state row instead, so the <thead> stays put
-// across an into / out-of empty transition (no head rebuild) and the
-// table markup stays valid (no <tbody>-less note floating in the
-// wrap, as the old single-element render produced).
+// The <tr> set for the current page, dropped into the persistent
+// <tbody>. On no matches it returns one full-width empty-state row
+// instead, so the <thead> stays put (no head rebuild) and the
+// markup stays valid (no <tbody>-less note in the wrap).
 function bodyRows(filteredMovers, diff, state) {
     if (!filteredMovers.length) {
         return [emptyRow()];

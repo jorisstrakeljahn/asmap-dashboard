@@ -12,20 +12,15 @@ import { t } from "../../utils/i18n.js";
 import { touchedRatio } from "./sort.js";
 import { accessorsFor } from "./units.js";
 
-// ``unitTotalChanges`` is the diff level total in the active
-// currency (IPv4 addresses moved across the whole diff, or IPv6
-// blocks). It is the denominator for the Share column. The row
-// Moved value comes through the unit accessor table so the cell,
-// the sort field and the column header always read the same
-// currency.
+// ``unitTotalChanges`` is the diff-level total in the active
+// currency — the denominator for the Share column. Row values
+// come through the unit accessor table so cell, sort field, and
+// header always read the same currency.
 //
-// Each row also carries a native title attribute that spells out
-// the longer story (raw IPv4 address count or raw IPv6 block
-// count, the AS footprint on either side, the Touched ratio).
-// Touched is not a dedicated column because Share answers the
-// more common question (how big was this AS inside this diff).
-// The hover text keeps Touched discoverable without claiming a
-// column slot.
+// Each row carries a native title attribute with the longer story
+// (raw counts, AS footprint per side, Touched ratio). Touched has
+// no column of its own because Share answers the more common
+// question; the hover text keeps it discoverable.
 export function tableBody(rows, unitTotalChanges, startIndex, unit) {
     const accessors = accessorsFor(unit);
     const tbody = document.createElement("tbody");
@@ -57,10 +52,9 @@ function cell(content, className) {
     return td;
 }
 
-// Row hover text. Pulled together here so the table cells stay
-// single line and short, and the deeper story (raw counts on
-// either side, the Touched ratio, the AS name) lives in the
-// native browser tooltip every row carries.
+// Row hover text: keeps the cells short by parking the deeper
+// story (raw counts per side, Touched ratio, AS name) in the
+// native browser tooltip.
 function rowDetailTooltip(row, unit, changes) {
     const accessors = accessorsFor(unit);
     const family = accessors.family;
@@ -98,26 +92,14 @@ function formatTouchedRatio(ratio) {
 
 // Renders the direction column for one row.
 //
-// Inactive rows (no gain, no loss in the active currency) are
-// pruned in index.js before render so the table only shows
-// movers that actually moved something in the active currency.
-// The em-dash branch below stays as a defensive fallback in
-// case the prune ever leaks an inactive row through.
+// Inactive rows (no gain/loss in the active currency) are pruned
+// in index.js; the em-dash branch is a defensive fallback. The
+// two live branches: an unmapped-sentinel counterpart (ASN 0,
+// labelled "unmapped") vs. a real counterpart AS, with the arrow
+// following gained / lost either way.
 //
-// Otherwise two branches:
-//   1. The dominant counterpart is the unmapped sentinel (ASN
-//      0) — the flow is to / from the unmapped pool. Arrow and
-//      tooltip follow the actual direction so a newly-mapped AS
-//      reads as a gain, a fully unmapped AS reads as a loss,
-//      and a fragmentation event reads as an exchange. The
-//      counterpart label is "unmapped" instead of an AS number.
-//   2. A real counterpart AS exists. The arrow follows gained /
-//      lost in the active currency and the counterpart is
-//      rendered as a regular AS cell.
-//
-// Keeping this in lockstep with ``directionRank`` in sort.js is
-// what makes the filter dropdown and the rendered cell agree —
-// both consult the same gained / lost / counterpart triplet.
+// Kept in lockstep with ``directionRank`` in sort.js — same
+// gained / lost / counterpart triplet — so filter and cell agree.
 function directionCell(row, unit) {
     const accessors = accessorsFor(unit);
     const gained = accessors.rowGained(row);
@@ -154,9 +136,8 @@ function unmappedLabel() {
 
 // Picks arrow + tooltip from the (gained, lost, counterpart)
 // triplet. The tooltip key varies on counterpart presence so
-// "gained addresses from AS{n}" and "newly mapped from the
-// unmapped pool" render as distinct, copy-pasteable sentences
-// rather than a single generic message.
+// "gained from AS{n}" and "newly mapped" stay distinct rather
+// than one generic message.
 function describeFlow(gained, lost, counterpart) {
     if (gained > 0 && lost > 0) {
         return {

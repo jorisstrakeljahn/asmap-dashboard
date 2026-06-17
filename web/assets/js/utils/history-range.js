@@ -1,12 +1,9 @@
-// History range resolution. Range keys: "1y" / "3y" / "5y" /
-// "max". Bounds evaluated against Date.now() at call time so a
-// tab left open across midnight refreshes on next render.
-//
-// Single source of truth for the 1Y/3Y/5Y/Max range picker shared
-// by the Maps tab (History charts) and the Network tab (Trends).
-// Two consumer shapes are supported: rangeBounds() works on plain
-// ms timestamps (Network timelines), resolveHistoryRange() wraps it
-// for the maps array (Maps history charts).
+// History range resolution. Keys "1y"/"3y"/"5y"/"max"; bounds use
+// Date.now() at call time so a tab left open across midnight
+// refreshes on next render. Single source of truth for the range
+// picker shared by Maps (History) and Network (Trends).
+// rangeBounds() takes plain ms timestamps; resolveHistoryRange()
+// wraps it for the maps array.
 
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -21,11 +18,10 @@ export const HISTORY_RANGE_VALUES = ["1y", "3y", "5y", "max"];
 
 export const DEFAULT_HISTORY_RANGE = "max";
 
-// Core primitive: resolve the cutoff (drop points older than this)
-// plus the x-axis domain the charts should span, from plain ms
-// timestamps. Bounded ranges pin to [now - N days, now] so a
-// publishing pause shows as empty space; "max" spans the full data
-// extent but still anchors right to "now" so freshness stays visible.
+// Resolve the cutoff (drop older points) plus the x-axis domain,
+// from plain ms timestamps. Bounded ranges pin to [now - N days,
+// now] so a publishing pause shows as empty space; "max" spans the
+// full extent but still anchors right to "now" for freshness.
 export function rangeBounds(range, timestamps = []) {
     const now = Date.now();
     if (range === "max" || !RANGE_DAYS[range]) {
@@ -41,10 +37,9 @@ export function rangeBounds(range, timestamps = []) {
     return { cutoff, domainStart: cutoff, domainEnd: now };
 }
 
-// Returns the filtered maps slice plus the time domain charts should
-// span. Bounded ranges pin to [now - N days, now]; "max" pins left
-// to the oldest build but anchors right to "now". An empty slice
-// yields null bounds so each chart's empty state can take over.
+// Filtered maps slice plus the time domain charts span (see
+// rangeBounds). An empty slice yields null bounds so each chart's
+// empty state can take over.
 export function resolveHistoryRange(maps, range = DEFAULT_HISTORY_RANGE) {
     const list = Array.isArray(maps) ? maps : [];
     const timestamps = list.map((m) => new Date(m.released_at).getTime());
