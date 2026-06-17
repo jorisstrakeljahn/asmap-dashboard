@@ -32,12 +32,12 @@ export function clampTimeline(timeline, cutoff) {
     };
 }
 
-// Upper-bound twin of clampTimeline: drop the slots ABOVE ``ceiling``.
-// The decay age axis is windowed this way — a calendar range (1Y/3Y/5Y)
-// maps to a maximum map age of the same width because age = reference −
-// build date, so "the last year" -> "ages up to ~365 days". Anchored at
-// the reference build, not at "now" (see trend-charts.js), so the two
-// share a width but not necessarily the exact build set.
+// Upper-bound twin of clampTimeline: drop slots ABOVE ``ceiling``.
+// The decay age axis is windowed this way — age = reference − build
+// date, so a calendar range maps to a max map age of the same width
+// ("the last year" -> "ages up to ~365 days"). Anchored at the
+// reference build, not "now", so the two share a width but not the
+// exact build set.
 export function clampTimelineMax(timeline, ceiling) {
     if (ceiling === Infinity) return timeline;
     const keep = [];
@@ -50,10 +50,9 @@ export function clampTimelineMax(timeline, ceiling) {
     };
 }
 
-// Like buildUnionTimeline, but keys slots by calendar day so points
-// from different crawlers that fall on the same day share one slot (and
-// therefore one hover) instead of landing on adjacent timestamps. The
-// representative timestamp for a day is the earliest point in it, so the
+// Like buildUnionTimeline, but keys slots by calendar day so same-day
+// points from different crawlers share one slot (and one hover). The
+// day's representative timestamp is its earliest point, so the
 // x-position and tooltip date stay real rather than snapping to midnight.
 export function dayUnionTimeline(entries) {
     const byDay = new Map();

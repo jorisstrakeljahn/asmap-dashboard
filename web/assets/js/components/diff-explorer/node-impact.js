@@ -1,21 +1,16 @@
 // "Real node impact" banner for a (fromName, toName) pair: how many
-// of the observed Bitcoin nodes resolve to a different AS between the
-// two maps, scored over the most recent crawl's node set. It grounds
-// the abstract prefix diff above in the live network — the same
-// question the Network tab's "latest update impact" card answers, but
-// for any pair the explorer can show.
+// observed nodes resolve to a different AS between the two maps,
+// scored over the most recent crawl's node set. Grounds the abstract
+// prefix diff in the live network.
 //
-// The data is optional and lives in network.json (committed separately
-// from the CI-regenerated diffs, because it needs the non-public node
-// set). So three states are handled honestly:
-//   - no network.json / payload predates the field  -> render nothing
-//   - the field exists but this pair is not covered  -> a muted note
-//     (a build can appear in diffs before the node-impact file is
-//     regenerated)
-//   - covered                                        -> the banner
+// Optional data, in network.json (committed separately from the
+// CI-regenerated diffs because it needs the non-public node set), so
+// three states are handled:
+//   - no network.json / payload predates the field -> render nothing
+//   - field exists but this pair is not covered    -> a muted note
+//   - covered                                      -> the banner
 //
-// Family-scoped to match the Diff Explorer master toggle, so the
-// banner always speaks the same v4 / v6 language as the cards above it.
+// Family-scoped to match the Diff Explorer master toggle.
 
 import {
     FAMILY_IPV6,

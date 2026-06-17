@@ -1,11 +1,10 @@
-// Network tab hero: up to six snapshot cards describing the most
-// recent crawl of the primary source, scored against the build in
-// effect at that time. Mirrors the Maps tab overview-cards layout
-// (card label + big metric + unit + delta line) so the two tabs feel
-// of a piece.
+// Network tab hero: up to six snapshot cards on the most recent crawl
+// of the primary source, scored against the build in effect then.
+// Mirrors the Maps tab overview-cards layout so the tabs feel of a
+// piece.
 //
-// Laid out two cards per row, each row a coherent pair so the grid
-// reads as three themes rather than a flat list:
+// Two cards per row, each a coherent pair so the grid reads as three
+// themes:
 //   Row 1 — diversity / adversary
 //     1. AS concentration     HHI of the observed node set — "does
 //                             ASmap improve peer diversity right now?"
@@ -19,9 +18,8 @@
 //     5. Reachable nodes      observed clearnet peers, IPv4/IPv6 split
 //     6. Peer-diversity buckets   ASmap AS buckets vs Core's defaults
 //
-// ASmap coverage (share of nodes the map resolves) deliberately has
-// no card: it idles at ~99.9% and reads as noise here; its story —
-// the dips between releases — lives in the coverage trend chart.
+// ASmap coverage has no card: it idles at ~99.9% and reads as noise
+// here; its story lives in the coverage trend chart.
 
 import { formatNumber, formatPercent } from "../../format.js";
 import { mutedNote } from "../../utils/dom.js";
@@ -43,10 +41,9 @@ export function mount(parent, { snapshot, decay, latestUpdate }) {
     }
     const row = document.createElement("div");
     row.className = "card-row";
-    // Two per row, paired by theme. The optional latest-update card
-    // slots into row 2 next to staleness (both speak to map freshness)
-    // so an older network.json without it simply leaves nodes/buckets
-    // to reflow up — the pairing degrades without leaving a hole.
+    // The optional latest-update card slots into row 2 next to
+    // staleness (both speak to map freshness); without it, nodes/
+    // buckets reflow up so the pairing degrades without a hole.
     const cards = [
         concentrationCard(snapshot),
         nakamotoCard(snapshot),
@@ -59,10 +56,9 @@ export function mount(parent, { snapshot, decay, latestUpdate }) {
 }
 
 // Just the headline count: the source / snapshot date is stated once
-// at the section level (network-tab.js), and the IPv4/IPv6 split bar
-// was dropped because it collided visually and numerically with the
-// Maps tab's prefix-family bar (~80/20 in both) while measuring a
-// different population. The IPv4-dominance rationale moved to the
+// at the section level. The IPv4/IPv6 split bar was dropped — it
+// collided with the Maps tab's prefix-family bar (~80/20 in both)
+// while measuring a different population; its rationale moved to the
 // info tooltip.
 function nodesCard(snapshot) {
     const card = createCard(t("network.overview.nodes.label"), {
@@ -77,11 +73,11 @@ function nodesCard(snapshot) {
     return card;
 }
 
-// The blunt adversarial reading of the AS distribution: how many
-// autonomous systems an attacker would have to control to sit next
-// to half of the mapped listening nodes. Higher is healthier. The
-// 50 % threshold matches the convention used for consensus-layer
-// Nakamoto coefficients, so the number is comparable across studies.
+// Adversarial reading of the AS distribution: how many autonomous
+// systems an attacker must control to sit next to half the mapped
+// listening nodes. Higher is healthier. The 50 % threshold matches
+// the consensus-layer Nakamoto convention, so it's comparable across
+// studies.
 function nakamotoCard(snapshot) {
     const card = createCard(t("network.overview.nakamoto.label"), {
         info: t("network.overview.nakamoto.info"),
@@ -104,9 +100,8 @@ function nakamotoCard(snapshot) {
     return card;
 }
 
-// "IPv4 8,602, IPv6 1,732"-style context line shared by the cards
-// that carry a per-family split. ``pick`` reads the value off one
-// family slice, ``format`` renders it.
+// Per-family context line shared by cards with a family split.
+// ``pick`` reads the value off one family slice, ``format`` renders it.
 function familySplitLine(snapshot, pick, format) {
     const families = snapshot.families ?? {};
     return t("network.overview.familySplit", {
@@ -115,12 +110,10 @@ function familySplitLine(snapshot, pick, format) {
     });
 }
 
-// Leads with the HHI itself rather than the single largest operator's
-// share: the largest-operator percentage can fall while concentration
-// is merely redistributed to the #2 operator, so HHI — summed over the
-// whole AS distribution — is the honest headline. What HHI is and how it
-// is computed lives in the info tooltip; the card stays to the bare
-// number so it reads at a glance.
+// Leads with HHI, not the largest operator's share: that share can
+// fall while concentration just shifts to the #2 operator, so HHI —
+// summed over the whole AS distribution — is the honest headline.
+// What HHI is lives in the info tooltip.
 function concentrationCard(snapshot) {
     const card = createCard(t("network.overview.concentration.label"), {
         info: t("network.overview.concentration.info"),
@@ -154,10 +147,9 @@ function bucketsCard(snapshot) {
 }
 
 // How many observed nodes changed AS when the most recent map shipped,
-// against the build published just before it. The abstract Diff Explorer
-// numbers made concrete on the real node set: the headline is the count
-// that moved, the line below splits it into the same three buckets the
-// Diff Explorer uses for prefixes.
+// vs the build just before it. The Diff Explorer numbers made concrete
+// on the real node set: the headline is the count that moved, the line
+// below splits it into the same three buckets.
 function latestUpdateCard(latestUpdate) {
     const card = createCard(t("network.overview.latestUpdate.label"), {
         info: t("network.overview.latestUpdate.info"),
@@ -177,12 +169,11 @@ function latestUpdateCard(latestUpdate) {
     return card;
 }
 
-// Reads the decay curve at exactly one year of map age and reports
-// how much of today's node set a map that old would mislocate. The
-// headline is a one-year figure rather than the raw drift at the
-// nearest build: builds are not released exactly 365 days apart, so
-// "X% in 398 days" would read as an arbitrary window. The context
-// line below names the curve points the reading rests on.
+// Reads the decay curve at exactly one year of map age: how much of
+// today's node set a map that old would mislocate. A one-year figure,
+// not the raw drift at the nearest build, since builds aren't 365 days
+// apart and "X% in 398 days" would read as arbitrary. The context line
+// names the curve points the reading rests on.
 function stalenessCard(decay) {
     const card = createCard(t("network.overview.staleness.label"), {
         info: t("network.overview.staleness.info"),
@@ -202,22 +193,17 @@ function stalenessCard(decay) {
 
 // Reads the curve at TARGET_STALENESS_DAYS. Three cases:
 //
-//   1. Two curve points bracket the one-year mark: interpolate
-//      linearly between them. The reading stays on the measured
-//      curve, so no scaling artefact can enter the headline.
+//   1. Two points bracket the one-year mark: interpolate linearly,
+//      so the reading stays on the measured curve.
 //   2. A point sits exactly on the mark: take it as is.
-//   3. The history is one-sided (all builds younger than a year,
-//      or — after a long publishing gap — all older): scale the
-//      point nearest the mark by 365 / age. This is a linear
-//      extrapolation *through the origin*, i.e. it assumes drift
-//      grows in proportion to age. A real decay curve saturates
-//      (drift rises fast, then flattens as the map fully
-//      decorrelates), so this over-estimates from a younger anchor
-//      and under-estimates from an older one, on top of amplifying
-//      that single point's noise by the 365 / age factor. That is
-//      why it is the fallback and not the rule, and why the basis
-//      line labels it differently. In the live data two points
-//      bracket the mark, so case 1 (interpolation) applies.
+//   3. One-sided history (all builds younger, or — after a long
+//      gap — all older): scale the nearest point by 365 / age, a
+//      linear extrapolation through the origin. A real decay curve
+//      saturates, so this over-estimates from a younger anchor and
+//      under-estimates from an older one, and amplifies that point's
+//      noise by 365 / age — hence the fallback, labelled differently
+//      in the basis line. Live data brackets the mark, so case 1
+//      applies.
 function stalenessAtTarget(decay) {
     const points = (decay?.points ?? [])
         .filter((p) => p.age_days > 0)
