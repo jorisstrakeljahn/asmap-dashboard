@@ -1,28 +1,23 @@
 // Light / Dark theme control mounted in the site header.
 //
-// The visible widget is the dashboard's segmented mode-switch (the
-// same sliding-pill control used for the IPv4/IPv6 and chart toggles)
-// so it reads in the same visual language as the rest of the UI. It is
-// icon-only — a sun and a moon segment — with the text label kept in
-// the accessibility tree (clipped via CSS).
+// The widget is the dashboard's segmented mode-switch (same
+// sliding-pill control as the other toggles), icon-only — sun and
+// moon — with the text label kept in the accessibility tree.
 //
-// State model — two explicit themes, with the system preference as the
-// implicit first-visit default:
-//   - The stored *preference* is "light" | "dark", or absent (null)
-//     when the visitor has never toggled. It persists in localStorage.
-//   - The *resolved* theme is what actually paints: the stored
-//     preference if set, otherwise prefers-color-scheme. So a brand new
-//     visitor follows their OS; the first toggle pins an explicit
-//     choice that from then on overrides the OS.
-//   - While no explicit choice is stored, the control keeps following
-//     the OS live (it re-resolves and re-points the active segment when
-//     the system theme flips). Once the user picks, the OS is ignored.
+// State model — two explicit themes, system preference as the
+// first-visit default:
+//   - Stored *preference* is "light" | "dark", or null when the
+//     visitor has never toggled. Persisted in localStorage.
+//   - *Resolved* theme is what paints: the preference if set,
+//     otherwise prefers-color-scheme. A new visitor follows the OS;
+//     the first toggle pins an explicit choice.
+//   - While no choice is stored the control tracks the OS live; once
+//     the user picks, the OS is ignored.
 //
-// First paint is handled by a tiny inline boot script in index.html
-// (it sets data-theme before the stylesheets apply, so there is no
-// light flash on a dark-preference reload). This module re-applies on
-// mount to stay authoritative, wires the OS listener, and owns every
-// later toggle.
+// First paint is handled by an inline boot script in index.html (sets
+// data-theme before stylesheets apply, so no light flash on a
+// dark-preference reload). This module re-applies on mount, wires the
+// OS listener, and owns every later toggle.
 
 import { readSetting, writeSetting } from "../utils/storage.js";
 import { t } from "../utils/i18n.js";
@@ -48,11 +43,10 @@ const ICONS = {
     dark: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`,
 };
 
-// English fallbacks used at mount time (before i18n strings are
-// guaranteed to have loaded). localize() swaps in the dictionary
-// values once they arrive; for the only shipped locale they match,
-// so this also keeps the control correct on the data-load error page
-// where translations may never run.
+// English fallbacks used at mount time, before i18n strings are
+// guaranteed loaded. localize() swaps in dictionary values once they
+// arrive; this also keeps the control correct on the data-load error
+// page where translations may never run.
 const FALLBACK_LABELS = { light: "Light", dark: "Dark" };
 const FALLBACK_ARIA = "Theme";
 
@@ -84,17 +78,15 @@ function applyTheme(preference, { animate = false } = {}) {
 
 export function initThemeSwitch() {
     const slot = document.querySelector("[data-theme-switch]");
-    // Guard against a double-mount: the header is static and survives
-    // the in-place retry, so this is only ever wired once, but the
-    // flag makes a stray second call a no-op rather than two stacked
-    // controls fighting over the same preference.
+    // Guard against a double-mount: the flag makes a stray second call
+    // a no-op rather than two stacked controls fighting over the same
+    // preference.
     if (!slot || slot.dataset.mounted === "true") return null;
     slot.dataset.mounted = "true";
 
-    // null = no explicit choice yet → follow the OS (first-visit
-    // default). readSetting returns the fallback for both an unset key
-    // and any stale/invalid value, so a leftover "system" cleanly
-    // degrades to OS-follow too.
+    // null = no explicit choice yet → follow the OS. readSetting
+    // returns the fallback for an unset key or any stale value, so a
+    // leftover "system" degrades to OS-follow too.
     let preference = readSetting(THEME_KEY, THEMES, null);
     applyTheme(preference);
 
@@ -117,11 +109,9 @@ export function initThemeSwitch() {
     control.classList.add("theme-switch");
     slot.replaceChildren(control);
 
-    // While the visitor has made no explicit choice, track the OS: when
-    // it flips, re-resolve and re-point the active segment. A picked
-    // Light/Dark pins the choice and ignores the OS from then on.
-    // addEventListener is the modern API; older Safari only has
-    // addListener, hence the fallback.
+    // While no explicit choice is stored, track the OS: re-resolve and
+    // re-point the active segment when it flips. addEventListener is
+    // modern; older Safari only has addListener, hence the fallback.
     if (darkQuery) {
         const onSystemChange = () => {
             if (preference !== null) return;
@@ -141,10 +131,8 @@ export function initThemeSwitch() {
 }
 
 // Refresh the visible labels + group name from the i18n dictionary
-// once it has loaded (the control mounts before that to apply the
-// theme and appear without delay). Safe to call with strings missing —
-// t() falls back to the key, but callers invoke this only after
-// loadStrings, so the localised values are in place.
+// once loaded (the control mounts earlier to apply the theme without
+// delay). Safe with strings missing — t() falls back to the key.
 export function localizeThemeSwitch(control) {
     if (!control) return;
     control.setAttribute("aria-label", t("header.theme.ariaLabel"));

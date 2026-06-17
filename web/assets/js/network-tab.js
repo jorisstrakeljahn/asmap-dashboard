@@ -1,41 +1,34 @@
 // Network tab: the "network tap" from the proposal. Scores the
-// observed Bitcoin node set (KIT monitor crawls, Bitnodes snapshots)
-// against the published ASmap history. Reads the optional ``network``
-// section of metrics.json; when that key is absent (the public deploy
-// before the snapshot data is published) the tab is never mounted and
-// app.js hides its nav entry.
+// observed Bitcoin node set (KIT crawls, Bitnodes snapshots) against
+// the published ASmap history. Reads the optional ``network`` section
+// of metrics.json; when absent (public deploy before snapshot data is
+// published) the tab is never mounted and app.js hides its nav entry.
 //
-// Layout, top to bottom, follows the proposal's "reads as one answer"
-// order: a snapshot hero of up to six cards (two per row, paired by
-// theme — see overview.js), then four range-windowed trend charts —
-// the decay curve (the update-cadence question), the top-5 operator
-// breakdown (the decentralisation question), the HHI concentration
-// trend, and the ASmap coverage trend — and finally the ASN-attribution
-// agreement as a single data-quality stat that keeps the headline KPI
-// but reveals the exact per-snapshot counts (both crawlers) behind a
-// disclosure, so the figure is checkable rather than asserted. Earlier
-// iterations carried a bucketing time series (near-constant, moved to
-// the hero) and a raw unique-AS-count "diversity" chart (dropped: the
-// count is confounded by how many nodes each crawler reaches, so two
-// raw-count lines invite a false comparison).
+// Layout, top to bottom: a snapshot hero (up to six cards, paired by
+// theme — see overview.js), four range-windowed trend charts (decay
+// curve, top-5 operator breakdown, HHI concentration, ASmap coverage),
+// then the ASN-attribution agreement as a data-quality stat that keeps
+// the headline KPI but exposes the per-snapshot counts behind a
+// disclosure so the figure is checkable. Deliberately no raw
+// unique-AS "diversity" chart: that count is confounded by how many
+// nodes each crawler reaches, so two raw-count lines invite a false
+// comparison.
 //
-// The decay chart overlays KIT and Bitnodes as toggleable lines because
-// it plots a normalised drift share, comparable across crawlers of
-// different size. KIT is the ongoing crawl; the Bitnodes snapshots are a
-// one-time historical archive (b10c) that freezes once it ends, kept as
-// a frozen second line because two independent crawlers telling the same
-// story is the dashboard's strongest credibility signal, but labelled
-// "archive" in the legend so no reader mistakes the frozen line for a
-// live feed. The operator breakdown is
-// KIT only — a per-operator breakdown for a frozen second crawler would
-// clutter without adding a comparison the decay chart doesn't make.
+// The decay chart overlays KIT and Bitnodes as toggleable lines: it
+// plots a normalised drift share, comparable across crawlers of
+// different size. KIT is the ongoing crawl; the Bitnodes snapshots are
+// a one-time b10c archive, frozen once it ends but kept as a second
+// line (two independent crawlers agreeing is the strongest credibility
+// signal) and labelled "archive" so no reader mistakes it for a live
+// feed. The operator breakdown is KIT-only — a breakdown for a frozen
+// crawler would clutter without adding a comparison.
 //
-// The Trends section carries a 1Y/3Y/5Y/Max range picker, mirroring
-// the Maps tab's History range. It windows the x-axis of the trend
-// charts; the hero and the data-quality stat stay on the latest data.
-// The trend charts themselves live in components/network/trend-charts.js
-// and the data-quality card in components/network/cross-check.js; this
-// module is the orchestration that wires them to the range picker.
+// The Trends section's 1Y/3Y/5Y/Max range picker (mirroring the Maps
+// History range) windows the trend charts' x-axis; the hero and
+// data-quality stat stay on the latest data. The charts live in
+// components/network/trend-charts.js and the data-quality card in
+// components/network/cross-check.js; this module wires them to the
+// range picker.
 
 import { formatDate } from "./format.js";
 import * as overview from "./components/network/overview.js";
@@ -80,10 +73,9 @@ export function mount(payload) {
         latestUpdate: network.latest_update,
     });
 
-    // One source line for the whole hero: all four cards read the
-    // primary crawl's latest snapshot, so the individual cards don't
-    // repeat it. Names the comparison source when more than one
-    // crawler is present so the reader knows the Trends overlay them.
+    // One source line for the whole hero: all cards read the primary
+    // crawl's latest snapshot, so they don't repeat it. Names the
+    // comparison source when more than one crawler is present.
     const sourceSlot = document.querySelector("[data-network-source]");
     if (sourceSlot) {
         const base = t("network.overview.sourceMeta", {
@@ -105,11 +97,10 @@ export function mount(payload) {
     const requestedAxis = hash.get("axis");
     const requestedFamily = hash.get("family");
 
-    // Per-chart toggle state is hoisted here so a range re-mount keeps
-    // whatever series the reader has hidden — and, for the decay /
-    // HHI charts, which axis or family view is active. The operator
-    // breakdown carries no legend (its per-period cast changes), so
-    // it has no entry here.
+    // Per-chart toggle state hoisted here so a range re-mount keeps
+    // hidden series — and, for decay / HHI, the active axis or family.
+    // The operator breakdown has no legend (its per-period cast
+    // changes), so no entry here.
     const states = {
         decay: {
             hidden: new Set(),
@@ -129,11 +120,11 @@ export function mount(payload) {
         ? requestedRange
         : DEFAULT_RANGE;
     const renderTrends = () => {
-        // renderTrends is the single re-render path: the range picker and
-        // the in-chart axis / family toggles all route through it, so
-        // writing the hash here captures every Trends view change. Only
-        // non-default selections are emitted, so the default Trends view
-        // keeps a bare "#network" with nothing extra to share.
+        // Single re-render path: the range picker and in-chart axis /
+        // family toggles all route through here, so writing the hash
+        // captures every Trends view change. Only non-default
+        // selections are emitted, keeping the default view on a bare
+        // "#network".
         writeHashState(TAB, {
             range: range !== DEFAULT_RANGE ? range : null,
             axis: states.decay.axis !== "age" ? states.decay.axis : null,
@@ -143,8 +134,8 @@ export function mount(payload) {
         mountTrendCharts(network, presentSources, bounds, states, renderTrends);
     };
 
-    // The data-quality stat summarises the whole series, so it is not
-    // range-dependent and renders once outside renderTrends.
+    // The data-quality stat summarises the whole series, so it is
+    // range-independent and renders once outside renderTrends.
     mountCrossCheckStat(network, presentSources, primary);
 
     const rangeSlot = document.querySelector("[data-network-range]");

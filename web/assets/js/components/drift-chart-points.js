@@ -1,19 +1,16 @@
 // Drift chart data layer. Pure functions, no DOM. Turns the
-// (maps, diffs) pair from metrics.json into the chronological
-// Point list the drift chart plots.
+// (maps, diffs) pair into the chronological Point list the chart
+// plots.
 //
-// A Point is the "what does the chart render at slot i" record:
-// either a present slot carrying the three category counts plus
-// their share-of-denominator ratios, or a gap that the renderer
-// draws as a break in the line. Points stay index-aligned with
-// the sorted map list so the chart's nearestIndex() hover handler
-// indexes both consistently.
+// A Point is either a present slot (three category counts plus
+// their share-of-denominator ratios) or a gap drawn as a line
+// break. Points stay index-aligned with the sorted map list so
+// nearestIndex() can index both.
 //
-// Every present point is rendered in one drift unit at a time
-// (IPv4 coverage or IPv6 coverage — see DRIFT_* in utils/diffs.js).
-// The unit selects which pipeline fields the ratios are read from;
-// the rest of the point shape stays constant, so the chart renderer
-// does not branch on unit.
+// One drift unit per render (IPv4 or IPv6 coverage — see DRIFT_*
+// in utils/diffs.js). The unit only selects which pipeline fields
+// the ratios read from; the point shape is constant, so the
+// renderer never branches on unit.
 
 import {
     DRIFT_IPV4_COVERAGE,
@@ -23,14 +20,11 @@ import {
 } from "../utils/diffs.js";
 import { unfilledProfile } from "../utils/map-variants.js";
 
-// Per-unit accessor table: tells the point builder which pipeline
-// fields carry the category counts and which one is the shared
-// denominator — the union of both maps' mapped space, the same
-// quantity driftViews() in utils/diffs.js divides by, so the
-// chart and the headline cards can never disagree on a ratio.
-// Centralised so adding a new unit (e.g. bitnodes-weighted
-// coverage later) only needs one entry here, not edits in every
-// consumer.
+// Per-unit field map: which pipeline fields carry the category
+// counts and the shared denominator (the union of both maps'
+// mapped space — the same quantity driftViews() divides by, so
+// chart and cards can't disagree on a ratio). Centralised so a
+// new unit needs one entry, not edits across consumers.
 const UNIT_FIELDS = {
     [DRIFT_IPV4_COVERAGE]: {
         denominator: "ipv4_address_space_union",
@@ -48,16 +42,13 @@ const UNIT_FIELDS = {
     },
 };
 
-// Build one Point per chronological build slot for a single unit.
+// Build one Point per build slot for a single unit.
 //
-//   - "cumulative" diffs each build against the oldest published
-//     build with an unfilled variant. Lines grow over time and
-//     answer "how far has this build drifted from the baseline?".
-//   - "step" diffs each build against the last preceding build
-//     that has an unfilled variant. Highlights the character of
-//     each individual asmap-data release.
-//   - unknown modes produce an all-gap result (defensive default
-//     so a malformed caller still renders cleanly).
+//   - "cumulative" diffs each build against the oldest unfilled
+//     build: lines grow over time (drift from baseline).
+//   - "step" diffs each build against the last preceding unfilled
+//     build: the character of each individual release.
+//   - unknown modes return all gaps (defensive default).
 export function computePoints(sortedMaps, diffs, mode, unit) {
     const fields = UNIT_FIELDS[unit];
     if (!fields) return sortedMaps.map((map, index) => gapPoint(map, index));
@@ -67,11 +58,9 @@ export function computePoints(sortedMaps, diffs, mode, unit) {
 }
 
 function cumulativePoints(sortedMaps, diffs, fields) {
-    // Anchor on the oldest build that actually published an unfilled
-    // variant. A filled-only build cannot contribute a diff and would
-    // shift the anchor forward in time for everything after it, which
-    // would silently relabel the baseline. Filtering keeps the anchor
-    // stable and honest.
+    // Anchor on the oldest build with an unfilled variant. A
+    // filled-only build can't contribute a diff and would shift the
+    // anchor forward, silently relabelling the baseline.
     const baseline = sortedMaps.find((m) => unfilledProfile(m) !== null);
     if (!baseline) return sortedMaps.map((m, i) => gapPoint(m, i));
 
@@ -87,13 +76,11 @@ function cumulativePoints(sortedMaps, diffs, fields) {
 }
 
 function stepPoints(sortedMaps, diffs, fields) {
-    // "Previous" means "previous build that can actually be diffed
-    // against", which excludes filled-only builds. If we picked the
-    // raw chronological neighbour, the build immediately after a
-    // filled-only one would always show as a gap because its
-    // neighbour has no unfilled variant. Skipping over filled-only
-    // neighbours produces the step the user expects, with the
-    // tooltip footer naming the actual reference build.
+    // "Previous" means previous *diffable* build, skipping
+    // filled-only neighbours. The raw chronological neighbour of a
+    // filled-only build has no unfilled variant and would always
+    // render as a gap; skipping gives the expected step, with the
+    // footer naming the actual reference build.
     return sortedMaps.map((map, index) => {
         if (!unfilledProfile(map)) return gapPoint(map, index);
         const previous = previousDiffable(sortedMaps, map.name);

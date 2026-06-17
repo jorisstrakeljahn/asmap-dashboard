@@ -10,16 +10,12 @@ import * as diffTab from "./diff-tab.js";
 import * as networkTab from "./network-tab.js";
 import { applyDomTranslations, loadStrings, t } from "./utils/i18n.js";
 
-// The data layer is split into three files along size and
-// reproducibility lines (see cli.py): metrics.json carries the maps
-// plus the per-pair diff *summary* (aggregate fields only, ~100 KB),
-// diffs.json the per-pair top-mover rosters (~99 % of the diff bytes,
-// the one heavyweight file), and network.json the optional
-// KIT/Bitnodes section (~30 KB). metrics.json + network.json are
-// fetched up front and drive the first paint — including every drift
-// chart, since those read only the summary. diffs.json is *not*
-// fetched until the Diff Explorer tab is first opened, because only
-// its Top Movers table reads the rosters; see the lazy mount below.
+// The data layer is split by size (see cli.py): metrics.json holds
+// the maps + per-pair diff summary (~100 KB), diffs.json the heavy
+// top-mover rosters (~99% of diff bytes), network.json the optional
+// KIT/Bitnodes section (~30 KB). metrics.json + network.json drive
+// the first paint; diffs.json loads lazily when the Diff Explorer
+// opens (see ensureDiffMounted).
 const METRICS_URL = "assets/data/metrics.json";
 const DIFFS_URL = "assets/data/diffs.json";
 const NETWORK_URL = "assets/data/network.json";
@@ -27,31 +23,25 @@ const ASN_NAMES_URL = "assets/data/asn-names.json";
 const I18N_URL = "assets/i18n/en.json";
 
 // Mirrors SCHEMA_VERSION in asmap_dashboard/metrics.py. GitHub Pages
-// caches assets for ~10 minutes, so right after a deploy a browser
-// can hold a stale app.js against a fresh payload (or the reverse).
-// When the fields shift between versions, the stale combination used
-// to compute silent nonsense (0.0% drift, "4,088 of 0 buckets");
-// checking the payload's version turns that failure mode into an
-// explicit "reload" banner.
+// caches assets ~10 min, so post-deploy a browser can pair a stale
+// app.js with a fresh payload (or vice versa). Checking the payload
+// version turns silent nonsense (0.0% drift) into a reload banner.
 const EXPECTED_SCHEMA_VERSION = 3;
 
-// Snapshot of the static tab-panel markup, captured before any
-// tab module swaps in rendered DOM. The retry button on the
-// error banner restores this so [data-overview], [data-diff],
-// ... slots exist when the tabs re-mount.
+// Snapshot of the static tab-panel markup, captured before any tab
+// module swaps in rendered DOM. The error banner's retry button
+// restores it so the [data-*] slots exist when tabs re-mount.
 let mainTemplate = null;
 
-// The payloads stay byte-stable across no-op refreshes (see
-// metrics.py), so Last-Modified is the most accurate "data
-// last refreshed" signal — and avoids stamping a timestamp into
-// the JSON, which would force a daily commit.
+// Payloads stay byte-stable across no-op refreshes (see metrics.py),
+// so Last-Modified is the best "data last refreshed" signal without
+// stamping a timestamp into the JSON (which would force a daily
+// commit).
 //
 // ``optional`` turns a 404 into ``null`` (network.json only exists
-// when KIT data was available at generation time). A schema-version
-// mismatch is retried once with cache "reload" — the usual cause is
-// a stale CDN/browser cache entry, and a forced revalidation heals
-// it without bothering the reader — before giving up with the
-// reload banner.
+// when KIT data was available at generation time). A schema mismatch
+// is retried once with cache "reload" to heal a stale CDN/browser
+// cache entry before giving up with the reload banner.
 async function loadPayload(url, { optional = false } = {}) {
     let result = await fetchPayload(url, { optional });
     if (result && result.data.schema_version !== EXPECTED_SCHEMA_VERSION) {
@@ -111,11 +101,10 @@ async function init() {
 
     let metrics;
     let network;
-    // Single parallel batch (no extra round-trips). The heavy
-    // diffs.json is deliberately *not* in here — it is fetched lazily
-    // when the Diff Explorer is first opened (see ensureDiffMounted).
-    // loadStrings swallows its own failures, so an i18n outage does
-    // not block the chart / table mounts.
+    // Single parallel batch. The heavy diffs.json is deliberately
+    // excluded (lazy-loaded; see ensureDiffMounted). loadStrings
+    // swallows its own failures, so an i18n outage does not block
+    // the chart / table mounts.
     try {
         [metrics, network] = await Promise.all([
             loadPayload(METRICS_URL),
@@ -131,33 +120,27 @@ async function init() {
 
     applyDomTranslations();
     // The theme switch mounted with English fallback labels at module
-    // load (so it applies the saved theme and appears without waiting
-    // on the data fetch); now that the dictionary is in, swap in the
-    // localised labels.
+    // load; now that the dictionary is in, swap in localised labels.
     localizeThemeSwitch(themeSwitch);
 
     const { data: payload, lastModified } = metrics;
     renderLastRefreshed(lastModified);
 
-    // Maps tab renders from metrics.json alone: the diff *summary* it
-    // needs for the drift views now ships in that file, so the charts
-    // paint with real data immediately — no empty-state flash, no wait
-    // on the heavy roster file.
+    // Maps tab renders from metrics.json alone: the diff summary its
+    // drift views need ships in that file, so the charts paint
+    // immediately without waiting on the heavy roster file.
     mapsTab.mount(payload);
 
-    // The optional node impact rides along so the Diff Explorer can
-    // show a per-pair "real node impact" banner; it is null when
-    // network.json is absent or predates the field, and the explorer
-    // degrades gracefully.
+    // Optional node impact for the Diff Explorer's per-pair banner;
+    // null when network.json is absent or predates the field, and
+    // the explorer degrades gracefully.
     const pairImpact = network?.data?.network?.pair_impact ?? null;
 
-    // The Top Movers rosters live in the heavy diffs.json. Fetch it
-    // lazily the first time the Diff Explorer tab is activated, then
-    // graft each pair's roster back onto the summary diff (keyed by
-    // "<from>|<to>") so the explorer sees the same shape it always
-    // did. The match banner and drift come from the summary, so only
-    // the table waits on this file. Guarded so an in-tab state change
-    // (or re-opening the tab) never re-fetches.
+    // Fetch the heavy diffs.json lazily on first Diff-tab activation,
+    // then graft each pair's roster onto the summary diff (keyed by
+    // "<from>|<to>") so the explorer sees its usual shape. Only the
+    // Top Movers table waits on this; the banner and drift come from
+    // the summary. Guarded so a re-open never re-fetches.
     let diffMountStarted = false;
     const ensureDiffMounted = () => {
         if (diffMountStarted) return;
@@ -179,9 +162,8 @@ async function init() {
     };
 
     // The Network tab is opt-in: it only renders when network.json
-    // exists (i.e. snapshot data was passed at generation time).
-    // When absent, its nav entry stays hidden so the public deploy
-    // never shows an empty tab.
+    // exists. When absent, its nav entry stays hidden so the public
+    // deploy never shows an empty tab.
     const hasNetwork = networkTab.mount(network?.data ?? null);
     revealNetworkNav(hasNetwork);
 
@@ -205,9 +187,9 @@ function renderDiffLoadError(error) {
     slot.replaceChildren(note);
 }
 
-// Show the Network nav link only when the tab actually mounted.
-// The link ships ``hidden`` in the static markup so a payload
-// without a network section never flashes an empty tab.
+// Show the Network nav link only when the tab actually mounted. The
+// link ships ``hidden`` so a payload without a network section never
+// flashes an empty tab.
 function revealNetworkNav(hasNetwork) {
     const link = document.querySelector("[data-network-nav]");
     if (link) link.hidden = !hasNetwork;
@@ -262,12 +244,11 @@ function renderLoadError(error) {
     banner.append(title, body, retry);
 }
 
-// Wired once: the header markup is static and survives the in-place
-// retry (which only rebuilds main.content), so calling these here —
-// not inside init() — avoids double-binding the burger listeners and
-// keeps the theme switch (which applies the saved theme on mount) live
-// even if the data fetch fails. localizeThemeSwitch runs later, once
-// the i18n dictionary has loaded.
+// Wired once outside init(): the header markup is static and survives
+// the in-place retry (which only rebuilds main.content), so this
+// avoids double-binding the burger listeners and keeps the theme
+// switch live even if the data fetch fails. localizeThemeSwitch runs
+// later, once the i18n dictionary has loaded.
 initNavMenu();
 const themeSwitch = initThemeSwitch();
 

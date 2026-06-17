@@ -1,8 +1,7 @@
 // "i" trigger + explanatory popover. ``body`` is an array of
-// paragraphs; a paragraph is either a string or { lead, text }
-// where ``lead`` renders bold so multi-bucket explainers read
-// as a glossary. Single-string ``text`` is accepted for the
-// simple case. Returns a <span> exposing setBody(next).
+// paragraphs, each a string or { lead, text } where ``lead`` renders
+// bold so multi-bucket explainers read as a glossary. A single
+// ``text`` string is also accepted. Returns a <span> with setBody(next).
 
 import { createOutsideDismiss } from "../utils/dismiss.js";
 import { SVG_NS, uniqueId } from "../utils/dom.js";
@@ -44,10 +43,10 @@ export function createInfoTooltip({ text, body, ariaLabel } = {}) {
     let hoverOpenTimer = 0;
     let warmUntil = 0;
 
-    // Close keeps the panel in the DOM until the collapse transition
-    // finishes, then hides it. Matches --motion-slow in tokens.css;
-    // under prefers-reduced-motion the CSS transition is ~instant and
-    // this timer just hides the (already invisible) panel a touch later.
+    // Keep the panel in the DOM until the collapse transition
+    // finishes, then hide it. Matches --motion-slow in tokens.css;
+    // under reduced-motion the transition is ~instant and this timer
+    // just hides the already-invisible panel.
     const CLOSE_MS = 160;
     let closeTimer = 0;
 
@@ -177,21 +176,17 @@ export function createInfoTooltip({ text, body, ariaLabel } = {}) {
             sticky = true;
             setOpen(true);
         } else if (!sticky) {
-            // Open via hover -> pin in place. Without this branch
-            // the click would toggle the popover closed, which is
-            // exactly the bug the sticky state exists to prevent.
+            // Open via hover -> pin in place. Without this the click
+            // would toggle it closed (the bug sticky prevents).
             sticky = true;
         } else {
             // Already pinned -> the click dismisses it.
             setOpen(false);
         }
     });
-    // Hover-intent open. A passing mouse triggers a 180 ms timer
-    // that resolves only if the mouse is still on the icon when
-    // it fires. Within the warm window (set by the previous
-    // close) the timer is skipped entirely, so a user who just
-    // closed the popover and immediately re-hovers sees it open
-    // instantly. Already sticky => already open, nothing to do.
+    // Hover-intent open: a passing mouse arms a 180 ms timer that
+    // resolves only if still on the icon. Within the warm window the
+    // timer is skipped so a re-hover after close opens instantly.
     trigger.addEventListener("mouseenter", () => {
         if (sticky || open) return;
         if (Date.now() < warmUntil) {
@@ -220,10 +215,8 @@ export function createInfoTooltip({ text, body, ariaLabel } = {}) {
         // While pinned the popover must survive the mouseleave;
         // only the next click, outside-click or ESC dismisses it.
         if (sticky) return;
-        // Defer so a click immediately after a hover-open does not
-        // race the close. If the user clicked, ``open`` was just set
-        // by the click handler and the deferred mouseleave is a
-        // no-op when sticky is true.
+        // Defer so a click right after a hover-open does not race the
+        // close: if the user clicked, sticky is set and this no-ops.
         setTimeout(() => {
             if (sticky) return;
             if (!root.matches(":hover") && document.activeElement !== trigger) {
@@ -238,11 +231,9 @@ export function createInfoTooltip({ text, body, ariaLabel } = {}) {
     return root;
 }
 
-// Coerce ``input`` into an array of paragraph descriptors and
-// paint them into the popover. Single strings become one
-// paragraph; arrays may mix plain strings and {lead, text}
-// objects so a tooltip can read as a short paragraph followed
-// by a labelled glossary.
+// Coerce ``input`` into an array of paragraph descriptors and paint
+// them into the popover. A single string becomes one paragraph;
+// arrays may mix strings and {lead, text} objects.
 function renderBody(popover, input) {
     popover.replaceChildren();
     if (!input) return;

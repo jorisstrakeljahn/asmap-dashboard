@@ -1,26 +1,22 @@
-// Mobile navigation menu. The burger button toggles the primary
-// nav into a full-screen overlay panel. Everything here is inert on
-// desktop: the button ships `display: none`, so the listeners simply
-// never fire until a narrow viewport reveals it.
+// Mobile navigation menu. The burger button toggles the primary nav
+// into a full-screen overlay; inert on desktop, where the button is
+// display:none so listeners never fire.
 //
-// The nav links themselves are still plain `<a href="#...">`
-// elements driving tabs.js via the hash router — this module only
-// owns the open/closed state of the panel (and, on a phone, where the
-// theme switch lives), not tab selection.
+// Nav links stay plain `<a href="#...">` driving tabs.js via the
+// hash router — this module owns only the panel's open/closed state
+// (and, on a phone, where the theme switch lives), not tab selection.
 
 export function initNavMenu() {
     const toggle = document.querySelector("[data-nav-toggle]");
     const nav = document.getElementById("site-nav");
     if (!toggle || !nav) return;
 
-    // The theme switch lives in the header on desktop but belongs at
-    // the bottom of the full-screen menu on a phone. Rather than mount
-    // two controls (which would fight over the same stored preference),
-    // we relocate the single existing node between the header cluster
-    // and a footer inside the nav as the viewport crosses the burger
+    // The theme switch sits in the header on desktop but at the bottom
+    // of the menu on a phone. Rather than mount two controls (which
+    // would fight over the stored preference), relocate the single node
+    // between header and a nav footer as the viewport crosses the
     // breakpoint. theme-switch.js finds the slot by selector wherever
-    // it currently sits, so the move is transparent to it; the pill
-    // re-snaps via its own ResizeObserver the moment the menu reveals.
+    // it sits, so the move is transparent.
     const themeSlot = document.querySelector("[data-theme-switch]");
     const actions = document.querySelector(".site-header__actions");
     const menuFooter = document.createElement("div");

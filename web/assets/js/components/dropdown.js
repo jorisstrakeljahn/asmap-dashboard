@@ -1,27 +1,20 @@
-// Custom combobox dropdown that replaces every native <select>
-// across the dashboard. Native popovers are browser- and OS-
-// controlled and break the visual language on mobile (iOS /
-// Android show their own picker sheet); the custom panel here
-// matches the card / shadow / border tokens consistently.
-//
-// Wires the WAI-ARIA 1.2 collapsible combobox pattern:
+// Custom combobox replacing every native <select> on the dashboard:
+// native popovers are OS-controlled and show their own picker sheet
+// on mobile, breaking the visual language. Wires the WAI-ARIA 1.2
+// collapsible combobox pattern:
 // https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
 //
 // createDropdown({ options, value, onChange, ariaLabel |
 // ariaLabelledBy, size, placeholder }) returns an element exposing
-// getValue(), setValue(v) and setDisabledValues(values).
-// setValue does NOT fire onChange (mirrors the native
-// <select>.value = x semantic). ``placeholder`` is the label
-// shown when ``value`` is null / unknown - useful for "tap to
-// pick"-style triggers that have no preselected option.
+// getValue(), setValue(v) and setDisabledValues(values). setValue
+// does NOT fire onChange (mirrors <select>.value = x). ``placeholder``
+// is shown when ``value`` is null / unknown.
 //
-// Options may carry ``disabled: true`` so the panel renders them
-// as a muted, non-interactive line - clicks, Enter and Space all
-// no-op on disabled options, and ArrowUp / ArrowDown skip over
-// them. setDisabledValues(values) accepts an iterable so callers
-// can re-derive the disabled set whenever a sibling selector
-// changes (the diff-explorer uses this so Map A can never pick
-// a map at-or-after Map B, and vice versa).
+// Options may carry ``disabled: true``: rendered muted, click / Enter
+// / Space no-op and arrows skip over them. setDisabledValues(values)
+// takes any iterable so callers can re-derive the disabled set when a
+// sibling selector changes (diff-explorer: Map A can never pick a map
+// at-or-after Map B, and vice versa).
 
 import { createOutsideDismiss } from "../utils/dismiss.js";
 import { SVG_NS, uniqueId } from "../utils/dom.js";
@@ -70,13 +63,11 @@ export function createDropdown({
     renderValueLabel();
 
     // Outside press / scroll closes the panel; resize re-places it.
-    // Outside-scroll dismisses rather than re-positioning: a panel that
+    // Scroll dismisses rather than re-positioning: a panel that
     // follows the trigger through a page scroll looks glued to the
-    // cursor while the content drifts past, the opposite of the native
-    // macOS / Linear / Vercel behaviour reviewers expect. Inside-scroll
-    // of the panel's own overflow-auto listbox bubbles up with
-    // target === panel, so the root.contains() guard in the controller
-    // protects it.
+    // cursor while content drifts past. Inside-scroll of the panel's
+    // own listbox bubbles up with target === panel, so the
+    // root.contains() guard protects it.
     const dismiss = createOutsideDismiss({
         root,
         onDismiss: () => setOpen(false),
@@ -198,10 +189,8 @@ export function createDropdown({
     for (const el of optionEls) {
         const idx = Number(el.dataset.idx);
         // Click (not mousedown) so the outside-mousedown listener
-        // does not run first and pre-close the panel. ``commit``
-        // already short-circuits on disabled options, so a click
-        // on a muted row reads as "nothing happened" rather than
-        // as a failed selection.
+        // doesn't pre-close the panel first. ``commit`` short-circuits
+        // on disabled options, so a click on a muted row no-ops.
         el.addEventListener("click", () => commit(idx));
         el.addEventListener("mouseenter", () => {
             // Skip the highlight transition on disabled rows so
@@ -218,9 +207,8 @@ export function createDropdown({
                     setOpen(true);
                 } else {
                     // nextEnabledIdx returns -1 when every option
-                    // below is disabled; in that case keep the
-                    // current highlight so the cursor never lands
-                    // on an unselectable row.
+                    // below is disabled; keep the current highlight
+                    // so the cursor never lands on an unselectable row.
                     const nextIdx = nextEnabledIdx(state.highlightedIdx, 1);
                     if (nextIdx >= 0) setHighlight(nextIdx);
                 }
@@ -257,9 +245,8 @@ export function createDropdown({
                 else commit(state.highlightedIdx);
                 break;
             case "Tab":
-                // Close without committing so Tab feels like
-                // "leave this control" rather than "pick the
-                // currently highlighted option I never looked at".
+                // Close without committing so Tab leaves the control
+                // rather than picking the highlighted option.
                 if (state.open) setOpen(false);
                 break;
             case "Escape":
@@ -283,11 +270,8 @@ export function createDropdown({
         }
         renderValueLabel();
     };
-    // Atomic disabled-set update so callers can recompute the
-    // whole set in one pass per change (e.g. the diff-explorer
-    // recomputes "every map at or after the other side's value"
-    // when either selector fires). Accepts any iterable so a
-    // Set, Array or generator all work.
+    // Atomic disabled-set update: callers recompute the whole set in
+    // one pass per change. Accepts any iterable.
     root.setDisabledValues = (values) => {
         const disabled = new Set(values);
         for (let i = 0; i < optionEls.length; i++) {

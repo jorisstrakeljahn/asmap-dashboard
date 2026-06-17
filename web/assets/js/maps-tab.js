@@ -25,18 +25,17 @@ import {
 } from "./utils/history-range.js";
 import { t, tPlural } from "./utils/i18n.js";
 
-// Drift unit picker order. IPv4 first because it is the headline
-// view (Bitcoin Core peer diversity weighs IPv4 reachability most
-// directly), IPv6 second. A raw entries view is deliberately not
-// offered: it weights a /8 the same as a /48 — the exact failure
-// mode the coverage views avoid.
+// Drift unit picker order. IPv4 first as the headline view (Bitcoin
+// Core peer diversity weighs IPv4 reachability most directly). A raw
+// entries view is deliberately omitted: it weights a /8 like a /48 —
+// the exact failure mode the coverage views avoid.
 const DRIFT_UNIT_VALUES = [
     DRIFT_IPV4_COVERAGE,
     DRIFT_IPV6_COVERAGE,
 ];
 
 // Maps is the default tab, so it stamps its view state onto an empty
-// hash (see utils/hash-state.js). The drift-unit constants are internal
+// hash (see utils/hash-state.js). Drift-unit constants are internal
 // ("ipv4_coverage"); the URL uses short, readable tokens.
 const TAB = "maps";
 const UNIT_TO_TOKEN = {
@@ -61,35 +60,33 @@ function renderBuildStaleness(map) {
 
 // All views render synchronously from metrics.json: the drift charts
 // and the overview "vs previous" card read only the per-pair diff
-// *summary* (aggregate coverage fields), which now ships in
-// metrics.json alongside the maps. The heavy top-mover rosters live
-// in diffs.json and are only needed by the Diff Explorer, so the Maps
-// tab never waits on that file (see app.js).
+// summary, which ships in metrics.json. The heavy top-mover rosters
+// (diffs.json) are only needed by the Diff Explorer, so the Maps tab
+// never waits on that file (see app.js).
 export function mount(payload) {
     const { maps } = payload;
     const diffs = payload.diffs || [];
 
     // A deep link can pin the Overview build, drift unit, and history
-    // range so a finding shared in a PR review opens on the same view.
+    // range so a shared finding opens on the same view.
     const hash = readHashState(TAB);
     const requestedBuild = hash.get("build");
     const requestedUnit = TOKEN_TO_UNIT[hash.get("unit")];
     const requestedRange = hash.get("range");
 
-    // One unit selection drives both drift charts so the cumulative and
-    // step views can never disagree on which "currency" the reader is
-    // looking at. Range windows every History chart's x-axis. Both seed
-    // from the hash when a deep link supplies a valid value.
+    // One unit selection drives both drift charts so cumulative and
+    // step views never disagree on the "currency". Range windows every
+    // History chart's x-axis. Both seed from the hash when a deep link
+    // supplies a valid value.
     let driftUnit = requestedUnit ?? DRIFT_IPV4_COVERAGE;
     let historyRange = HISTORY_RANGE_VALUES.includes(requestedRange)
         ? requestedRange
         : DEFAULT_HISTORY_RANGE;
 
-    // Write the current view back to the hash. Only non-default selections
-    // are emitted, so the default Maps view stays on a bare URL with nothing
-    // to share. The guard in writeHashState makes this a no-op unless Maps
-    // owns the hash (or it is the empty default), so an inactive tab's
-    // re-render never hijacks the URL.
+    // Write the current view back to the hash. Only non-default
+    // selections are emitted, so the default Maps view stays on a bare
+    // URL. The guard in writeHashState makes this a no-op unless Maps
+    // owns the hash, so an inactive tab's re-render never hijacks it.
     const syncUrl = () => {
         const current = maps.find((m) => m.name === selectedName);
         writeHashState(
@@ -135,11 +132,10 @@ export function mount(payload) {
     );
     renderOverview(selectedName);
 
-    // History charts read a windowed slice of the maps array so
-    // the range picker can swap the slice without each chart
-    // needing its own filter. The overview cards and build
-    // selector keep the full array because they describe
-    // individual builds rather than a time range.
+    // History charts read a windowed slice of the maps array so the
+    // range picker can swap it without each chart filtering itself.
+    // The overview cards and build selector keep the full array since
+    // they describe individual builds, not a time range.
     const driftCumulativeSlot = document.querySelector(
         "[data-drift-cumulative-chart]",
     );
@@ -148,8 +144,8 @@ export function mount(payload) {
     const entriesSlot = document.querySelector("[data-entries-chart]");
     const deltaSlot = document.querySelector("[data-map-delta-chart]");
 
-    // Tab-level so a range-picker re-mount preserves toggled
-    // series. Drift cumulative and step keep separate sets.
+    // Tab-level so a range-picker re-mount preserves toggled series.
+    // Drift cumulative and step keep separate sets.
     const driftCumulativeState = { hidden: new Set() };
     const driftStepState = { hidden: new Set() };
     const entriesState = { hidden: new Set() };

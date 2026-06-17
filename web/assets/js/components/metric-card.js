@@ -1,8 +1,7 @@
 // Shared metric-card primitives for the overview heroes on the Maps
-// tab (overview-cards.js) and the Network tab (network/overview.js):
-// an <article class="card"> with a corner info tooltip, an uppercase
-// label, a big metric number, a unit line, and delta lines. Keeps the
-// two heroes visually identical without each redefining the chrome.
+// tab (overview-cards.js) and Network tab (network/overview.js): a
+// card with a corner info tooltip, uppercase label, metric number,
+// unit line, and delta lines. Keeps the two heroes identical.
 
 import { glueUnits } from "../format.js";
 import { createInfoTooltip } from "./info-tooltip.js";
