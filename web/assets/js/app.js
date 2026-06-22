@@ -189,10 +189,19 @@ function renderDiffLoadError(error) {
 
 // Show the Network nav link only when the tab actually mounted. The
 // link ships ``hidden`` so a payload without a network section never
-// flashes an empty tab.
+// flashes an empty tab. The availability is remembered so the inline
+// pre-paint script in index.html can reveal the link on the next reload
+// without waiting for this fetch — killing the header reflow for anyone
+// who has seen the tab before.
 function revealNetworkNav(hasNetwork) {
     const link = document.querySelector("[data-network-nav]");
     if (link) link.hidden = !hasNetwork;
+    try {
+        localStorage.setItem("asmap.network", hasNetwork ? "1" : "0");
+    } catch {
+        /* storage unavailable: the link still toggled above, we just
+           cannot pre-empt the reflow on the next load. */
+    }
 }
 
 // In-place retry (not location.reload()) so a transient blip

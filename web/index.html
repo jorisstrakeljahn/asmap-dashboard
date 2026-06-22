@@ -64,8 +64,8 @@
         <header class="site-header">
             <a class="site-header__logo" href="./" data-i18n="header.title">ASmap Dashboard</a>
             <nav class="site-header__nav" id="site-nav" data-i18n-attr="aria-label:header.nav.primary" aria-label="Primary">
-                <a class="site-header__nav-link" href="#network" data-tab-link="network" data-network-nav hidden data-i18n="header.nav.network">Network</a>
                 <a class="site-header__nav-link is-active" href="#maps" data-tab-link="maps" aria-current="page" data-i18n="header.nav.maps">Maps</a>
+                <a class="site-header__nav-link" href="#network" data-tab-link="network" data-network-nav hidden data-i18n="header.nav.network">Network</a>
                 <a class="site-header__nav-link" href="#diff" data-tab-link="diff" data-i18n="header.nav.diff">Diff Explorer</a>
             </nav>
             <div class="site-header__actions">
@@ -87,6 +87,28 @@
                 </button>
             </div>
         </header>
+        <!-- Reveal the Network tab before first paint when the last visit
+             had network data, so the header does not reflow when app.js
+             confirms it a moment later. The tab is opt-in (hidden until
+             network.json is known present), so this only un-hides for
+             returning visitors who already saw it; a deploy that never
+             ships network.json never stored the flag and stays stable.
+             Mirrors the theme pre-paint script; app.js writes the flag in
+             revealNetworkNav. Inline + parser-blocking so it runs before
+             the nav is painted. -->
+        <script>
+            (function () {
+                try {
+                    if (localStorage.getItem("asmap.network") === "1") {
+                        var link = document.querySelector("[data-network-nav]");
+                        if (link) link.hidden = false;
+                    }
+                } catch (e) {
+                    /* storage unavailable: leave the tab hidden until
+                       app.js reveals it the usual way. */
+                }
+            })();
+        </script>
 
         <main class="content">
             <div class="tab-panel" data-tab-panel="maps">

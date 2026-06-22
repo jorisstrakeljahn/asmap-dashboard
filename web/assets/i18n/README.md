@@ -58,9 +58,19 @@ Rules of the road:
 - **You can introduce new ones** as long as you also add them in the code path that calls the key (let the dev know in the PR; they will add the missing variable).
 - **Unknown placeholders survive as-is.** A typo like `{contterpart}` renders verbatim so it is immediately visible.
 
-## Multi-paragraph tooltips: the `info` arrays
+## Chart explainers: the `lede`
 
-The big info popovers (the "i" icons next to the Overview cards, the chart titles, the Top Movers card, the Diff Explorer card) read from an **array** instead of a single string. Each entry is one paragraph:
+The big History and Network charts explain themselves with a single always-visible **`lede`** under the title, a short, plain-language summary that should make the chart understandable on its own, even for someone new to ASmap. The ledes are written to build on each other top-to-bottom within a tab, so earlier charts introduce a term and later ones reuse it without repeating the definition.
+
+Each tab also opens with a **`sectionLede`** under its section title. That one sets the context for the whole tab (what ASmap is, what this tab measures); the per-chart ledes then explain the individual charts.
+
+The exhaustive methodology and edge cases are intentionally **not** rendered under each chart; that depth belongs on asmap.org. The chart-level `info` arrays are kept in this file as the source for that future migration, but nothing renders them right now.
+
+The compact Overview / Network metric cards still use the "i" popover (`info` + `infoAria`), since there is no room for a lede under each.
+
+## Multi-paragraph bodies: the `info` arrays
+
+The deep explainers (the "i" popovers on the Overview cards, the Top Movers card, the Diff Explorer card; plus the reserved chart `info` blocks above) read from an **array** instead of a single string. Each entry is one paragraph:
 
 ```json
 "overview": {

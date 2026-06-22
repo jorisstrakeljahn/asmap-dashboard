@@ -115,8 +115,7 @@ function presetFor(mode, unit) {
         unitLabel: t(`${unitNs}.label`),
         unitCountSuffix: familyUnitLabel(family),
         family,
-        info: t(`${ns}.info`),
-        infoAria: t(`${ns}.infoAria`),
+        lede: t(`${ns}.lede`),
         ariaLabel: t(`${ns}.ariaLabel`),
     };
 }
@@ -175,8 +174,7 @@ export function mount(parent, maps, diffs, options = {}) {
         // coverage view can't be mistaken for an entry view; flipping
         // it (IPv4 <-> IPv6) rebuilds the header.
         subtitle: preset.unitLabel,
-        info: preset.info,
-        infoAria: preset.infoAria,
+        lede: preset.lede,
         cardClass: "drift-chart",
         legend,
         drawPlot: ({ width, height, layout }) =>

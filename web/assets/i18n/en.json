@@ -63,7 +63,7 @@
 
     "overview": {
         "sectionTitle": "Overview",
-        "sectionLede": "Key metrics for the selected ASmap build",
+        "sectionLede": "ASmap is the file Bitcoin Core uses to group peers by their network operator, so no single operator can surround a node and isolate it. These cards summarise the build you pick, from how much of the internet it maps to how far it moved since the last release.",
         "noPublishedMaps": "No published maps found in metrics.json.",
         "noVariantData": "Build {name} has no published variant data.",
         "buildSelector": {
@@ -123,7 +123,7 @@
 
     "history": {
         "sectionTitle": "History",
-        "sectionLede": "Per release drift and entry count trends across every published build",
+        "sectionLede": "How every published build changed over time, from how much address space moved to a different operator to how fast the map's coverage grew. Use the range and family pickers above to focus on a window or on one address family.",
         "range": {
             "1y": "1Y",
             "3y": "3Y",
@@ -145,6 +145,7 @@
         },
         "driftCumulative": {
             "title": "Cumulative Drift Since Baseline",
+            "lede": "An ASmap build maps each block of IP addresses to the network operator (its autonomous system, or AS) that announces it. Bitcoin Core uses this so a node never leans on a single operator. This chart adds up how far each build has moved from the oldest one, meaning the share of mapped address space that now points to a different AS. A flat stretch means the data held steady, while a steep climb means a lot changed.",
             "infoAria": "About cumulative drift",
             "ariaLabel": "Cumulative drift composition since the oldest published build. Reassigned, newly mapped, unmapped, and total drift series.",
             "info": [
@@ -171,6 +172,7 @@
         },
         "driftStep": {
             "title": "Drift Between Builds",
+            "lede": "The same change measured from one build to the next instead of adding up, with one bar for how much moved between each release and the one before it. Tall bars are big updates and short bars are quiet ones. A tall bar right after a long pause is mostly the months in between, not a single event.",
             "infoAria": "About per build drift",
             "ariaLabel": "Step drift composition between each build and its last diffable predecessor. Reassigned, newly mapped, unmapped, and total drift series.",
             "info": [
@@ -208,6 +210,7 @@
         },
         "entriesChart": {
             "title": "Source Data Entries Over Time",
+            "lede": "A build is really a list of entries, each tying one block of IP addresses to its operator. This tracks how that list grows over time, covering both the raw source data and the smaller compressed version Bitcoin Core actually ships. A rising line means the map covers more of the internet.",
             "infoAria": "About the entries over time chart",
             "ariaLabel": "ASmap entries count over time, embedded vs source data variant. Hover the chart for exact values per build.",
             "noPublishedVariants": "No published variants for the loaded builds.",
@@ -229,6 +232,7 @@
         },
         "mapDeltaChart": {
             "title": "Source Data Entries Delta Between Builds",
+            "lede": "The change in that entry count from one build to the next, meaning how many address blocks each build added or dropped compared with the one before. Bars above the line added coverage. Bars below it lost coverage, usually when an operator's routing data was withdrawn.",
             "infoAria": "About the entries delta chart",
             "ariaLabel": "Source data entry count delta between each ASmap build and its last diffable predecessor. Hover each bar for details.",
             "empty": "Need at least two builds with an unfilled variant to plot deltas.",
@@ -245,6 +249,7 @@
         },
         "diversityChart": {
             "title": "Peer Bucket Diversity",
+            "lede": "How many different operators (ASes) a build can tell apart. Bitcoin Core sorts peers into one bucket per AS and avoids filling its connections from a single bucket, so more buckets make a node harder to isolate. The drift charts above measured how much the map moved, while this counts how many operators it can see.",
             "infoAria": "About peer bucket diversity",
             "ariaLabel": "Distinct autonomous systems mapped per ASmap build. Each AS is one peer diversity bucket in Bitcoin Core.",
             "empty": "Need at least two builds to plot diversity.",
@@ -277,7 +282,7 @@
         },
         "overview": {
             "sectionTitle": "Network",
-            "sectionLede": "How the ASmap history behaves against observed Bitcoin nodes",
+            "sectionLede": "This tab tests each ASmap build against the real Bitcoin nodes that crawlers observe on the network, so you can see how well a build actually groups the peers a node meets in practice.",
             "empty": "No observed node snapshots in network.json.",
             "sourceMeta": "Snapshot metrics from the {source} crawl, {date}.",
             "sourceCompare": "{sources} is shown alongside as a frozen archive (its crawler no longer runs).",
@@ -352,10 +357,11 @@
         },
         "charts": {
             "sectionTitle": "Trends",
-            "sectionLede": "Each chart shows the available crawlers together. Click a legend entry to isolate one."
+            "sectionLede": "These trends follow how the map performs against the observed network over time, with each independent crawler drawn as its own line so they confirm one another. Click a legend entry to isolate one."
         },
         "decay": {
             "title": "Map decay for today's nodes",
+            "lede": "This shows how outdated an older build would be for today's nodes, meaning the share it would place with a different operator than the newest build does. The older a build gets, the more it drifts, which shows how often shipping a fresh map is worth it.",
             "infoAria": "About the decay curve",
             "ariaLabel": "Share of today's observed nodes that each older build resolves to a different autonomous system than the newest build. One line per crawler.",
             "tooltipTitle": "{date} build, {days} days old",
@@ -377,6 +383,7 @@
         },
         "hhi": {
             "title": "AS concentration (HHI) over time",
+            "lede": "The same concentration boiled down to a single score, the chance that two random nodes belong to the same operator. Lower is better, since it means nodes are spread across many operators rather than bunched into a few.",
             "infoAria": "About AS concentration over time",
             "ariaLabel": "Herfindahl-Hirschman index of the observed node set across every snapshot, scored against the build in effect at each one. One line per crawler. Lower means more diverse.",
             "info": [
@@ -388,6 +395,7 @@
         },
         "coverage": {
             "title": "ASmap coverage of observed nodes",
+            "lede": "How much of the real network the map can place at all, meaning the share of observed nodes whose address it can match to an operator. A falling line means ASmap's data is lagging behind where new nodes are appearing.",
             "infoAria": "About ASmap coverage over time",
             "ariaLabel": "Share of each snapshot's clearnet nodes the build in effect resolves to an autonomous system. One line per crawler. Higher means the map fits the network better.",
             "info": [
@@ -400,6 +408,7 @@
         "concentration": {
             "combinedLabel": "Top {count} combined",
             "operatorsTitle": "Top 5 operators per snapshot (KIT data)",
+            "operatorsLede": "Where those observed nodes actually sit, shown as the combined share of the network held by the five largest operators at each point in time. A shrinking stack means nodes are spreading across more operators, which is healthier, since no single operator comes close to surrounding a node.",
             "operatorsInfoAria": "About the top operator breakdown",
             "operatorsAria": "Stacked bars, one per KIT snapshot, segmented into that snapshot's five largest operators by node share. The bar height is the combined top-5 share. Hover a bar for the operator names.",
             "operatorsInfo": [
@@ -424,7 +433,7 @@
 
     "diff": {
         "sectionTitle": "Diff Explorer",
-        "sectionLede": "Compare any two ASmap builds",
+        "sectionLede": "Pick any two builds to see exactly what changed between them, from the address blocks that switched operator to how many real observed nodes each edit moves.",
         "noDiffsYet": "diffs.json contains no diffs yet.",
         "needTwoUnfilled": "Need at least two builds with an unfilled variant to compare.",
         "selectors": {

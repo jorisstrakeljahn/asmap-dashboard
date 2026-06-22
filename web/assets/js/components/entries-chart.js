@@ -17,7 +17,6 @@ import { mutedNote } from "../utils/dom.js";
 import { t } from "../utils/i18n.js";
 import { filledProfile, unfilledProfile } from "../utils/map-variants.js";
 import { createChartLegend } from "./chart-legend.js";
-import { createInfoTooltip } from "./info-tooltip.js";
 
 const SERIES = [
     {
@@ -54,10 +53,7 @@ export function mount(parent, maps, options = {}) {
     let ctrl;
     ctrl = mountResponsiveChart(parent, {
         title: t("history.entriesChart.title"),
-        info: createInfoTooltip({
-            body: t("history.entriesChart.info"),
-            ariaLabel: t("history.entriesChart.infoAria"),
-        }),
+        lede: t("history.entriesChart.lede"),
         legend: () =>
             createChartLegend({
                 entries: seriesForRender(),

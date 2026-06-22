@@ -100,8 +100,7 @@ function mountDecayChart(network, sources, bounds, state, rerender) {
 
     mountSeriesChart(document.querySelector("[data-network-decay]"), {
         title: t("network.decay.title"),
-        info: t("network.decay.info"),
-        infoAria: t("network.decay.infoAria"),
+        lede: t("network.decay.lede"),
         ariaLabel: t("network.decay.ariaLabel"),
         headerExtra: axisToggle,
         timestamps: timeline.timestamps,
@@ -229,8 +228,7 @@ function mountHhiChart(network, sources, bounds, state, rerender) {
 
     mountSeriesChart(slot, {
         title: t("network.hhi.title"),
-        info: t("network.hhi.info"),
-        infoAria: t("network.hhi.infoAria"),
+        lede: t("network.hhi.lede"),
         ariaLabel: t("network.hhi.ariaLabel"),
         headerExtra: familyToggle,
         timestamps: timeline.timestamps,
@@ -267,8 +265,7 @@ function mountCoverageChart(network, sources, bounds, state) {
 
     mountSeriesChart(slot, {
         title: t("network.coverage.title"),
-        info: t("network.coverage.info"),
-        infoAria: t("network.coverage.infoAria"),
+        lede: t("network.coverage.lede"),
         ariaLabel: t("network.coverage.ariaLabel"),
         timestamps: timeline.timestamps,
         series: legendSeries(sources),

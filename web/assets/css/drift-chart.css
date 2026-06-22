@@ -1,8 +1,7 @@
 /* Drift card: cumulative and step each render one of these. The
-   header carries the title plus an info affordance, the legend
-   sits above the plot, and the plot itself reuses the shared
-   chart shell from charts.css. Everything below is the chrome on
-   top of it. */
+   header carries the title and lede, the legend sits above the plot,
+   and the plot itself reuses the shared chart shell from charts.css.
+   Everything below is the chrome on top of it. */
 
 .drift-chart {
     display: flex;
@@ -10,18 +9,13 @@
     gap: var(--space-3);
 }
 
-/* The drift card centres its header (label + unit baseline + info) and
-   lets it wrap, where the default chart-card header pins to the top.
-   Scoped to .drift-chart so the shared mountTimeSeriesCard header keeps
-   its flex-start default everywhere else. */
+/* The drift card centres its header (title + unit baseline) and lets it
+   wrap, where the default chart-card header pins to the top. Scoped to
+   .drift-chart so the shared mountTimeSeriesCard header keeps its
+   flex-start default everywhere else. */
 .drift-chart .chart-card__header {
     align-items: center;
     flex-wrap: wrap;
-}
-
-.drift-chart .chart-card__info {
-    display: inline-flex;
-    align-items: center;
 }
 
 /* mountTimeSeriesCard already spaces the plot from the header; the
@@ -31,10 +25,8 @@
     margin-top: 0;
 }
 
-/* Keep the header a single row even when the title wraps: stacking
-   into a column dropped the lone info icon onto its own line, reading
-   as orphaned. flex-start pins it top-right, level with the first
-   title line. */
+/* Pin the header to the top on narrow screens so the title and lede
+   stay aligned with the left edge as they wrap. */
 @media (max-width: 600px) {
     .drift-chart .chart-card__header {
         align-items: flex-start;
