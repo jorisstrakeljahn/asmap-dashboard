@@ -11,10 +11,11 @@ import { createModeSwitch } from "../mode-switch.js";
 import { PAGE_SIZES } from "./state.js";
 import { DIRECTION_FILTER_VALUES } from "./filter.js";
 
-export function cardInfoTooltip() {
+export function cardInfoTooltip(sheetHeader) {
     const explainer = createInfoTooltip({
         body: t("topMovers.info"),
         ariaLabel: t("topMovers.infoAria"),
+        sheetHeader,
     });
     explainer.classList.add("top-movers__info");
     return explainer;

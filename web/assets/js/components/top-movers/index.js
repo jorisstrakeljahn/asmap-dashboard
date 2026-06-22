@@ -57,7 +57,10 @@ export function mount(parent, diff, { family } = {}) {
     // of trailing the view-mode switch: on a phone the header wraps
     // and a trailing icon drifted onto a second row, detached from
     // the title.
-    const info = cardInfoTooltip();
+    // The card has no single metric to clone, so the mobile sheet leads
+    // with just the "Top Movers" title — enough to anchor what the
+    // explanation below is about.
+    const info = cardInfoTooltip(() => [card.title.cloneNode(true)]);
     info.classList.add("info-tooltip--card-corner");
     card.root.append(info);
     card.footer.append(
@@ -192,6 +195,7 @@ function buildCardScaffold() {
 
     return {
         root,
+        title,
         headerControls,
         toolbarFields,
         clearSlot,

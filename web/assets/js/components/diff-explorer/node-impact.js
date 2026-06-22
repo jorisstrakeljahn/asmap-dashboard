@@ -20,7 +20,7 @@ import {
     glueUnits,
 } from "../../format.js";
 import { t } from "../../utils/i18n.js";
-import { createInfoTooltip } from "../info-tooltip.js";
+import { cloneSheetContext, createInfoTooltip } from "../info-tooltip.js";
 
 // Returns the banner element, a muted "not available" note, or null
 // (when the payload carries no node impact at all — stay invisible).
@@ -38,6 +38,10 @@ export function nodeImpactBanner(pairImpact, fromName, toName, family) {
     const tip = createInfoTooltip({
         body: t("diff.nodeImpact.info"),
         ariaLabel: t("diff.nodeImpact.infoAria"),
+        // On a phone the explanation opens as a bottom-sheet; lead it with
+        // this banner's own figures (the affected share, the counts and the
+        // node-set source) so the reader keeps the context.
+        sheetHeader: () => cloneSheetContext(wrap),
     });
     // Pulled out of the grid flow (absolute, top-right) so it does not
     // claim a column the headline / caption rows are laid out against.

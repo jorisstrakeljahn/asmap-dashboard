@@ -4,7 +4,7 @@
 // unit line, and delta lines. Keeps the two heroes identical.
 
 import { glueUnits } from "../format.js";
-import { createInfoTooltip } from "./info-tooltip.js";
+import { cloneSheetContext, createInfoTooltip } from "./info-tooltip.js";
 
 // ``badge`` is an optional element appended after the label. The Maps
 // tab uses it for the "filled fallback" marker; the Network tab passes
@@ -13,7 +13,15 @@ export function createCard(label, { info, infoAria, badge } = {}) {
     const card = document.createElement("article");
     card.className = "card";
     if (info) {
-        const tip = createInfoTooltip({ body: info, ariaLabel: infoAria });
+        const tip = createInfoTooltip({
+            body: info,
+            ariaLabel: infoAria,
+            // On a phone the explanation opens as a bottom-sheet; lead it
+            // with a clone of this card's own content (title, number,
+            // description) so the reader keeps the context the desktop
+            // popover gets from sitting right next to the card.
+            sheetHeader: () => cloneSheetContext(card),
+        });
         tip.classList.add("info-tooltip--card-corner");
         card.append(tip);
     }

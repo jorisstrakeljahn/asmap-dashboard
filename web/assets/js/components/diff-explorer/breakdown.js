@@ -11,7 +11,7 @@ import {
     glueUnits,
 } from "../../format.js";
 import { t } from "../../utils/i18n.js";
-import { createInfoTooltip } from "../info-tooltip.js";
+import { cloneSheetContext, createInfoTooltip } from "../info-tooltip.js";
 
 export const DIFF_CATEGORIES = [
     {
@@ -219,6 +219,10 @@ export function rosterDeltaRow(diff) {
     const tip = createInfoTooltip({
         body: t("diff.rosterDeltaInfo"),
         ariaLabel: t("diff.rosterDeltaInfoAria"),
+        // On a phone the explanation opens as a bottom-sheet; lead it with
+        // this section's own roster line (the AS totals and the
+        // appeared / disappeared counts) so the reader keeps the context.
+        sheetHeader: () => cloneSheetContext(section),
     });
     tip.classList.add("as-roster-delta__info");
 
