@@ -42,8 +42,7 @@ export function mountOperatorsChart(parent, { snapshots, bounds }) {
 
     mountTimeSeriesCard(parent, {
         title: t("network.concentration.operatorsTitle"),
-        info: t("network.concentration.operatorsInfo"),
-        infoAria: t("network.concentration.operatorsInfoAria"),
+        lede: t("network.concentration.operatorsLede"),
         drawPlot: ({ width, height, layout }) =>
             drawPlot(rows, palette, bounds, width, height, layout),
     });

@@ -6,6 +6,7 @@
 import { createOutsideDismiss } from "../utils/dismiss.js";
 import { SVG_NS, uniqueId } from "../utils/dom.js";
 import { t } from "../utils/i18n.js";
+import { renderParagraphs } from "./paragraphs.js";
 
 const PANEL_GAP = 6;
 const VIEWPORT_MARGIN = 8;
@@ -21,7 +22,7 @@ export function createInfoTooltip({ text, body, ariaLabel } = {}) {
         popoverId,
     });
     const popover = buildPopover(popoverId);
-    renderBody(popover, body ?? text);
+    renderParagraphs(popover, body ?? text);
     root.append(trigger, popover);
 
     // Two-stage open / close model:
@@ -226,35 +227,9 @@ export function createInfoTooltip({ text, body, ariaLabel } = {}) {
     });
 
     root.setBody = (next) => {
-        renderBody(popover, next);
+        renderParagraphs(popover, next);
     };
     return root;
-}
-
-// Coerce ``input`` into an array of paragraph descriptors and paint
-// them into the popover. A single string becomes one paragraph;
-// arrays may mix strings and {lead, text} objects.
-function renderBody(popover, input) {
-    popover.replaceChildren();
-    if (!input) return;
-    const paragraphs = Array.isArray(input) ? input : [input];
-    for (const paragraph of paragraphs) {
-        const p = document.createElement("p");
-        p.className = "info-tooltip__paragraph";
-        if (typeof paragraph === "string") {
-            p.textContent = paragraph;
-        } else if (paragraph && typeof paragraph === "object") {
-            const { lead, text } = paragraph;
-            if (lead) {
-                const strong = document.createElement("strong");
-                strong.className = "info-tooltip__lead";
-                strong.textContent = lead;
-                p.append(strong, " ");
-            }
-            if (text) p.append(text);
-        }
-        popover.append(p);
-    }
 }
 
 function buildTrigger({ ariaLabel, popoverId }) {

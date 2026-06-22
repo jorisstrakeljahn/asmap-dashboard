@@ -3,7 +3,7 @@
 // Decay, AS concentration, NetGroup diversity, bucketing, and the
 // ASN cross-check all plot one line per series over a shared timeline,
 // differing only in value accessor, y formatter, and tooltip copy.
-// This module hosts the card chrome (header + info tooltip + legend)
+// This module hosts the card chrome (header + lede + legend)
 // and delegates the plot to the shared buildLineChart scaffold; each
 // chart shrinks to a config object.
 //
@@ -26,8 +26,7 @@ export function mountSeriesChart(parent, config) {
     if (!parent) return;
     const {
         title,
-        info,
-        infoAria,
+        lede,
         ariaLabel,
         timestamps,
         series,
@@ -80,8 +79,7 @@ export function mountSeriesChart(parent, config) {
 
     ctrl = mountTimeSeriesCard(parent, {
         title,
-        info,
-        infoAria,
+        lede,
         headerExtra,
         legend,
         drawPlot: ({ width, height, layout }) =>

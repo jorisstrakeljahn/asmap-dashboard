@@ -1,6 +1,6 @@
 // Shared chrome for header-bearing chart cards: the card shell, an
-// optional header (label + caller control + info tooltip on one row),
-// an optional legend, and a plot slot that delegates the responsive
+// optional header (title + lede + an optional caller control), an
+// optional legend, and a plot slot that delegates the responsive
 // SVG to mountResponsiveChart. Shared by the Network series charts,
 // the top-operator breakdown, and the Maps drift chart.
 //
@@ -12,7 +12,7 @@
 // without one compare null === null and reuse too).
 
 import { mountResponsiveChart } from "./chart-base.js";
-import { createInfoTooltip } from "../components/info-tooltip.js";
+import { createChartLede } from "../components/chart-lede.js";
 
 // Mount (or re-render into) a header-bearing chart card under
 // ``parent`` and return the mountResponsiveChart handle so a clickable
@@ -21,9 +21,9 @@ import { createInfoTooltip } from "../components/info-tooltip.js";
 //   title:       card label text (rendered upper-cased)
 //   subtitle:    secondary label beside the title (e.g. active unit),
 //                optional; changing it rebuilds the header
-//   info:        info-tooltip body Element, optional
-//   infoAria:    accessible name for the info affordance, optional
-//   headerExtra: Element placed between label and info (e.g. a mode
+//   lede:        short summary shown below the header, always
+//                visible, optional
+//   headerExtra: Element placed beside the headline (e.g. a mode
 //                switch), optional; its identity gates card reuse
 //   legend:      pre-built legend Element placed above the plot, optional
 //   drawPlot:    ({ width, height, layout }) -> Element, the plot body
@@ -34,8 +34,7 @@ export function mountTimeSeriesCard(parent, config) {
     const {
         title,
         subtitle = null,
-        info,
-        infoAria,
+        lede = null,
         headerExtra = null,
         legend = null,
         drawPlot,
@@ -69,7 +68,7 @@ export function mountTimeSeriesCard(parent, config) {
     } else {
         card = document.createElement("article");
         card.className = `card chart-card${cardClass ? ` ${cardClass}` : ""}`;
-        const header = buildHeader(title, subtitle, info, infoAria, headerExtra);
+        const header = buildHeader(title, subtitle, lede, headerExtra);
         card.__header = header;
         card.__title = title;
         card.__subtitle = subtitle;
@@ -84,20 +83,28 @@ export function mountTimeSeriesCard(parent, config) {
     slot.className = "chart-card__plot";
     card.append(slot);
 
-    return mountResponsiveChart(slot, {
+    const handle = mountResponsiveChart(slot, {
         title: null,
         draw: drawPlot,
         layout,
     });
+
+    return handle;
 }
 
-function buildHeader(title, subtitle, info, infoAria, headerExtra) {
+function buildHeader(title, subtitle, lede, headerExtra) {
     const header = document.createElement("div");
     header.className = "chart-card__header";
 
     const label = document.createElement("span");
     label.className = "card__label uppercase-label";
     label.textContent = (title ?? "").toUpperCase();
+
+    // Title (+subtitle) and lede stack as one headline column on the
+    // left, so the lede hugs the title and any header control floats
+    // top-right without the lede dropping below its full height.
+    const headline = document.createElement("div");
+    headline.className = "chart-card__headline";
 
     if (subtitle) {
         // Group label and subtitle so they stay together when the
@@ -108,20 +115,18 @@ function buildHeader(title, subtitle, info, infoAria, headerExtra) {
         sub.className = "chart-card__subtitle muted";
         sub.textContent = subtitle;
         group.append(label, sub);
-        header.append(group);
+        headline.append(group);
     } else {
-        header.append(label);
+        headline.append(label);
     }
+
+    if (lede) headline.append(createChartLede(lede));
+    header.append(headline);
 
     if (headerExtra) {
         headerExtra.classList.add("chart-card__header-extra");
         header.append(headerExtra);
     }
 
-    if (info) {
-        const tip = createInfoTooltip({ body: info, ariaLabel: infoAria });
-        tip.classList.add("chart-card__info");
-        header.append(tip);
-    }
     return header;
 }

@@ -38,7 +38,6 @@ import { mutedNote } from "../utils/dom.js";
 import { previousDiffable } from "../utils/diffs.js";
 import { t } from "../utils/i18n.js";
 import { unfilledProfile } from "../utils/map-variants.js";
-import { createInfoTooltip } from "./info-tooltip.js";
 
 export function mount(parent, maps, options = {}) {
     if (!parent || !Array.isArray(maps) || maps.length === 0) return;
@@ -51,10 +50,7 @@ export function mount(parent, maps, options = {}) {
     }
     mountResponsiveChart(parent, {
         title: t("history.mapDeltaChart.title"),
-        info: createInfoTooltip({
-            body: t("history.mapDeltaChart.info"),
-            ariaLabel: t("history.mapDeltaChart.infoAria"),
-        }),
+        lede: t("history.mapDeltaChart.lede"),
         draw: ({ width, height, layout }) =>
             buildChart(rows, maps, width, height, layout, options),
     });

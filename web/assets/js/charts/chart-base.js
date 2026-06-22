@@ -5,6 +5,7 @@
 // being squashed to 3-4 px below ~400 px wide.
 
 import { svg } from "./svg.js";
+import { createChartLede } from "../components/chart-lede.js";
 
 // Defaults tuned from phone (~320 px) to the dashboard's content
 // max (~1024 px); each chart can override fields via ``layout``.
@@ -49,14 +50,14 @@ function sweepDetachedCharts() {
 // the returned ``rerender`` handle (used by clickable legends).
 //
 //   draw({ width, height, layout }) -> Element
-//   info?:   Element built by createInfoTooltip(), pinned top-right
+//   lede?:   short summary shown below the title, always visible
 //   legend?: () -> Element, built once between title and slot
 //
 // ``draw`` runs once synchronously (chart on screen before paint)
 // and then on every observed width change.
 export function mountResponsiveChart(
     parent,
-    { title, draw, info, legend, layout = {} },
+    { title, draw, lede, legend, layout = {} },
 ) {
     if (!parent) return undefined;
     // Drop watchers whose slot this (or a sibling) re-mount just detached.
@@ -65,10 +66,8 @@ export function mountResponsiveChart(
     const settings = { ...DEFAULT_LAYOUT, ...layout };
 
     const card = createChartCard(title);
-    if (info) {
-        info.classList.add("info-tooltip--card-corner");
-        card.root.append(info);
-    }
+    // Lede sits directly under the title label, above the legend.
+    if (lede) card.root.insertBefore(createChartLede(lede), card.slot);
     if (legend) {
         const node = legend();
         if (node) card.root.insertBefore(node, card.slot);

@@ -125,19 +125,3 @@
 .info-tooltip__popover[hidden] {
     display: none;
 }
-
-/* Stacked explainer paragraphs; the first hugs the top edge, the
-   rest pick up vertical rhythm. The bold lead is the labelled
-   prefix used by multi-bucket tooltips. */
-.info-tooltip__paragraph {
-    margin: 0;
-}
-
-.info-tooltip__paragraph + .info-tooltip__paragraph {
-    margin-top: var(--space-2);
-}
-
-.info-tooltip__lead {
-    color: var(--color-text-strong);
-    font-weight: var(--font-weight-semibold);
-}

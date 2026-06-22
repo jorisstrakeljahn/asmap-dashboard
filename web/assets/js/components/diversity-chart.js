@@ -20,7 +20,6 @@ import {
 import { mutedNote } from "../utils/dom.js";
 import { t } from "../utils/i18n.js";
 import { unfilledProfile } from "../utils/map-variants.js";
-import { createInfoTooltip } from "./info-tooltip.js";
 
 const SERIES_KEY = "ases";
 
@@ -39,10 +38,7 @@ export function mount(parent, maps, options = {}) {
 
     mountResponsiveChart(parent, {
         title: t("history.diversityChart.title"),
-        info: createInfoTooltip({
-            body: t("history.diversityChart.info"),
-            ariaLabel: t("history.diversityChart.infoAria"),
-        }),
+        lede: t("history.diversityChart.lede"),
         draw: ({ width, height, layout }) =>
             buildChart(maps, points, width, height, layout, options),
     });

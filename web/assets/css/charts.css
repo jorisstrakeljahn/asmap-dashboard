@@ -36,10 +36,6 @@
     letter-spacing: 0.01em;
 }
 
-.chart-card__info {
-    flex-shrink: 0;
-}
-
 .chart-card__plot {
     margin-top: var(--space-2);
 }
@@ -57,6 +53,40 @@
 
 .chart-card__plot .card__label {
     display: none;
+}
+
+/* Title + lede stacked as a tight headline block on the left of the
+   header. Keeping them in one column means the lede sits directly under
+   the title and a header control (e.g. the Age/Date switch) floats
+   top-right instead of pushing the lede below its full height. */
+.chart-card__headline {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* Always-visible chart summary under the title, set in the base ink so
+   it clearly outranks the small, tracked, muted uppercase title above
+   it: hierarchy comes from case + colour, not size. The title reads as a
+   kicker, the lede as the line that actually explains the chart. The
+   deep methodology lives on asmap.org, so the lede is the on-page
+   explanation and may run to a few sentences. */
+.chart-card__lede {
+    margin: 0;
+    max-width: 80ch;
+    color: var(--color-text-base);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-normal);
+    /* Smarter line breaks: avoid orphans and very ragged last lines. */
+    text-wrap: pretty;
+}
+
+/* mountResponsiveChart path (no header control): the lede is a direct
+   sibling of the card label, so it carries its own tight top gap. */
+.card__label + .chart-card__lede {
+    margin-top: var(--space-1);
 }
 
 /* Stable resize anchor: the inner chart is re-rendered whenever

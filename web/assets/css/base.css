@@ -72,6 +72,23 @@ svg {
     color: var(--color-text-muted);
 }
 
+/* Stacked explainer paragraphs shared by the info-tooltip popover and
+   the always-on chart "About" disclosure (components/paragraphs.js).
+   The first hugs the top edge, the rest pick up vertical rhythm; the
+   bold lead is the labelled prefix multi-bucket explainers use. */
+.rich-paragraph {
+    margin: 0;
+}
+
+.rich-paragraph + .rich-paragraph {
+    margin-top: var(--space-2);
+}
+
+.rich-paragraph__lead {
+    color: var(--color-text-strong);
+    font-weight: var(--font-weight-semibold);
+}
+
 /* Theme cross-fade. components/theme-switch.js adds this class to
    <html> for one frame and removes it ~360ms later, tweening the
    colour properties so the page eases between palettes instead of
