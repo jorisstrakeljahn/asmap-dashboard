@@ -8,6 +8,10 @@ html,
 body {
     margin: 0;
     padding: 0;
+    /* Stop the horizontal rubber-band / pan on touch devices: a sideways
+       flick can never drag the layout sideways out of frame. Vertical
+       scrolling is untouched. */
+    overscroll-behavior-x: none;
 }
 
 body {
@@ -78,6 +82,13 @@ svg {
    bold lead is the labelled prefix multi-bucket explainers use. */
 .rich-paragraph {
     margin: 0;
+    /* Justified block paragraph, matching the section / chart ledes
+       (layout.css, charts.css): the explanatory copy in the info popover,
+       the mobile sheet and the chart "About" disclosure all read as the
+       same tidy both-edges-flush block, with pretty wrapping so the last
+       line never orphans a single word. */
+    text-align: justify;
+    text-wrap: pretty;
 }
 
 .rich-paragraph + .rich-paragraph {

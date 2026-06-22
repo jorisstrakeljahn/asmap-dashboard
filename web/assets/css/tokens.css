@@ -161,6 +161,9 @@
     /* Sliding mode-switch pill: longer and decelerating so the
        highlight glides and settles rather than snapping. */
     --motion-pill: 0.22s;
+    /* The mobile info-sheet slides a long way (full sheet height), so it
+       gets a slower, more deliberate duration than the in-place UI. */
+    --motion-sheet: 0.34s;
     /* Whole-page light/dark cross-fade. Long enough to read as a
        deliberate palette ease (see .theme-transition in base.css),
        short enough not to feel sluggish on a toggle. */
@@ -178,6 +181,10 @@
        while the menu covers the page beneath it. */
     --z-overlay: 40;
     --z-header: 50;
+    /* Mobile info bottom-sheet: a true modal that must cover the
+       sticky header too (unlike the nav overlay, which keeps the
+       header reachable), so it sits one step above it. */
+    --z-modal: 60;
 
     /* ── Form controls ────────────────────────────────────── */
     --control-height: 36px;
@@ -287,6 +294,7 @@ html[data-theme="dark"] {
         --motion-fast: 0.001s;
         --motion-base: 0.001s;
         --motion-slow: 0.001s;
+        --motion-sheet: 0.001s;
     }
 
     *,

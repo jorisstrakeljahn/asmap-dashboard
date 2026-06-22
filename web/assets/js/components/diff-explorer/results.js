@@ -5,7 +5,7 @@
 
 import { t } from "../../utils/i18n.js";
 import { findDirectionalDiff } from "../../utils/diffs.js";
-import { createInfoTooltip } from "../info-tooltip.js";
+import { cloneSheetContext, createInfoTooltip } from "../info-tooltip.js";
 import * as topMoversTable from "../top-movers-table.js";
 import {
     classificationRow,
@@ -37,6 +37,13 @@ export function renderResults(
     const explainer = createInfoTooltip({
         body: t("diff.results.info"),
         ariaLabel: t("diff.results.infoAria"),
+        // On a phone the explanation opens as a bottom-sheet; lead it with
+        // the headline breakdown this explainer describes — match banner,
+        // classification, stacked bar. The roster-delta line and
+        // node-impact banner carry their own "i", so they are left out
+        // here to keep this header focused on what the text covers.
+        sheetHeader: () =>
+            cloneSheetContext(card, { exclude: [".as-roster-delta", ".node-impact"] }),
     });
     explainer.classList.add("info-tooltip--card-corner");
     card.append(

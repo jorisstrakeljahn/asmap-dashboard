@@ -5,7 +5,7 @@
 // source stays inside, so it reads as a cross-check, not one number.
 
 import { t } from "../../utils/i18n.js";
-import { createInfoTooltip } from "../info-tooltip.js";
+import { cloneSheetContext, createInfoTooltip } from "../info-tooltip.js";
 import { sourceLabel, toMs } from "./series-data.js";
 
 // Summarises the whole series, so it is range-independent and renders
@@ -42,6 +42,10 @@ export function mountCrossCheckStat(network, sources, primary) {
     const info = createInfoTooltip({
         body: t("network.crosscheck.info"),
         ariaLabel: t("network.crosscheck.infoAria"),
+        // On a phone the explanation opens as a bottom-sheet; lead it with
+        // this card's own content (label, agreement figure, band note) so
+        // the reader keeps the context the desktop popover gets for free.
+        sheetHeader: () => cloneSheetContext(card),
     });
     info.classList.add("info-tooltip--card-corner");
     card.append(info);
