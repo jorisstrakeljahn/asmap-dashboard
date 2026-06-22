@@ -25,6 +25,15 @@ import { SVG_NS, uniqueId } from "../utils/dom.js";
 const PANEL_MAX_HEIGHT = 300;
 const PANEL_GAP = 4;
 const VIEWPORT_MARGIN = 8;
+// Matches --motion-pill in tokens.css: how long the open/close
+// grid-rows reveal runs, so the panel is pulled from the DOM only once
+// the collapse has finished playing.
+const CLOSE_MS = 220;
+
+const reducedMotionQuery =
+    typeof window !== "undefined" && typeof window.matchMedia === "function"
+        ? window.matchMedia("(prefers-reduced-motion: reduce)")
+        : null;
 
 export function createDropdown({
     options,
@@ -48,11 +57,13 @@ export function createDropdown({
 
     const trigger = buildTrigger({ ariaLabel, ariaLabelledBy, panelId });
     const valueEl = trigger.querySelector(".dropdown__value");
-    const panel = buildPanel(panelId, ariaLabel, ariaLabelledBy);
+    const { panel, list } = buildPanel(panelId, ariaLabel, ariaLabelledBy);
+    // The non-scrolling clip layer that hosts the edge-fade overlays.
+    const inner = panel.querySelector(".dropdown__panel-inner");
     const optionEls = options.map((opt, idx) =>
         buildOption(opt, idx, uniqueId("dropdown-option"), opt.value === state.value),
     );
-    panel.append(...optionEls);
+    list.append(...optionEls);
 
     const isOptionDisabled = (idx) => optionEls[idx]?.classList.contains(
         "dropdown__option--disabled",
@@ -90,6 +101,19 @@ export function createDropdown({
         }
     }
 
+    // Fade an edge only while options run past it (and drop the fade
+    // once that end is in view), so the last/first row is never dimmed.
+    // 1px slack absorbs sub-pixel rounding.
+    function updateScrollFade() {
+        const overflowing = list.scrollHeight - list.clientHeight > 1;
+        const atTop = list.scrollTop <= 1;
+        const atBottom =
+            list.scrollTop + list.clientHeight >= list.scrollHeight - 1;
+        inner.classList.toggle("has-fade-top", overflowing && !atTop);
+        inner.classList.toggle("has-fade-bottom", overflowing && !atBottom);
+    }
+    list.addEventListener("scroll", updateScrollFade, { passive: true });
+
     function setHighlight(idx) {
         if (idx < 0 || idx >= optionEls.length) return;
         optionEls[state.highlightedIdx]?.classList.remove("is-highlighted");
@@ -119,14 +143,26 @@ export function createDropdown({
         return nextEnabledIdx(optionEls.length, -1);
     }
 
+    let closeTimer = 0;
+
     function setOpen(next) {
         if (state.open === next) return;
         state.open = next;
         trigger.setAttribute("aria-expanded", String(next));
-        panel.hidden = !next;
-        root.classList.toggle("is-open", next);
+
+        const motionOk = !(reducedMotionQuery && reducedMotionQuery.matches);
 
         if (next) {
+            // A close transition may still be collapsing the panel;
+            // cancel its pending hide so it re-opens from where it is.
+            if (closeTimer) {
+                window.clearTimeout(closeTimer);
+                closeTimer = 0;
+            }
+            // Show it collapsed (is-open still off → grid-rows 0fr),
+            // place + highlight, then flip is-open on the next frame so
+            // the 0fr→1fr reveal actually animates instead of snapping.
+            panel.hidden = false;
             // Prefer the currently selected option, but fall back
             // to the first enabled option so the highlight never
             // lands on a row the user cannot commit.
@@ -138,12 +174,42 @@ export function createDropdown({
             if (highlightIdx >= 0) setHighlight(highlightIdx);
             dismiss.attach();
             placePanel();
+            updateScrollFade();
+            if (motionOk) {
+                // Flush the collapsed frame, then open next frame.
+                void panel.offsetHeight;
+                requestAnimationFrame(() => {
+                    if (state.open) root.classList.add("is-open");
+                    // Re-measure once the listbox has its open height.
+                    updateScrollFade();
+                });
+            } else {
+                root.classList.add("is-open");
+            }
         } else {
+            root.classList.remove("is-open");
             trigger.removeAttribute("aria-activedescendant");
             dismiss.detach();
-            panel.style.top = "";
-            panel.style.bottom = "";
+            // Keep the panel in the DOM through the collapse, then pull
+            // it out once the reveal has played back to 0fr.
+            if (closeTimer) window.clearTimeout(closeTimer);
+            if (motionOk) {
+                closeTimer = window.setTimeout(finishClose, CLOSE_MS);
+            } else {
+                finishClose();
+            }
         }
+    }
+
+    // Final teardown after the collapse: hide the panel and reset the
+    // inline placement so the next open starts clean. Bailed if a
+    // re-open beat the timer.
+    function finishClose() {
+        closeTimer = 0;
+        if (state.open) return;
+        panel.hidden = true;
+        panel.style.top = "";
+        panel.style.bottom = "";
     }
 
     function commit(idx) {
@@ -169,7 +235,10 @@ export function createDropdown({
         const spaceBelow =
             window.innerHeight - triggerRect.bottom - VIEWPORT_MARGIN;
         const spaceAbove = triggerRect.top - VIEWPORT_MARGIN;
-        const panelHeight = Math.min(panel.scrollHeight, PANEL_MAX_HEIGHT);
+        // Measure the listbox's natural content height, not the panel:
+        // the panel is collapsed (grid-rows 0fr) at decision time, so
+        // its own box is ~0 tall.
+        const panelHeight = Math.min(list.scrollHeight, PANEL_MAX_HEIGHT);
         const openUp = panelHeight > spaceBelow && spaceAbove > spaceBelow;
         const offset = `calc(100% + ${PANEL_GAP}px)`;
         if (openUp) {
@@ -309,15 +378,29 @@ function buildTrigger({ ariaLabel, ariaLabelledBy, panelId }) {
     return button;
 }
 
+// Three nested layers so the open/close reveal stays clean: the
+// positioned ``panel`` runs the grid-rows tween, ``inner`` clips the
+// overflow and carries the surface + blur fade, and the ``ul`` is the
+// scrollable listbox. Returns the panel (mounted) and the list (for the
+// options + listbox semantics).
 function buildPanel(panelId, ariaLabel, ariaLabelledBy) {
+    const panel = document.createElement("div");
+    panel.className = "dropdown__panel";
+    panel.hidden = true;
+
+    const inner = document.createElement("div");
+    inner.className = "dropdown__panel-inner";
+
     const ul = document.createElement("ul");
-    ul.className = "dropdown__panel";
+    ul.className = "dropdown__list";
     ul.id = panelId;
     ul.setAttribute("role", "listbox");
     if (ariaLabel) ul.setAttribute("aria-label", ariaLabel);
     if (ariaLabelledBy) ul.setAttribute("aria-labelledby", ariaLabelledBy);
-    ul.hidden = true;
-    return ul;
+
+    inner.append(ul);
+    panel.append(inner);
+    return { panel, list: ul };
 }
 
 function buildOption(opt, idx, id, isSelected) {
