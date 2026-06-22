@@ -93,18 +93,20 @@ export function mountTimeSeriesCard(parent, config) {
 }
 
 function buildHeader(title, subtitle, lede, headerExtra) {
+    // The header stacks two bands: a top row holding the title (and any
+    // control floated right), then the lede on its own line spanning the
+    // full card width — it runs under the control too, so the
+    // explanation fills the width instead of being boxed into a narrow
+    // left column beside the switch.
     const header = document.createElement("div");
     header.className = "chart-card__header";
+
+    const row = document.createElement("div");
+    row.className = "chart-card__header-row";
 
     const label = document.createElement("span");
     label.className = "card__label uppercase-label";
     label.textContent = (title ?? "").toUpperCase();
-
-    // Title (+subtitle) and lede stack as one headline column on the
-    // left, so the lede hugs the title and any header control floats
-    // top-right without the lede dropping below its full height.
-    const headline = document.createElement("div");
-    headline.className = "chart-card__headline";
 
     if (subtitle) {
         // Group label and subtitle so they stay together when the
@@ -115,18 +117,18 @@ function buildHeader(title, subtitle, lede, headerExtra) {
         sub.className = "chart-card__subtitle muted";
         sub.textContent = subtitle;
         group.append(label, sub);
-        headline.append(group);
+        row.append(group);
     } else {
-        headline.append(label);
+        row.append(label);
     }
-
-    if (lede) headline.append(createChartLede(lede));
-    header.append(headline);
 
     if (headerExtra) {
         headerExtra.classList.add("chart-card__header-extra");
-        header.append(headerExtra);
+        row.append(headerExtra);
     }
+    header.append(row);
+
+    if (lede) header.append(createChartLede(lede));
 
     return header;
 }

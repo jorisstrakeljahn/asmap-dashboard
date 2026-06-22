@@ -50,7 +50,8 @@
     background: transparent;
     color: var(--color-text-muted);
     font: inherit;
-    font-size: var(--font-size-sm);
+    /* Compact UI scale: segmented switches stay tight (see tokens.css). */
+    font-size: var(--font-size-control);
     font-weight: var(--font-weight-medium);
     cursor: pointer;
     transition: color var(--motion-pill) var(--ease-decelerate);

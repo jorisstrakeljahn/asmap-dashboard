@@ -47,3 +47,15 @@ export function deltaLine(text) {
     node.textContent = glueUnits(text);
     return node;
 }
+
+// "vs previous" / "vs <date>" comparison line. Same look as a delta
+// line but pinned to the card's bottom edge (.card__meta), so this
+// context line aligns across a row of cards instead of floating right
+// under the data. Use it for the comparison/date line, not for figures
+// that belong with the description.
+export function metaLine(text) {
+    const node = document.createElement("p");
+    node.className = "card__meta";
+    node.textContent = glueUnits(text);
+    return node;
+}

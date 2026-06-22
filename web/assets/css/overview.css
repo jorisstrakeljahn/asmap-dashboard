@@ -37,15 +37,37 @@
 }
 
 .card__unit {
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-sm);
     color: var(--color-text-muted);
 }
 
-/* "vs previous" sits at the bottom edge of the card and gets
-   pushed there by margin-top: auto so the cards still feel
-   balanced when the body content is short (e.g. Map Size has no
-   split bar). */
+/* The unit line and this figure line form one secondary-text block:
+   identical size and colour, sitting directly under one another at the
+   card's normal rhythm instead of being pinned to the bottom edge. This
+   line carries the real figures (the IPv4/IPv6 split, the reassigned
+   counts); emphasis comes from the headline number and the title, not
+   from shrinking or floating the data. Same 16px as the chart ledes, so
+   every descriptive line on the page reads as one consistent style. */
 .card__delta {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+/* The card's flex gap spaces every line evenly, which is right
+   everywhere except between two description lines: when a figure line
+   sits directly under the unit line they are one block, so cancel the
+   gap there (negative margin = -1 × gap) and let line-height alone
+   separate them. The split-legend (the unique-ASes data line) groups the
+   same way. */
+.card__unit + .card__delta {
+    margin-top: calc(var(--space-2) * -1);
+}
+
+/* Comparison / date context line ("+315 vs previous", "vs Mar 5, 2026"),
+   pinned to the bottom edge so it lines up across a row of cards rather
+   than floating directly under the data. Same size and colour as the
+   data lines — only its position differs. */
+.card__meta {
     margin-top: auto;
     padding-top: var(--space-3);
     font-size: var(--font-size-sm);
@@ -65,11 +87,13 @@
 }
 
 /* Two-colour split bar so IPv4 and IPv6 read as distinct categories,
-   not "more vs less": a gap plus fully pill-rounded segments. */
+   not "more vs less": a gap plus fully pill-rounded segments. Sits just
+   under the legend (which carries the percentages), so a small top gap
+   keeps the pair tight as one split-visualisation block. */
 .split-bar {
     display: flex;
     gap: 3px;
-    margin-top: var(--space-3);
+    margin-top: 0;
     height: 8px;
 }
 
@@ -87,11 +111,14 @@
     background: var(--color-accent-soft);
 }
 
+/* The percentages line, treated as the card's data line: grouped tight
+   under the unit (cancel the flex gap) just like the other cards' figure
+   line, with the bar following right below it. */
 .split-legend {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-3);
-    margin-top: var(--space-2);
+    margin-top: calc(var(--space-2) * -1);
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
 }

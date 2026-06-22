@@ -20,7 +20,13 @@ import {
     pickPreferUnfilled,
     unfilledProfile,
 } from "../utils/map-variants.js";
-import { createCard, deltaLine, metricNumber, metricUnit } from "./metric-card.js";
+import {
+    createCard,
+    deltaLine,
+    metaLine,
+    metricNumber,
+    metricUnit,
+} from "./metric-card.js";
 
 // ``previous`` bridges across filled-only builds so all three
 // cards anchor their "vs previous" delta on the same predecessor.
@@ -64,14 +70,14 @@ function entriesCountCard(currentPick, previousPick) {
     // unfilled (raw) entry counts would report the ~12 % fill
     // compression as phantom shrinkage.
     if (currentPick.source !== previousPick.source) {
-        card.append(deltaLine(t("overview.entries.encodingMismatch")));
+        card.append(metaLine(t("overview.entries.encodingMismatch")));
         return card;
     }
     const delta =
         currentPick.profile.entries_count -
         previousPick.profile.entries_count;
     card.append(
-        deltaLine(
+        metaLine(
             t("overview.entries.deltaVsPrevious", {
                 delta: formatSignedNumber(delta),
             }),
@@ -99,7 +105,7 @@ function driftCard(current, previous, diffs) {
     if (!unfilledProfile(current)) {
         card.append(metricNumber("\u2014"));
         card.append(metricUnit(t("overview.drift.filledOnly")));
-        card.append(deltaLine(t("overview.drift.filledOnlyHint")));
+        card.append(metaLine(t("overview.drift.filledOnlyHint")));
         return card;
     }
     if (!previous) {
@@ -130,7 +136,7 @@ function driftCard(current, previous, diffs) {
         ),
     );
     card.append(
-        deltaLine(
+        metaLine(
             t("overview.drift.vsDate", { date: formatDate(previous.released_at) }),
         ),
     );
@@ -150,13 +156,16 @@ function uniqueAsesCard(currentPick, previousPick) {
     const total = profile.ipv4_count + profile.ipv6_count;
     const ipv4Ratio = total ? profile.ipv4_count / total : 0;
     const ipv6Ratio = total ? profile.ipv6_count / total : 0;
-    card.append(splitBar(ipv4Ratio, ipv6Ratio));
+    // Legend (the percentages) first as the card's data line, then the
+    // bar as its visual underline; the "vs previous" line pins to the
+    // bottom like the other cards.
     card.append(splitLegend(ipv4Ratio, ipv6Ratio));
+    card.append(splitBar(ipv4Ratio, ipv6Ratio));
 
     if (previousPick) {
         const delta = profile.unique_asns - previousPick.profile.unique_asns;
         card.append(
-            deltaLine(
+            metaLine(
                 t("overview.uniqueAses.deltaVsPrevious", {
                     delta: formatSignedNumber(delta),
                 }),
