@@ -61,7 +61,7 @@
 .dropdown__chevron {
     flex: 0 0 var(--control-icon-size);
     color: var(--color-text-subtle);
-    transition: transform var(--motion-slow) var(--motion-ease);
+    transition: transform var(--motion-pill) var(--ease-decelerate);
 }
 
 .dropdown.is-open .dropdown__chevron {
@@ -69,25 +69,140 @@
     color: var(--color-text-muted);
 }
 
+/* Accordion-style open/close. The panel grid-rows-tweens from 0fr to
+   1fr — a true height reveal with no JS height measuring — while the
+   inner clips the overflow and fades + de-blurs in (the chevron flips
+   in step). It stays absolutely positioned, so it overlays rather than
+   pushing the layout; dropdown.js flips it above the trigger near the
+   viewport edge and toggles ``hidden`` after the collapse finishes. */
 .dropdown__panel {
     position: absolute;
     top: calc(100% + var(--control-panel-gap));
     left: 0;
     right: 0;
     z-index: var(--z-popover);
-    margin: 0;
-    padding: var(--space-1) 0;
-    border: 1px solid var(--color-border-strong);
-    border-radius: var(--radius);
-    background: var(--color-bg);
-    box-shadow: var(--shadow-popover);
-    list-style: none;
-    max-height: min(var(--control-panel-max-height), 60vh);
-    overflow-y: auto;
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--motion-pill) var(--ease-decelerate);
+}
+
+.dropdown.is-open .dropdown__panel {
+    grid-template-rows: 1fr;
 }
 
 .dropdown__panel[hidden] {
     display: none;
+}
+
+/* Clip + chrome layer: overflow hidden turns the 0fr→1fr row into a
+   reveal instead of letting the list spill, and carries the visible
+   surface (border, background, shadow) plus the blur/opacity fade.
+   min-height: 0 lets the grid track collapse it to nothing. */
+.dropdown__panel-inner {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius);
+    background: var(--color-bg);
+    box-shadow: var(--shadow-popover);
+    opacity: 0;
+    filter: blur(2px);
+    transition:
+        opacity var(--motion-pill) var(--ease-decelerate),
+        filter var(--motion-pill) var(--ease-decelerate);
+}
+
+.dropdown.is-open .dropdown__panel-inner {
+    opacity: 1;
+    filter: blur(0);
+}
+
+/* Edge fades hinting "more to scroll". They live on the non-scrolling
+   inner (so they stay pinned to the edges, not riding the content) and
+   sit above the list; dropdown.js toggles has-fade-top / -bottom from
+   the scroll position, so each edge fades only while content runs past
+   it. The scrollbar shows through (the gradient is just a tint), so the
+   bar itself stays crisp. */
+.dropdown__panel-inner::before,
+.dropdown__panel-inner::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: var(--space-5);
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--motion-base) var(--motion-ease);
+}
+
+.dropdown__panel-inner::before {
+    top: 0;
+    background: linear-gradient(to bottom, var(--color-bg), transparent);
+}
+
+.dropdown__panel-inner::after {
+    bottom: 0;
+    background: linear-gradient(to top, var(--color-bg), transparent);
+}
+
+.dropdown__panel-inner.has-fade-top::before,
+.dropdown__panel-inner.has-fade-bottom::after {
+    opacity: 1;
+}
+
+/* The listbox itself scrolls once the options outrun the cap; the
+   reveal animates the panel height up to this point. A thin scrollbar
+   with a transparent track (no track line) and a thumb inset from the
+   edge via a bg-coloured border keeps the bar clean and "floating". */
+.dropdown__list {
+    margin: 0;
+    padding: var(--space-1) 0;
+    list-style: none;
+    max-height: min(var(--control-panel-max-height), 60vh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+}
+
+.dropdown__list::-webkit-scrollbar {
+    width: 10px;
+}
+
+.dropdown__list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dropdown__list::-webkit-scrollbar-thumb {
+    background: var(--color-border-strong);
+    border-radius: var(--radius-pill);
+    /* The bg-coloured border pads the thumb in, so the track reads as
+       the panel surface (no line) and the bar looks slimmer. */
+    border: 3px solid var(--color-bg);
+    background-clip: padding-box;
+}
+
+.dropdown__list::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-subtle);
+    border: 3px solid var(--color-bg);
+    background-clip: padding-box;
+}
+
+/* Reduced motion: no reveal, no blur — the panel simply appears. */
+@media (prefers-reduced-motion: reduce) {
+    .dropdown__panel,
+    .dropdown__panel-inner,
+    .dropdown__panel-inner::before,
+    .dropdown__panel-inner::after,
+    .dropdown__chevron {
+        transition: none !important;
+    }
+
+    .dropdown__panel-inner {
+        filter: none;
+    }
 }
 
 .dropdown__option {
