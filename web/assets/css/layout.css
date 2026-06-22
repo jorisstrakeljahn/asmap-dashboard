@@ -158,7 +158,10 @@
     margin-top: var(--space-1);
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
-    /* Avoid orphans / ragged last lines in the descriptive copy. */
+    /* Justified block paragraph: flush on both edges so the descriptive
+       copy reads as a tidy block, with pretty wrapping to keep the last
+       line from orphaning a single word. */
+    text-align: justify;
     text-wrap: pretty;
 }
 
@@ -252,7 +255,8 @@
     background: var(--color-bg);
     color: var(--color-text-base);
     font: inherit;
-    font-size: var(--font-size-sm);
+    /* Compact UI scale: buttons stay tight (see tokens.css). */
+    font-size: var(--font-size-control);
     font-weight: var(--font-weight-medium);
     cursor: pointer;
     transition: border-color var(--motion-base) var(--motion-ease);

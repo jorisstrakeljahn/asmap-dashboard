@@ -73,21 +73,24 @@ export function mount(payload) {
         latestUpdate: network.latest_update,
     });
 
-    // One source line for the whole hero: all cards read the primary
-    // crawl's latest snapshot, so they don't repeat it. Names the
-    // comparison source when more than one crawler is present.
-    const sourceSlot = document.querySelector("[data-network-source]");
-    if (sourceSlot) {
-        const base = t("network.overview.sourceMeta", {
+    // The hero is introduced by one paragraph: the static section lede
+    // (what this tab does) plus the crawl provenance (which snapshot the
+    // cards read, and any archived comparison source). They read as one
+    // thought, so they share a single sentence rather than splitting the
+    // provenance into a separate meta line below the heading.
+    const ledeSlot = document.querySelector("[data-network-lede]");
+    if (ledeSlot) {
+        const provenance = t("network.overview.sourceMeta", {
             source: sourceLabel(primary),
             date: formatDate(latest.label),
         });
         const others = presentSources.filter((s) => s !== primary);
-        sourceSlot.textContent = others.length
-            ? `${base} ${t("network.overview.sourceCompare", {
+        const source = others.length
+            ? `${provenance} ${t("network.overview.sourceCompare", {
                   sources: others.map(sourceLabel).join(", "),
               })}`
-            : base;
+            : provenance;
+        ledeSlot.textContent = `${t("network.overview.sectionLede")} ${source}`;
     }
 
     // A deep link can pin the Trends range plus the decay axis and HHI

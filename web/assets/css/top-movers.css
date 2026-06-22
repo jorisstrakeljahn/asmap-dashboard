@@ -58,7 +58,8 @@
     background: var(--color-bg);
     color: var(--color-text-base);
     font: inherit;
-    font-size: var(--font-size-sm);
+    /* Compact UI scale: form controls stay tight (see tokens.css). */
+    font-size: var(--font-size-control);
 }
 
 .top-movers__filter-input::placeholder {
@@ -101,7 +102,8 @@
     background: var(--color-bg);
     color: var(--color-text-muted);
     font: inherit;
-    font-size: var(--font-size-sm);
+    /* Compact UI scale: buttons stay tight (see tokens.css). */
+    font-size: var(--font-size-control);
     cursor: pointer;
 }
 
@@ -339,7 +341,8 @@
     background: var(--color-bg);
     color: var(--color-text-base);
     font: inherit;
-    font-size: var(--font-size-sm);
+    /* Compact UI scale: pagination buttons stay tight (see tokens.css). */
+    font-size: var(--font-size-control);
     font-variant-numeric: tabular-nums;
     cursor: pointer;
 }

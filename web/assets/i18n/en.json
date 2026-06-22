@@ -310,7 +310,7 @@
             "nakamoto": {
                 "label": "Nakamoto coefficient (AS)",
                 "unit": "ASes hold half of all mapped nodes",
-                "basis": "smallest set of ASes covering 50% of the {mapped} mapped nodes",
+                "basis": "covering 50% of {mapped} mapped nodes",
                 "noData": "no mapped nodes in this snapshot",
                 "info": [
                     "The fewest autonomous systems that together host at least half of the mapped nodes. An attacker controlling that many networks sits next to half the reachable network, so higher is healthier.",
@@ -332,8 +332,8 @@
             "staleness": {
                 "label": "Map staleness",
                 "unit": "of today's nodes shift AS per year",
-                "basis": "scaled from {drift} measured at the build that is {days} days old",
-                "basisInterpolated": "between {driftLower} at {daysLower} days and {driftUpper} at {daysUpper} days of map age",
+                "basis": "scaled from {drift} at {days}d of map age",
+                "basisInterpolated": "{driftLower} at {daysLower}d and {driftUpper} at {daysUpper}d of map age",
                 "noData": "needs more build history",
                 "info": [
                     "The decay curve below boiled down to one yearly rate: the share of today's nodes a one-year-old embedded map would place in the wrong autonomous system.",

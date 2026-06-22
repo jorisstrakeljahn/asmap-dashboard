@@ -7,11 +7,19 @@
     min-height: auto;
 }
 
-/* Header-bearing chart card (mountTimeSeriesCard): label, an optional
-   control, and the info tooltip on one row. The control is pushed to
-   the right so the label stays flush left and groups with the info
-   affordance; the info never shrinks below its icon. */
+/* Header-bearing chart card (mountTimeSeriesCard): a title row on top,
+   then the lede on its own full-width line below. Splitting the header
+   into two bands lets the lede run under the control instead of being
+   squeezed into a narrow column beside it. */
 .chart-card__header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+/* Top band: the title (flush left) and any control pushed to the right.
+   The control never shrinks below its own width. */
+.chart-card__header-row {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -20,6 +28,7 @@
 
 .chart-card__header-extra {
     margin-left: auto;
+    flex-shrink: 0;
 }
 
 /* Label + secondary note (e.g. the active drift unit) on one baseline,
@@ -55,31 +64,22 @@
     display: none;
 }
 
-/* Title + lede stacked as a tight headline block on the left of the
-   header. Keeping them in one column means the lede sits directly under
-   the title and a header control (e.g. the Age/Date switch) floats
-   top-right instead of pushing the lede below its full height. */
-.chart-card__headline {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-    flex: 1 1 auto;
-    min-width: 0;
-}
-
-/* Always-visible chart summary under the title, set in the base ink so
-   it clearly outranks the small, tracked, muted uppercase title above
-   it: hierarchy comes from case + colour, not size. The title reads as a
-   kicker, the lede as the line that actually explains the chart. The
-   deep methodology lives on asmap.org, so the lede is the on-page
-   explanation and may run to a few sentences. */
+/* Always-visible chart summary under the title. Set in muted ink so the
+   strong, uppercase title clearly leads and the lede reads as its
+   supporting explanation — the same title-then-lede hierarchy the
+   section headers use. The deep methodology lives on asmap.org, so the
+   lede is the on-page explanation and may run to a few sentences. It
+   spans the full card width (no max-width cap) so the text fills the row
+   under the control rather than leaving an empty gutter on the right. */
 .chart-card__lede {
     margin: 0;
-    max-width: 80ch;
-    color: var(--color-text-base);
+    color: var(--color-text-muted);
     font-size: var(--font-size-sm);
     line-height: var(--line-normal);
-    /* Smarter line breaks: avoid orphans and very ragged last lines. */
+    /* Justified block paragraph (flush both edges) with pretty wrapping
+       so the full-width explanation reads as a clean block and the last
+       line never orphans a single word. */
+    text-align: justify;
     text-wrap: pretty;
 }
 
@@ -145,7 +145,8 @@
     border: 1px solid var(--color-border);
     background: var(--color-bg);
     box-shadow: var(--shadow-tooltip);
-    font-size: var(--font-size-sm);
+    /* Compact UI scale: chart readouts stay tight (see tokens.css). */
+    font-size: var(--font-size-control);
     line-height: var(--line-normal);
     pointer-events: none;
     text-align: left;
@@ -177,7 +178,7 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
     background: var(--color-surface);
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-control);
     line-height: var(--line-normal);
     text-align: left;
 }
@@ -203,7 +204,7 @@
 
 .chart-tooltip__muted {
     margin-top: var(--space-2);
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-chart-axis);
     color: var(--color-text-muted);
     word-break: break-word;
 }
@@ -246,7 +247,8 @@
 .chart__y-label,
 .chart__x-label {
     font-family: var(--font-sans);
-    font-size: var(--font-size-xs);
+    /* Compact UI scale: chart axis text stays tight (see tokens.css). */
+    font-size: var(--font-size-chart-axis);
     fill: var(--color-text-subtle);
 }
 
@@ -255,7 +257,7 @@
    uppercase tracking matches the card label. */
 .chart__y-title {
     font-family: var(--font-sans);
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-chart-axis);
     fill: var(--color-text-subtle);
     letter-spacing: var(--letter-uppercase);
     text-transform: uppercase;
@@ -441,7 +443,8 @@
     flex-wrap: wrap;
     gap: var(--space-3);
     margin-top: var(--space-2);
-    font-size: var(--font-size-sm);
+    /* Compact UI scale: legend toggles are buttons (see tokens.css). */
+    font-size: var(--font-size-control);
     color: var(--color-text-strong);
 }
 

@@ -24,7 +24,11 @@
     --color-text-strong: #0f172a;
     --color-text-base: #1e293b;
     --color-text-muted: #475569;
-    --color-text-uppercase: #64748b;
+    /* Eyebrow / uppercase labels (card + chart titles, table heads) are
+       real titles, so they take the strong ink rather than a faint grey.
+       Follows --color-text-strong in both themes; retune here to dial the
+       whole eyebrow tier at once. */
+    --color-text-uppercase: var(--color-text-strong);
     /* Lightest text tier, slate-500 not slate-400 so the faintest copy
        clears WCAG AA 4.5:1 on white (the old #94a3b8 sat at ~2.6:1). */
     --color-text-subtle: #64748b;
@@ -78,16 +82,28 @@
         system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
         Roboto, "Helvetica Neue", Arial, sans-serif;
 
-    /* Base scale. Body at 16px clears the comfort/iOS-zoom floor on
-       every viewport; 14px supplementary and 12px micro-labels match
-       common readability minimums. Headline steps grow proportionally. */
-    --font-size-xs: 12px;
-    --font-size-sm: 14px;
+    /* Two text scales, so the page has exactly two knobs to retune.
+
+       1) Content scale (this block): titles, labels, ledes, and card
+          copy. Bumped +2px from the original 12/14/20 so reading text
+          is a touch larger. Change xs/sm/lg here to resize all of it.
+       2) Compact UI scale (below): controls, chart text, and card
+          footnotes that should stay tight while the content grows.
+
+       Body stays 16px to clear the comfort / iOS-zoom floor. */
+    --font-size-xs: 14px;
+    --font-size-sm: 16px;
     --font-size-base: 16px;
-    --font-size-lg: 20px;
+    --font-size-lg: 22px;
     --font-size-xl: 25px;
     --font-size-2xl: 31px;
     --font-size-3xl: 38px;
+
+    /* Compact UI scale. These intentionally do NOT follow the content
+       bump above: interactive controls and chart chrome stay dense so
+       only the reading text grows. Retune controls in one place here. */
+    --font-size-control: 14px; /* switches, buttons, inputs, legend, tooltips */
+    --font-size-chart-axis: 12px; /* SVG tick + gutter labels, tooltip footnote */
 
     --font-weight-regular: 400;
     --font-weight-medium: 500;
@@ -197,7 +213,7 @@ html[data-theme="dark"] {
     --color-text-strong: #f4f4f5;
     --color-text-base: #dcdce1;
     --color-text-muted: #b4b4bd;
-    --color-text-uppercase: #9a9aa4;
+    /* --color-text-uppercase follows --color-text-strong (see :root). */
     --color-text-subtle: #9a9aa4;
 
     --color-bg: #121212;

@@ -13,7 +13,7 @@
    wrap, where the default chart-card header pins to the top. Scoped to
    .drift-chart so the shared mountTimeSeriesCard header keeps its
    flex-start default everywhere else. */
-.drift-chart .chart-card__header {
+.drift-chart .chart-card__header-row {
     align-items: center;
     flex-wrap: wrap;
 }
@@ -28,7 +28,7 @@
 /* Pin the header to the top on narrow screens so the title and lede
    stay aligned with the left edge as they wrap. */
 @media (max-width: 600px) {
-    .drift-chart .chart-card__header {
+    .drift-chart .chart-card__header-row {
         align-items: flex-start;
     }
 }
