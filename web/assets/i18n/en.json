@@ -308,16 +308,16 @@
                 "infoAria": "About AS concentration"
             },
             "nakamoto": {
-                "label": "Nakamoto coefficient (AS)",
+                "label": "AS concentration",
                 "unit": "ASes hold half of all mapped nodes",
                 "basis": "covering 50% of {mapped} mapped nodes",
                 "noData": "no mapped nodes in this snapshot",
                 "info": [
                     "The fewest autonomous systems that together host at least half of the mapped nodes. An attacker controlling that many networks sits next to half the reachable network, so higher is healthier.",
                     "Sort the ASes by observed node count and walk down until the running total passes half. Unmapped nodes are excluded, like in the HHI: a node the map cannot attribute cannot be handed to an attacker's AS either.",
-                    "The 50 percent threshold matches the Nakamoto-coefficient convention across Bitcoin and blockchain studies, so the figure is comparable."
+                    "The 50 percent threshold is the common convention across Bitcoin and blockchain decentralisation studies, so the count stays comparable. It is a headcount of networks, not a claim that half the peers control the network."
                 ],
-                "infoAria": "About the AS Nakamoto coefficient"
+                "infoAria": "About AS concentration (50% of nodes)"
             },
             "buckets": {
                 "label": "Peer diversity buckets",
