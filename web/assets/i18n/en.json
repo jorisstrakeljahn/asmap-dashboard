@@ -79,7 +79,7 @@
         },
         "entries": {
             "label": "Entries",
-            "unit": "prefix to ASN mappings",
+            "unit": "IP ranges mapped to an operator",
             "deltaVsPrevious": "{delta} vs previous",
             "encodingMismatch": "no comparable previous (encoding mismatch)",
             "info": [
@@ -135,7 +135,7 @@
         "allSeriesHidden": "All series hidden. Click a legend entry to bring one back.",
         "noDriftData": "No drift data for the picked mode.",
         "driftUnit": {
-            "ariaLabel": "Drift currency",
+            "ariaLabel": "Address family for drift (IPv4 or IPv6)",
             "ipv4_coverage": {
                 "label": "IPv4"
             },
@@ -144,7 +144,7 @@
             }
         },
         "driftCumulative": {
-            "title": "Cumulative Drift Since Baseline",
+            "title": "Cumulative Drift Since the Oldest Build",
             "lede": "An ASmap build maps each block of IP addresses to the network operator (its autonomous system, or AS) that announces it. Bitcoin Core uses this so a node never leans on a single operator. This chart adds up how far each build has moved from the oldest one, meaning the share of mapped address space that now points to a different AS. A flat stretch means the data held steady, while a steep climb means a lot changed.",
             "infoAria": "About cumulative drift",
             "ariaLabel": "Cumulative drift composition since the oldest published build. Reassigned, newly mapped, unmapped, and total drift series.",
@@ -248,17 +248,17 @@
             ]
         },
         "diversityChart": {
-            "title": "Peer Bucket Diversity",
-            "lede": "How many different operators (ASes) a build can tell apart. Bitcoin Core sorts peers into one bucket per AS and avoids filling its connections from a single bucket, so more buckets make a node harder to isolate. The drift charts above measured how much the map moved, while this counts how many operators it can see.",
-            "infoAria": "About peer bucket diversity",
-            "ariaLabel": "Distinct autonomous systems mapped per ASmap build. Each AS is one peer diversity bucket in Bitcoin Core.",
-            "empty": "Need at least two builds to plot diversity.",
-            "asesLabel": "Total ASes",
-            "appearedLabel": "Appeared since baseline",
+            "title": "Distinct Operators Per Build",
+            "lede": "How many different network operators (autonomous systems, or ASes) each build can tell apart. Bitcoin Core won't lean all its connections on one operator, so the more operators a map distinguishes, the harder it is for any single one to surround a node. The drift charts above measured how much the map moved; this counts how many operators it can see.",
+            "infoAria": "About distinct operators per build",
+            "ariaLabel": "Count of distinct network operators (autonomous systems) mapped per ASmap build. More operators means a node is harder to surround.",
+            "empty": "Need at least two builds to plot operator counts.",
+            "asesLabel": "Distinct operators",
+            "appearedLabel": "Appeared since oldest build",
             "appearedSinceBaseline": "+{count} since {date}",
             "info": [
-                "Distinct autonomous systems each build maps to at least one prefix. Every AS is one peer diversity bucket Bitcoin Core can hold a connection to under the asmap GetGroup() rule.",
-                "Coverage drift asks how much address space moved; this asks how many peer buckets exist. Reassigning prefixes between known ASes leaves it flat; one prefix on a brand new ASN lifts it by one.",
+                "How many distinct operators each build maps to at least one block of addresses. Every operator is one network Bitcoin Core can hold a separate connection to under the asmap GetGroup() rule.",
+                "Coverage drift asks how much address space moved; this asks how many distinct operators exist. Reassigning address blocks between operators already in the map leaves it flat; one block on a brand-new operator lifts it by one.",
                 "Computed from the unfilled variant, so the curve reflects real upstream routing, not the fill heuristic. Filled-only builds carry no dot and are bridged across."
             ]
         }
@@ -289,7 +289,7 @@
             "familySplit": "IPv4 {ipv4}, IPv6 {ipv6}",
             "nodes": {
                 "label": "Reachable nodes",
-                "unit": "clearnet peers observed",
+                "unit": "IP peers observed (no Tor/I2P)",
                 "info": [
                     "Distinct clearnet IPs the crawler reached in its latest snapshot. Onion, I2P, and CJDNS peers are left out: they have no IP for ASmap to resolve to an autonomous system.",
                     "The split counts each peer by effective address family, so an IPv4-in-IPv6 tunnel (6to4, NAT64) counts as IPv4, exactly as Bitcoin Core's GetGroup() does."
@@ -307,25 +307,25 @@
                 ],
                 "infoAria": "About AS concentration"
             },
-            "nakamoto": {
-                "label": "AS concentration",
-                "unit": "ASes hold half of all mapped nodes",
+            "reach50": {
+                "label": "ASes to reach 50%",
+                "unit": "operators that together hold half the mapped nodes",
                 "basis": "covering 50% of {mapped} mapped nodes",
                 "noData": "no mapped nodes in this snapshot",
                 "info": [
-                    "The fewest autonomous systems that together host at least half of the mapped nodes. An attacker controlling that many networks sits next to half the reachable network, so higher is healthier.",
-                    "Sort the ASes by observed node count and walk down until the running total passes half. Unmapped nodes are excluded, like in the HHI: a node the map cannot attribute cannot be handed to an attacker's AS either.",
-                    "The 50 percent threshold is the common convention across Bitcoin and blockchain decentralisation studies, so the count stays comparable. It is a headcount of networks, not a claim that half the peers control the network."
+                    "Imagine an attacker buying up whole network operators one by one, biggest first. This is how many they would need before half of all mapped nodes sit inside operators they control. Higher is healthier: it means no small handful of operators is close to holding half the network.",
+                    "Sort the operators by how many nodes they host, then add them up from the top until the running total passes half. The number of operators that took is the figure shown. Nodes the map cannot place are left out, exactly as they are in AS concentration.",
+                    "The 50% line is the standard cut-off decentralisation studies use, so the count stays comparable across projects. It is a headcount of operators, not a claim that those operators actually control the network."
                 ],
-                "infoAria": "About AS concentration (50% of nodes)"
+                "infoAria": "About how many ASes it takes to reach 50% of nodes"
             },
             "buckets": {
                 "label": "Peer diversity buckets",
-                "unit": "ASmap AS buckets",
-                "vsDefault": "vs {count} default groups ({ratio} times fewer)",
+                "unit": "operator buckets the nodes fall into",
+                "vsDefault": "vs {count} buckets without ASmap ({ratio}\u00d7 fewer)",
                 "info": [
-                    "Distinct peer diversity buckets the observed nodes fall into with ASmap loaded: Bitcoin Core's GetGroup() returns the autonomous system, or a default group for nodes ASmap does not map.",
-                    "ASmap folds many small default groups into far fewer AS buckets. That is the security gain: an adversary now needs whole autonomous systems, not just neighbouring /16 ranges, to dominate a peer's buckets. The line below shows how much smaller this is than Core's default /16 and /32 bucketing."
+                    "Bitcoin Core sorts every peer into a bucket and refuses to fill all its connection slots from one bucket, so an attacker can't surround a node by owning a single corner of the internet. With ASmap loaded a bucket is a whole network operator. This counts how many distinct buckets today's nodes spread across.",
+                    "Without ASmap, Core buckets purely by neighbouring IP ranges (/16 for IPv4, /32 for IPv6), which splits one operator across many buckets. ASmap folds those back into one bucket per operator, so the count drops. That is the security gain: an attacker now needs whole operators, not just adjacent IP ranges, to dominate a peer's buckets. The line below shows how much fewer buckets that is."
                 ],
                 "infoAria": "About peer diversity buckets"
             },
@@ -361,7 +361,7 @@
         },
         "decay": {
             "title": "Map decay for today's nodes",
-            "lede": "This shows how outdated an older build would be for today's nodes, meaning the share it would place with a different operator than the newest build does. The older a build gets, the more it drifts, which shows how often shipping a fresh map is worth it.",
+            "lede": "This shows how outdated an older build would be for today's nodes: the share it would place with a different operator than the newest build does. The newest build is the yardstick, so it sits at zero — this is map-versus-map drift, not a check against live routing (the attribution agreement below covers that). The older a build gets, the more it drifts, which shows how often shipping a fresh map is worth it.",
             "infoAria": "About the decay curve",
             "ariaLabel": "Share of today's observed nodes that each older build resolves to a different autonomous system than the newest build. One line per crawler.",
             "tooltipTitle": "{date} build, {days} days old",
@@ -420,14 +420,7 @@
         "crosscheck": {
             "label": "ASN attribution agreement",
             "metric": "~{pct}",
-            "note": "About {pct} of the nodes the {source} crawl tagged with their own ASN match the ASmap lookup for the same IP. Both crawlers stay in a {min} to {max} band.",
-            "infoAria": "About ASN attribution agreement",
-            "info": [
-                "A data quality check, not a network health metric. Of the nodes a crawler tagged with its own ASN (via whois), the share where that ASN matches what the build in effect assigns to the same IP.",
-                "Only nodes where both sides have an opinion count; unmapped nodes are excluded, not counted as disagreement.",
-                "A few percent of mismatch is normal: whois and routing differ on multi-origin prefixes and recent reassignments. Hetzner, for example, announces from AS24940 plus separate cloud ASNs. This is also why per operator counts here can exceed KIT's own site, which groups by whois description while this dashboard groups by the routed AS, the vocabulary Bitcoin Core's eclipse protection uses.",
-                "A steady figure means the two independent views agree, which is evidence the data behind every chart above is sound. Only crawlers that ship an ASN can be scored: KIT always does; the Bitnodes archive did through late 2025, so it still widens the agreement band while the headline follows KIT."
-            ]
+            "note": "Share of nodes where the {source} crawl's own ASN tag matches the ASmap lookup for the same IP — a data-quality cross-check, not a network-health metric. A few percent always differ where whois and routing disagree, so a steady reading (both crawlers stay within a {min} to {max} band) is evidence the data behind every chart is sound."
         }
     },
 
@@ -498,7 +491,7 @@
                 "label": "IPv6"
             }
         },
-        "rosterDelta": "ASes {a} to {b}. Appeared {appeared}, disappeared {disappeared}.",
+        "rosterDelta": "ASes mapped: {a} in Map A, {b} in Map B. Appeared {appeared}, disappeared {disappeared}.",
         "rosterDeltaInfoAria": "About the AS roster delta",
         "rosterDeltaInfo": [
             "How many distinct autonomous systems each build maps, and how that roster changed between Map A and Map B.",
@@ -530,7 +523,7 @@
                 "lead": "Direction.",
                 "text": "Up gained, down lost, a double arrow means space moved both ways. The counterpart can be a real autonomous system or the unmapped pool: up-unmapped gained space that had no ASN, down-unmapped lost space that no longer resolves."
             },
-            "Hover any row for the operator name, the raw counts moved, the AS footprint on each side, and Touched, the share of this AS's own footprint the diff visited. Above 100 percent happens when one build packs the AS into one block and the other splits it into many."
+            "Hover any row for the operator name, the raw counts moved, how much address space the operator holds on each side, and Touched. Touched is how much of the operator's own address space this change moved, written as a share of its footprint. It can read above 100% when one build stores the operator as a single block and the other splits it into many, so the two sides don't line up one to one."
         ],
         "viewMode": {
             "compact": "Compact",

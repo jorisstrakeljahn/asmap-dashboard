@@ -26,7 +26,7 @@ const I18N_URL = "assets/i18n/en.json";
 // caches assets ~10 min, so post-deploy a browser can pair a stale
 // app.js with a fresh payload (or vice versa). Checking the payload
 // version turns silent nonsense (0.0% drift) into a reload banner.
-const EXPECTED_SCHEMA_VERSION = 3;
+const EXPECTED_SCHEMA_VERSION = 4;
 
 // Snapshot of the static tab-panel markup, captured before any tab
 // module swaps in rendered DOM. The error banner's retry button

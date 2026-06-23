@@ -1,12 +1,12 @@
-// Peer-bucket diversity chart: one line plotting the count of
-// distinct ASes per build, read from the unfilled profile so it
+// Distinct-operators chart: one line plotting the count of distinct
+// operators (ASes) per build, read from the unfilled profile so it
 // reflects real upstream routing, not the fill heuristic.
 //
 // Separate from drift on purpose: drift measures how much address
-// space changed, diversity measures how many peer buckets Core has
-// under the asmap GetGroup() rule. The signals are independent — a
-// diff that only reassigns prefixes between existing ASes leaves
-// this line flat; one new ASN moves it by one.
+// space changed, this measures how many distinct operators the map
+// can tell apart under the asmap GetGroup() rule. The signals are
+// independent — a diff that only reassigns prefixes between existing
+// operators leaves this line flat; one new operator moves it by one.
 
 import { mountResponsiveChart } from "../charts/chart-base.js";
 import { buildTooltipBody } from "../charts/chart-tooltip.js";
@@ -81,7 +81,7 @@ function buildChart(maps, points, width, height, layout, options) {
     const range = yMax - yMin;
     // Pad the y domain by a fraction of the range so the top dot
     // does not sit on the edge. A flat series has no range, so fall
-    // back to +/- one bucket to keep the line centred.
+    // back to +/- one operator to keep the line centred.
     const padding = range > 0 ? range * 0.1 : 1;
 
     return buildLineChart(
