@@ -67,8 +67,8 @@
 }
 
 .top-movers__filter-input:focus-visible {
-    outline: 2px solid var(--color-focus, var(--color-text-strong));
-    outline-offset: 1px;
+    outline: var(--focus-ring-width) solid var(--color-accent);
+    outline-offset: var(--focus-ring-offset);
     border-color: transparent;
 }
 
@@ -114,8 +114,8 @@
 }
 
 .top-movers__clear:focus-visible {
-    outline: 2px solid var(--color-focus, var(--color-text-strong));
-    outline-offset: 2px;
+    outline: var(--focus-ring-width) solid var(--color-accent);
+    outline-offset: var(--focus-ring-offset);
 }
 
 .top-movers__clear-glyph {
@@ -191,8 +191,8 @@
 }
 
 .top-movers__sort-button:focus-visible {
-    outline: 2px solid var(--color-focus, var(--color-text-strong));
-    outline-offset: 2px;
+    outline: var(--focus-ring-width) solid var(--color-accent);
+    outline-offset: var(--focus-ring-offset);
     border-radius: 2px;
 }
 
@@ -352,8 +352,8 @@
 }
 
 .top-movers__page:focus-visible {
-    outline: 2px solid var(--color-focus, var(--color-text-strong));
-    outline-offset: 2px;
+    outline: var(--focus-ring-width) solid var(--color-accent);
+    outline-offset: var(--focus-ring-offset);
 }
 
 .top-movers__page.is-active {
