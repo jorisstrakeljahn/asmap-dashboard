@@ -102,11 +102,15 @@ svg {
 
 /* Theme cross-fade. components/theme-switch.js adds this class to
    <html> for one frame and removes it ~360ms later, tweening the
-   colour properties so the page eases between palettes instead of
-   hard-cutting. Scoped to a class so it only runs on an explicit
-   toggle, never taxing hover/scroll repaints. Only colour is listed,
-   so layout geometry keeps its own transitions; reduced-motion drops
-   the cross-fade. */
+   surfaces so the page eases between palettes instead of hard-cutting.
+   Scoped to a class so it only runs on an explicit toggle, never taxing
+   hover/scroll repaints. Only the surfaces (background, border, shadow)
+   ease; foreground content — text, numbers and currentColor icons —
+   snaps to the new palette instantly. Tweening text colour reads as the
+   figures lagging behind, "popping" to their final colour mid-fade; an
+   instant swap is crisp and stays legible against the easing surface.
+   Layout geometry keeps its own transitions; reduced-motion drops the
+   cross-fade entirely. */
 @media (prefers-reduced-motion: no-preference) {
     html.theme-transition,
     html.theme-transition *,
@@ -115,9 +119,6 @@ svg {
         transition:
             background-color var(--motion-theme) var(--motion-ease),
             border-color var(--motion-theme) var(--motion-ease),
-            color var(--motion-theme) var(--motion-ease),
-            fill var(--motion-theme) var(--motion-ease),
-            stroke var(--motion-theme) var(--motion-ease),
             box-shadow var(--motion-theme) var(--motion-ease) !important;
     }
 }
