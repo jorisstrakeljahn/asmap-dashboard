@@ -95,6 +95,6 @@ All derived from the same normalised `Snapshot` stream so every number traces ba
 4. **NetGroup diversity over time** — metric 3's ASmap-bucket count as its own time series.
 5. **ASN attribution cross-check** — share of crawler-whois ASNs that agree with the ASmap lookup; a data-quality signal.
 6. **ASmap coverage of observed nodes** — share of clearnet nodes the in-effect build maps to a real AS at all.
-7. **AS Nakamoto coefficient** — minimum number of ASes holding ≥ 50 % of the mapped nodes; the blunt adversarial reading.
+7. **ASes to reach 50%** — minimum number of ASes holding ≥ 50 % of the mapped nodes; the blunt adversarial reading. (Decentralisation studies call this the AS Nakamoto coefficient; the dashboard and pipeline use the plain name end to end.)
 
 Every per-snapshot metric is additionally split by *effective* address family (after the linked-IPv4 unwrap, mirroring Core's `GetGroup()`).

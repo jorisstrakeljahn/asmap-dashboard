@@ -8,7 +8,8 @@
 //   Row 1 — diversity / adversary
 //     1. AS concentration     HHI of the observed node set — "does
 //                             ASmap improve peer diversity right now?"
-//     2. Nakamoto coefficient ASes needed to reach 50 % of mapped nodes
+//     2. ASes to reach 50%    fewest operators that together hold half
+//                             the mapped nodes (the 50%-control headcount)
 //   Row 2 — map freshness / churn
 //     3. Map staleness        how far a ~1-year-old map drifts for
 //                             today's nodes (off the decay curve)
@@ -46,7 +47,7 @@ export function mount(parent, { snapshot, decay, latestUpdate }) {
     // buckets reflow up so the pairing degrades without a hole.
     const cards = [
         concentrationCard(snapshot),
-        nakamotoCard(snapshot),
+        reach50Card(snapshot),
         stalenessCard(decay),
     ];
     if (latestUpdate) cards.push(latestUpdateCard(latestUpdate));
@@ -73,26 +74,28 @@ function nodesCard(snapshot) {
     return card;
 }
 
-// Adversarial reading of the AS distribution: how many autonomous
-// systems an attacker must control to sit next to half the mapped
-// listening nodes. Higher is healthier. The 50 % threshold matches
-// the consensus-layer Nakamoto convention, so it's comparable across
-// studies.
-function nakamotoCard(snapshot) {
-    const card = createCard(t("network.overview.nakamoto.label"), {
-        info: t("network.overview.nakamoto.info"),
-        infoAria: t("network.overview.nakamoto.infoAria"),
+// Adversarial reading of the AS distribution: the fewest operators an
+// attacker must control to sit next to half the mapped listening nodes.
+// Higher is healthier. The 50 % threshold is the standard cut-off
+// decentralisation studies use, so it's comparable across them. The
+// data field, the function, and this card all read "ASes to reach
+// 50%" end to end (decentralisation studies call the same number the
+// AS Nakamoto coefficient).
+function reach50Card(snapshot) {
+    const card = createCard(t("network.overview.reach50.label"), {
+        info: t("network.overview.reach50.info"),
+        infoAria: t("network.overview.reach50.infoAria"),
     });
-    if (snapshot.nakamoto_50 == null) {
+    if (snapshot.ases_to_50pct == null) {
         card.append(metricNumber("\u2014"));
-        card.append(metricUnit(t("network.overview.nakamoto.noData")));
+        card.append(metricUnit(t("network.overview.reach50.noData")));
         return card;
     }
-    card.append(metricNumber(formatNumber(snapshot.nakamoto_50)));
-    card.append(metricUnit(t("network.overview.nakamoto.unit")));
+    card.append(metricNumber(formatNumber(snapshot.ases_to_50pct)));
+    card.append(metricUnit(t("network.overview.reach50.unit")));
     card.append(
         deltaLine(
-            t("network.overview.nakamoto.basis", {
+            t("network.overview.reach50.basis", {
                 mapped: formatNumber(snapshot.mapped),
             }),
         ),

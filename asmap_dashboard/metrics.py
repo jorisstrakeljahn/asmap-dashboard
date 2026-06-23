@@ -50,7 +50,7 @@ from asmap_dashboard.network.snapshots import discover_snapshots
 # (or vice versa) would otherwise silently compute nonsense — exactly
 # the failure mode observed when the union-coverage fields landed and
 # cached clients kept dividing by a field that no longer existed.
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 FILLED_FILENAME_RE = re.compile(r"^(\d+)_asmap\.dat$")
 UNFILLED_FILENAME_RE = re.compile(r"^(\d+)_asmap_unfilled\.dat$")

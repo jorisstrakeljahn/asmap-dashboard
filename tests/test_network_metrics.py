@@ -75,7 +75,7 @@ def test_snapshot_metrics_counts_mapping_hhi_and_bucketing():
     assert result["hhi"] == 0.5
     # Two equal ASes: one AS alone holds exactly half the mapped
     # nodes, so the 50 % threshold is met at rank 1.
-    assert result["nakamoto_50"] == 1
+    assert result["ases_to_50pct"] == 1
     # Three distinct /16 default groups; ASmap keeps two AS buckets plus
     # the default-group fallback for the unmapped node = three buckets.
     assert result["bucketing"]["default_groups"] == 3
@@ -113,7 +113,7 @@ def test_snapshot_metrics_splits_families_by_effective_family():
     )
 
 
-def test_nakamoto_coefficient_counts_ases_to_half():
+def test_ases_to_reach_50pct_counts_ases_to_half():
     # 6 mapped nodes: AS1 holds 2, AS2 holds 2, AS3/AS4 hold 1 each.
     # Half is 3 nodes -> AS1 alone (2) is short, AS1+AS2 (4) reaches it.
     nodes = [
@@ -139,17 +139,17 @@ def test_nakamoto_coefficient_counts_ases_to_half():
     result = _snapshot_metrics(snap, build)
 
     assert result["mapped"] == 6
-    assert result["nakamoto_50"] == 2
+    assert result["ases_to_50pct"] == 2
 
 
-def test_nakamoto_coefficient_is_none_when_nothing_is_mapped():
+def test_ases_to_reach_50pct_is_none_when_nothing_is_mapped():
     nodes = [Node(ip="9.9.9.9", version=4, asn=None, country=None)]
     snap = _snapshot(1710000001, nodes)
 
     result = _snapshot_metrics(snap, BUILD2)
 
     assert result["mapped"] == 0
-    assert result["nakamoto_50"] is None
+    assert result["ases_to_50pct"] is None
 
 
 def test_snapshot_metrics_unwraps_tunneled_ipv4_like_core():

@@ -46,13 +46,16 @@ so a reviewer can trace every number back to a public input:
      data is falling behind the network, independent of how the
      mapped majority is distributed.
 
-  7. AS Nakamoto coefficient
+  7. ASes to reach 50%
      The minimum number of autonomous systems that together hold at
      least half of the mapped nodes. Where HHI summarises the whole
      distribution, this answers the blunt adversarial question "how
      many ASes would an attacker have to control to sit next to 50 %
      of the network?" — higher is healthier. Computed over mapped
-     nodes, consistent with the HHI denominator.
+     nodes, consistent with the HHI denominator. (Decentralisation
+     studies call this the AS Nakamoto coefficient; the dashboard
+     labels it "ASes to reach 50%" so the UI reads without jargon, and
+     this module keeps the same plain name end to end.)
 
 Every per-snapshot metric is additionally split by address family
 (``families.ipv4`` / ``families.ipv6``). The family is the *effective*
@@ -291,7 +294,7 @@ def _snapshot_metrics(snapshot: Snapshot, build: _Build) -> dict:
         "mapped": overall.mapped,
         "unique_asns": len(overall.asn_counts),
         "hhi": round(_hhi(overall.asn_counts), 6),
-        "nakamoto_50": _nakamoto_coefficient(overall.asn_counts),
+        "ases_to_50pct": _ases_to_reach_share(overall.asn_counts),
         "top_ases": _top_ases(overall.asn_counts, overall.mapped),
         "bucketing": overall.bucketing(),
         "families": {name: _family_payload(tally) for name, tally in families.items()},
@@ -319,11 +322,11 @@ def _family_payload(tally: _Tally) -> dict:
     }
 
 
-def _nakamoto_coefficient(
+def _ases_to_reach_share(
     asn_counts: Counter[int], threshold: float = 0.5
 ) -> int | None:
     """Minimum number of ASes that together hold >= ``threshold`` of
-    the mapped nodes.
+    the mapped nodes (the "ASes to reach 50%" card at the default 0.5).
 
     The blunt adversarial reading of the AS distribution: an attacker
     controlling that many networks sits next to half the (mapped)
