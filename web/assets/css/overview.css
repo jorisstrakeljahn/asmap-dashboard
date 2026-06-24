@@ -1,17 +1,9 @@
-/* Overview cards: three-column metric row at the top of the Maps
-   tab. Each card carries a label, a headline number, optional
-   auxiliary content (split bar / legend), and a "vs previous"
-   delta line pinned to the bottom edge. */
-
 .card-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: var(--space-3);
 }
 
-/* The .card-row grid stretches every cell to the tallest sibling, so
-   no min-height floor is needed. Right padding leaves room for the
-   corner-pinned info tooltip so it never overlaps the label. */
 .card {
     position: relative;
     display: flex;
@@ -29,9 +21,6 @@
     color: var(--color-text-strong);
     line-height: var(--line-tight);
     margin-top: var(--space-1);
-    /* Tabular figures keep multi-digit headlines (and the delta line
-       below) on a fixed column grid; the negative tracking matches
-       the rest of the display type. */
     font-variant-numeric: tabular-nums;
     letter-spacing: var(--letter-tight);
 }
@@ -41,32 +30,17 @@
     color: var(--color-text-muted);
 }
 
-/* The unit line and this figure line form one secondary-text block:
-   identical size and colour, sitting directly under one another at the
-   card's normal rhythm instead of being pinned to the bottom edge. This
-   line carries the real figures (the IPv4/IPv6 split, the reassigned
-   counts); emphasis comes from the headline number and the title, not
-   from shrinking or floating the data. Same 16px as the chart ledes, so
-   every descriptive line on the page reads as one consistent style. */
 .card__delta {
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
 }
 
-/* The card's flex gap spaces every line evenly, which is right
-   everywhere except between two description lines: when a figure line
-   sits directly under the unit line they are one block, so cancel the
-   gap there (negative margin = -1 × gap) and let line-height alone
-   separate them. The split-legend (the unique-ASes data line) groups the
-   same way. */
+/* Negative margin cancels the flex gap so a figure line reads as one
+   block with the unit line directly above it. */
 .card__unit + .card__delta {
     margin-top: calc(var(--space-2) * -1);
 }
 
-/* Comparison / date context line ("+315 vs previous", "vs Mar 5, 2026"),
-   pinned to the bottom edge so it lines up across a row of cards rather
-   than floating directly under the data. Same size and colour as the
-   data lines — only its position differs. */
 .card__meta {
     margin-top: auto;
     padding-top: var(--space-3);
@@ -74,9 +48,6 @@
     color: var(--color-text-muted);
 }
 
-/* "Filled fallback" badge sits to the left of the corner-pinned
-   info tooltip, matching its baseline. Uses the existing muted
-   uppercase-label colour so it reads as a status, not a warning. */
 .card__fallback {
     position: absolute;
     top: var(--space-3);
@@ -86,10 +57,6 @@
     text-transform: uppercase;
 }
 
-/* Two-colour split bar so IPv4 and IPv6 read as distinct categories,
-   not "more vs less": a gap plus fully pill-rounded segments. Sits just
-   under the legend (which carries the percentages), so a small top gap
-   keeps the pair tight as one split-visualisation block. */
 .split-bar {
     display: flex;
     gap: 3px;
@@ -111,9 +78,8 @@
     background: var(--color-accent-soft);
 }
 
-/* The percentages line, treated as the card's data line: grouped tight
-   under the unit (cancel the flex gap) just like the other cards' figure
-   line, with the bar following right below it. */
+/* Negative margin cancels the flex gap (see .card__delta) so the
+   percentages group tight under the unit line. */
 .split-legend {
     display: flex;
     flex-wrap: wrap;

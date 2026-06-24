@@ -1,7 +1,3 @@
-/* Site chrome: header, main content frame, section rhythm, footer.
-   Tab-agnostic styles - everything below the body element until a
-   tab-specific stylesheet takes over for its own components. */
-
 .site-header {
     display: flex;
     align-items: center;
@@ -38,10 +34,6 @@
     transition: color var(--motion-base) var(--motion-ease);
 }
 
-/* Sliding underline: grows from centre to half width on hover and
-   full width on the active tab, so it animates between states rather
-   than snapping. Reuses the dashboard accent (the reference's lime
-   would glare on light). */
 .site-header__nav-link::after {
     content: "";
     position: absolute;
@@ -74,9 +66,6 @@
     transform: scaleX(1);
 }
 
-/* Burger toggle. Hidden on desktop where the inline nav carries
-   navigation; the ≤720px media query flips it to inline-flex and
-   turns the nav into a dropdown panel anchored beneath it. */
 .site-header__burger {
     display: none;
     align-items: center;
@@ -95,9 +84,8 @@
         background var(--motion-base) var(--motion-ease);
 }
 
-/* Only real pointer devices get the hover hairline. On touch the
-   :hover state sticks after a tap, which painted a lingering box
-   around the burger / X — gating it on hover capability drops that. */
+/* hover: hover only — on touch the :hover state sticks after a tap and
+   leaves a lingering box around the burger. */
 @media (hover: hover) {
     .site-header__burger:hover {
         border-color: var(--color-border-strong);
@@ -117,8 +105,6 @@
         opacity var(--motion-fast) var(--motion-ease);
 }
 
-/* Hamburger → X while the panel is open: the outer bars rotate
-   onto the centre line and the middle bar fades out. */
 .site-header__burger[aria-expanded="true"] .site-header__burger-line--top {
     transform: translateY(5px) rotate(45deg);
 }
@@ -137,9 +123,8 @@
     padding: var(--space-8) var(--page-gutter) var(--space-12);
 }
 
-/* Tab panels toggled via the `hidden` attribute (tabs.js). Inactive
-   panels stay in the DOM so their state survives a tab switch, while
-   `hidden` removes them from layout, paint, and assistive tech. */
+/* hidden keeps inactive panels in the DOM (state survives a switch) but
+   out of layout, paint and assistive tech. */
 .tab-panel[hidden] {
     display: none;
 }
@@ -158,9 +143,6 @@
     margin-top: var(--space-1);
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
-    /* Justified block paragraph: flush on both edges so the descriptive
-       copy reads as a tidy block, with pretty wrapping to keep the last
-       line from orphaning a single word. */
     text-align: justify;
     text-wrap: pretty;
 }
@@ -181,25 +163,15 @@
     min-width: 0;
 }
 
-/* Control cluster on the right of a section header. Lays its
-   children (drift unit, history range, etc.) out as a row that
-   wraps on narrow viewports so the section header never tears
-   the controls apart vertically before the heading wraps too. */
 .section__header-tools {
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: var(--space-3);
     flex-wrap: wrap;
-    /* Stay pinned right even after the header wraps the tools onto
-       their own line, instead of dropping flush left. */
     margin-left: auto;
 }
 
-/* Section toolbar between heading and body (e.g. the build picker
-   scoping the Overview cards). Control on the left; the meta note
-   trails it, anchored to its bottom edge so it reads as a footnote
-   rather than a second equally-weighted control. */
 .section__toolbar {
     margin-top: var(--space-4);
     display: flex;
@@ -219,11 +191,6 @@
     color: var(--color-text-muted);
 }
 
-/* Failure surface when metrics.json cannot load; replaces every tab
-   panel so the user sees the cause, not an empty page. Styled calm
-   rather than alarming because the common failures (CI not run yet,
-   Pages rebuilding) self-heal on refresh. role="alert" surfaces it
-   to screen readers. */
 .load-error {
     margin-top: var(--space-8);
     padding: var(--space-6);
@@ -243,9 +210,6 @@
     line-height: var(--line-normal);
 }
 
-/* Secondary action sitting under the body copy. Muted by default
-   so it does not compete with the banner heading; the focus ring
-   reuses the same accent the rest of the dashboard uses. */
 .load-error__retry {
     margin-top: var(--space-4);
     height: var(--control-height);
@@ -255,7 +219,6 @@
     background: var(--color-bg);
     color: var(--color-text-base);
     font: inherit;
-    /* Compact UI scale: buttons stay tight (see tokens.css). */
     font-size: var(--font-size-control);
     font-weight: var(--font-weight-medium);
     cursor: pointer;
@@ -276,11 +239,6 @@
     cursor: progress;
 }
 
-/* Loading skeletons: placeholders in every data-* slot until the tab
-   module mounts and calls replaceChildren. Strategy is "show the
-   layout, not a spinner". The shimmer is one keyframe sweeping a
-   light band across the placeholder; prefers-reduced-motion collapses
-   it to a static gradient via the *::after override in tokens.css. */
 .skeleton {
     position: relative;
     overflow: hidden;
@@ -302,8 +260,7 @@
     animation: skeleton-shimmer 1.4s ease-in-out infinite;
 }
 
-/* The 55%-alpha light-theme band would glare on the near-black dark
-   surfaces, so dim it to a faint white sweep. */
+/* The light-theme band would glare on near-black dark surfaces. */
 html[data-theme="dark"] .skeleton::after {
     background: linear-gradient(
         90deg,
@@ -353,10 +310,6 @@ html[data-theme="dark"] .skeleton::after {
     height: 360px;
 }
 
-/* Footer sits below the main content with a thin top rule so it
-   detaches from the last section without competing with it. Two
-   stacked lines (sources + project meta) center-aligned so the
-   footer feels like a stable anchor regardless of page length. */
 .site-footer {
     margin-top: var(--space-12);
     padding: var(--space-6) var(--page-gutter) var(--space-8);
@@ -392,8 +345,6 @@ html[data-theme="dark"] .skeleton::after {
     text-decoration-color: var(--color-text-subtle);
 }
 
-/* Caption + its source list ride together as one block, tight, so the
-   inner gap above only has to separate the sources from the repo row. */
 .site-footer__sources-group {
     display: flex;
     flex-direction: column;
@@ -401,8 +352,6 @@ html[data-theme="dark"] .skeleton::after {
     gap: var(--space-2);
 }
 
-/* The three credits read as one centred line that wraps gracefully on
-   narrow viewports; generous column spacing keeps them distinct. */
 .site-footer__sources {
     display: flex;
     flex-wrap: wrap;
@@ -416,7 +365,6 @@ html[data-theme="dark"] .skeleton::after {
     align-items: baseline;
 }
 
-/* The role each source plays, quiet so the link stays the anchor. */
 .site-footer__source-desc {
     margin-left: var(--space-1);
     color: var(--color-text-subtle);
@@ -431,8 +379,6 @@ html[data-theme="dark"] .skeleton::after {
     content: ")";
 }
 
-/* Bottom row: the repo link (with its mark) and the refreshed stamp.
-   Centres as one line, wraps to a stack when the two no longer fit. */
 .site-footer__bottom {
     display: flex;
     flex-wrap: wrap;
@@ -441,9 +387,7 @@ html[data-theme="dark"] .skeleton::after {
     gap: var(--space-2) var(--space-4);
 }
 
-/* The repo link carries an icon, so it drops the shared underline and
-   leans on the mark plus a hover colour shift instead. The `a`
-   qualifier lifts specificity past the generic `.site-footer a`
+/* The `a` qualifier lifts specificity past the generic .site-footer a
    underline rule above. */
 a.site-footer__repo {
     display: inline-flex;
@@ -454,8 +398,7 @@ a.site-footer__repo {
 
 .site-footer__repo-icon {
     flex-shrink: 0;
-    /* block strips the inline-baseline gap an SVG inherits, so the mark
-       sits centred against the label rather than a hair high. */
+    /* block strips the inline-baseline gap an SVG inherits. */
     display: block;
 }
 
@@ -496,11 +439,6 @@ a.site-footer__repo {
     }
 }
 
-/* Below 720px the inline nav collapses behind the burger; tapping it
-   expands a full-screen overlay (tabs stacked left, theme switch
-   relocated to the bottom by components/nav-menu.js). The header
-   stays sticky with the burger morphed into an X to dismiss. The
-   `is-open` class (toggled by nav-menu.js) gates the panel. */
 @media (max-width: 720px) {
     .site-header {
         position: sticky;
@@ -511,9 +449,6 @@ a.site-footer__repo {
     .site-header__burger {
         display: inline-flex;
     }
-    /* The overlay is a child of the header, so lift the logo and the
-       burger above it: they stay visible and the burger — now an X —
-       stays tappable to dismiss the menu it opened. */
     .site-header__logo,
     .site-header__actions {
         position: relative;
@@ -527,9 +462,8 @@ a.site-footer__repo {
         align-items: stretch;
         gap: 0;
         margin: 0;
-        /* Clear the sticky header at the top; respect the home-bar
-           safe area at the bottom so the theme switch never tucks
-           under the iOS gesture indicator. */
+        /* Clear the sticky header at the top; respect the home-bar safe
+           area at the bottom. */
         padding:
             calc(var(--header-height) + var(--space-6))
             var(--page-gutter)
@@ -541,8 +475,6 @@ a.site-footer__repo {
     .site-header__nav:not(.is-open) {
         display: none;
     }
-    /* Fade the panel in, then float each row up in a quick stagger so
-       the menu assembles itself instead of snapping into place. */
     .site-header__nav.is-open {
         animation: nav-overlay-in var(--motion-base) var(--motion-ease);
     }
@@ -560,10 +492,6 @@ a.site-footer__repo {
     .site-header__nav.is-open .site-header__nav-link:nth-of-type(3) {
         animation-delay: 0.12s;
     }
-    /* Big, left-aligned, stacked tap targets — the standard
-       full-screen mobile-menu treatment. The left padding reserves
-       room for the active-tab accent bar so switching tabs never
-       shifts the labels sideways. */
     .site-header__nav-link {
         position: relative;
         padding: var(--space-3) 0 var(--space-3) var(--space-4);
@@ -573,10 +501,6 @@ a.site-footer__repo {
         letter-spacing: var(--letter-tight);
         color: var(--color-text-muted);
     }
-    /* The desktop sliding underline is replaced here by a vertical
-       accent bar at the left edge — the same accent, reading as a
-       "current page" marker in the stacked layout. It grows from the
-       centre on the active tab and stays collapsed otherwise. */
     .site-header__nav-link::after {
         content: "";
         left: 0;
@@ -595,8 +519,6 @@ a.site-footer__repo {
         background: transparent;
         color: var(--color-text-strong);
     }
-    /* Active tab: accent label plus the full-height accent bar, so the
-       current section is unmistakable at a glance. */
     .site-header__nav-link.is-active {
         background: transparent;
         color: var(--color-accent);
@@ -604,15 +526,12 @@ a.site-footer__repo {
     .site-header__nav-link.is-active::after {
         transform: translateY(-50%) scaleY(1);
     }
-    /* Theme switch footer: pushed to the bottom of the panel with a
-       divider above so it reads as a settings row, not a stray tab. */
     .site-nav__footer {
         margin-top: auto;
         padding-top: var(--space-6);
         border-top: 1px solid var(--color-border);
     }
-    /* Lock the page behind the overlay so a scroll gesture moves the
-       menu, never the dashboard underneath it. */
+    /* Scroll-lock the page behind the overlay. */
     body.has-nav-open {
         overflow: hidden;
     }
@@ -661,8 +580,6 @@ a.site-footer__repo {
     }
 }
 
-/* Below the width where the one-line credit fits, stack the sources as
-   a centred list rather than letting them wrap mid-row. */
 @media (max-width: 700px) {
     .site-footer__sources {
         flex-direction: column;

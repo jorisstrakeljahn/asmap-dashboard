@@ -1,14 +1,11 @@
-// "i" trigger + explanatory popover. ``body`` is an array of
-// paragraphs, each a string or { lead, text } where ``lead`` renders
-// bold so multi-bucket explainers read as a glossary. A single
-// ``text`` string is also accepted. Returns a <span> with setBody(next).
+// "i" trigger + explanatory popover. ``body`` is an array of paragraphs
+// (string or { lead, text }, ``lead`` bold) or a single ``text`` string.
+// Returns a <span> with setBody(next).
 //
-// Two presentations from the same content: on a fine pointer the panel
-// is an anchored popover next to the "i"; on a touch device
-// (pointer: coarse) it is a bottom-sheet that slides up over a scrim,
-// because a 14px corner icon is a poor anchor on a phone and a fixed
-// panel clamped to the viewport edge reads as cut off. The sheet is a
-// single shared node (only one tooltip can be open at once); see
+// Same content, two presentations: a fine pointer gets an anchored
+// popover next to the "i"; touch (pointer: coarse) gets a bottom-sheet
+// over a scrim, since a 14px corner icon anchors poorly on a phone. The
+// sheet is one shared node (only one tooltip opens at a time); see
 // getInfoSheet below.
 
 import { createOutsideDismiss } from "../utils/dismiss.js";
@@ -18,21 +15,19 @@ import { renderParagraphs } from "./paragraphs.js";
 
 const PANEL_GAP = 6;
 const VIEWPORT_MARGIN = 8;
-// Wider than a typical tooltip so a multi-sentence explanation lays out
-// in a few short lines instead of a tall, narrow column. Mirrors the CSS
-// fallback in info-tooltip.css; placePopover caps it to the viewport on
-// narrow screens. This inline value wins at runtime, so it must track
-// the stylesheet.
+// Wide enough that a multi-sentence explanation lays out in a few short
+// lines, not a tall column. Mirrors the CSS fallback in info-tooltip.css
+// and wins at runtime, so it must track the stylesheet; placePopover caps
+// it to the viewport on narrow screens.
 const PANEL_MAX_WIDTH = 480;
 
 // Primary pointer is touch -> render the sheet instead of the popover.
 const coarsePointer = window.matchMedia("(pointer: coarse)");
 
-// ``sheetHeader`` (optional) is a function returning a Node or array of
-// Nodes rendered above a divider in the mobile bottom-sheet — used to
-// lead the explanation with the host card's title, number and
-// description so a phone reader keeps the context the popover gets for
-// free on desktop. Ignored in the anchored popover.
+// ``sheetHeader`` (optional) returns a Node or array of Nodes shown above
+// a divider in the bottom-sheet, leading the explanation with the host
+// card's title / number / description so a phone reader keeps the context
+// desktop gets from the adjacent popover. Ignored in the popover.
 export function createInfoTooltip({ text, body, ariaLabel, sheetHeader } = {}) {
     const root = document.createElement("span");
     root.className = "info-tooltip";
@@ -43,9 +38,8 @@ export function createInfoTooltip({ text, body, ariaLabel, sheetHeader } = {}) {
         popoverId,
     });
     const popover = buildPopover(popoverId);
-    // Track the live content so the bottom-sheet (which renders into a
-    // shared node on open) shows the same paragraphs as the popover,
-    // including any later setBody update.
+    // Track live content so the shared bottom-sheet renders the same
+    // paragraphs as the popover, including later setBody updates.
     let currentBody = body ?? text;
     renderParagraphs(popover, currentBody);
     root.append(trigger, popover);
@@ -61,9 +55,8 @@ export function createInfoTooltip({ text, body, ariaLabel, sheetHeader } = {}) {
     // click on an already-hovered icon would close it again), so
     // sticky is a third state, not a toggle.
     //
-    // ``mode`` records which presentation a given open used so the
-    // matching close path runs even if the pointer type changed
-    // mid-open.
+    // ``mode`` records the presentation an open used so the matching
+    // close path runs even if the pointer type changed mid-open.
     let open = false;
     let sticky = false;
     let mode = null;
@@ -91,9 +84,8 @@ export function createInfoTooltip({ text, body, ariaLabel, sheetHeader } = {}) {
     }
 
     // Outside press / scroll closes the popover; resize re-places it.
-    // The popover is short enough never to need internal scrolling, so
-    // every scroll is an outside-scroll that dismisses. (Sheet mode
-    // wires its own dismissals, so this is the popover path only.)
+    // The popover never scrolls internally, so every scroll dismisses.
+    // (Sheet mode wires its own dismissals; this is the popover path.)
     const dismiss = createOutsideDismiss({
         root,
         onDismiss: () => setOpen(false),
@@ -162,9 +154,9 @@ export function createInfoTooltip({ text, body, ariaLabel, sheetHeader } = {}) {
 
     function closeSheet() {
         getInfoSheet().close();
-        // Return focus to the invoker so a keyboard / switch user lands
-        // back where they were. The hover + focus open paths are gated
-        // on a fine pointer, so this never re-opens the sheet on touch.
+        // Return focus to the trigger for keyboard / switch users. Hover
+        // + focus opens are gated on a fine pointer, so this never re-opens
+        // the sheet on touch.
         trigger.focus({ preventScroll: true });
     }
 
@@ -188,10 +180,9 @@ export function createInfoTooltip({ text, body, ariaLabel, sheetHeader } = {}) {
     function placePopover() {
         if (!open || mode !== "popover") return;
         const triggerRect = trigger.getBoundingClientRect();
-        // Measure against the document's client box, NOT
-        // window.innerWidth/innerHeight: those include the scrollbar
-        // gutter, so a panel placed against the "edge" slides under the
-        // scrollbar and clips on the right. clientWidth/Height is the
+        // Measure the document client box, NOT window.innerWidth/Height:
+        // those include the scrollbar gutter, so a panel at the "edge"
+        // slides under the scrollbar and clips. clientWidth/Height is the
         // usable content area.
         const viewportWidth = document.documentElement.clientWidth;
         const viewportHeight = document.documentElement.clientHeight;
@@ -311,20 +302,17 @@ export function createInfoTooltip({ text, body, ariaLabel, sheetHeader } = {}) {
     return root;
 }
 
-// Snapshot of a container's content for the mobile sheet header: every
-// child except the info trigger itself, cloned so the live DOM is
-// untouched, with any nested info triggers stripped from the clones (a
-// dead "i" in the static header would only confuse). Read at open time,
-// so it reflects the current build. Callers pass the element whose
-// numbers contextualise the explanation — a card, or a smaller wrap like
-// the node-impact banner — so the phone reader keeps the context the
-// desktop popover gets from sitting right beside it.
+// Snapshot a container's content for the sheet header: every child bar
+// the info trigger, cloned (live DOM untouched) with nested triggers
+// stripped (a dead "i" only confuses) and ids dropped (the sheet copy
+// must not duplicate an id still live in the card). Read at open time, so
+// it tracks the current build. Callers pass the element whose numbers
+// frame the explanation — a card, or a smaller wrap like the node-impact
+// banner.
 //
-// ``exclude`` is a list of selectors for sibling blocks to leave out —
-// used where a card hosts sub-sections that carry their own "i" (the
-// roster-delta line, the node-impact banner): the card's own explainer
-// covers the headline breakdown only, and each sub-section's explainer
-// leads with just its own figures.
+// ``exclude`` lists selectors to leave out, used where a card hosts
+// sub-sections with their own "i" (roster-delta line, node-impact
+// banner): the card explainer then covers the headline breakdown only.
 export function cloneSheetContext(container, { exclude = [] } = {}) {
     const nodes = [];
     for (const child of container.children) {
@@ -332,6 +320,8 @@ export function cloneSheetContext(container, { exclude = [] } = {}) {
         if (exclude.some((selector) => child.matches(selector))) continue;
         const clone = child.cloneNode(true);
         clone.querySelectorAll?.(".info-tooltip").forEach((node) => node.remove());
+        clone.removeAttribute?.("id");
+        clone.querySelectorAll?.("[id]").forEach((node) => node.removeAttribute("id"));
         nodes.push(clone);
     }
     return nodes;
@@ -353,9 +343,8 @@ function buildPopover(id) {
     div.className = "info-tooltip__popover";
     div.id = id;
     div.setAttribute("role", "tooltip");
-    // Cap to the viewport so the panel never grows wider than the
-    // screen and clips at the right edge; placePopover only moves it.
-    // Mirrors the CSS fallback in info-tooltip.css.
+    // Cap to the viewport so the panel never outgrows the screen and
+    // clips; placePopover only moves it. Mirrors info-tooltip.css.
     div.style.maxWidth = `min(${PANEL_MAX_WIDTH}px, calc(100vw - ${2 * VIEWPORT_MARGIN}px))`;
     div.hidden = true;
     return div;
@@ -390,13 +379,11 @@ function buildIcon() {
 }
 
 // ── Shared mobile bottom-sheet ───────────────────────────────────
-// One node for the whole page: only one tooltip can be open at a
-// time (an open sheet covers every other "i"), so a singleton avoids
-// littering <body> with a hidden sheet per tooltip. Built lazily the
-// first time a touch device opens one. The currently-open tooltip
-// registers an ``onRequestClose`` callback so a dismissal (X, scrim,
-// swipe, Escape, pointer-type change) routes back through its own
-// setOpen(false) — the single close path that also restores focus.
+// One node for the whole page (only one tooltip opens at a time), built
+// lazily on the first touch open. The open tooltip registers an
+// ``onRequestClose`` so any dismissal (scrim, swipe, Escape, pointer-type
+// change) routes back through its setOpen(false) — the one close path
+// that also restores focus.
 let infoSheet = null;
 
 function getInfoSheet() {
@@ -408,8 +395,8 @@ function createInfoSheet() {
     // Must outlast --motion-sheet (340ms) so the slide-down finishes
     // before the sheet is hidden.
     const SHEET_CLOSE_MS = 360;
-    // Fraction of the sheet height that must be dragged away, or the
-    // flick velocity (px/ms) that, to dismiss on release.
+    // Drag past this fraction of the sheet height, or flick faster than
+    // this velocity (px/ms), to dismiss on release.
     const DRAG_DISMISS_RATIO = 0.3;
     const DRAG_FLICK_VELOCITY = 0.6;
 
@@ -421,10 +408,9 @@ function createInfoSheet() {
     sheet.className = "info-sheet";
     sheet.setAttribute("role", "dialog");
     sheet.setAttribute("aria-modal", "true");
-    // No on-screen close control (dismissed by swipe-down, scrim tap or
-    // Escape), so the dialog itself takes focus on open and is the lone
-    // Tab stop. tabindex -1 keeps it programmatically focusable without
-    // adding it to the tab order.
+    // No on-screen close control (swipe, scrim or Escape dismiss), so the
+    // dialog takes focus on open and is the lone Tab stop. tabindex -1
+    // keeps it focusable without joining the tab order.
     sheet.tabIndex = -1;
 
     const grip = document.createElement("div");
@@ -434,9 +420,8 @@ function createInfoSheet() {
     handle.className = "info-sheet__handle";
     grip.append(handle);
 
-    // One scroll region holds the (optional) card header, a divider, and
-    // the explanation, so the whole stack scrolls as a unit inside the
-    // fixed-height sheet while the grip handle stays put.
+    // One scroll region for the (optional) header, divider and explanation,
+    // so the stack scrolls as a unit while the grip stays put.
     const scrollEl = document.createElement("div");
     scrollEl.className = "info-sheet__scroll";
 
@@ -463,10 +448,9 @@ function createInfoSheet() {
         if (active) active.onRequestClose();
     }
 
-    // Drive the edge scroll-fades: fade an edge only while content runs
-    // past it, drop that edge's fade once it is in view (so the first and
-    // last lines are never dimmed). The 1px slack absorbs sub-pixel
-    // rounding so the fades do not flicker at the extremes.
+    // Edge scroll-fades: fade an edge only while content runs past it,
+    // drop it once that end is in view (first / last line never dimmed).
+    // 1px slack absorbs sub-pixel rounding so the fades don't flicker.
     function updateScrollFade() {
         const overflowing = scrollEl.scrollHeight - scrollEl.clientHeight > 1;
         const atTop = scrollEl.scrollTop <= 1;
@@ -490,17 +474,15 @@ function createInfoSheet() {
             hideTimer = 0;
         }
         renderParagraphs(bodyEl, bodyInput);
-        // Lead with the host card's content (title / number / description)
-        // when the caller supplies it, divided from the explanation, so a
-        // phone reader sees what they are reading about. Empty otherwise.
+        // Lead with the host card's content when the caller supplies it,
+        // divided from the explanation; empty otherwise.
         headerEl.replaceChildren();
         const headerNodes = typeof header === "function" ? header() : null;
         const hasHeader = headerNodes && [].concat(headerNodes).length > 0;
         if (hasHeader) headerEl.append(...[].concat(headerNodes));
         headerEl.hidden = !hasHeader;
         divider.hidden = !hasHeader;
-        // The dialog itself is labelled by the tooltip's description;
-        // the close button keeps its fixed "Close" label (set once).
+        // Label the dialog with the tooltip's own description.
         sheet.setAttribute("aria-label", ariaLabel);
         sheet.classList.remove("is-dragging");
         sheet.style.transform = "";
@@ -526,9 +508,9 @@ function createInfoSheet() {
         document.removeEventListener("keydown", onKey, true);
         document.body.classList.remove("has-info-sheet-open");
         sheet.classList.remove("is-dragging");
-        // Add the collapsed target first, then drop any drag offset so
-        // the sheet glides from wherever the finger left it down to
-        // off-screen (translateY(100%)) instead of snapping.
+        // Set the collapsed target first, then drop the drag offset so the
+        // sheet glides from where the finger left it to off-screen instead
+        // of snapping.
         backdrop.classList.add("is-collapsed");
         sheet.style.transform = "";
         if (hideTimer) clearTimeout(hideTimer);
@@ -543,9 +525,8 @@ function createInfoSheet() {
             ev.preventDefault();
             requestClose();
         } else if (ev.key === "Tab") {
-            // Paragraph bodies are non-interactive and there is no close
-            // button, so the dialog itself is the only focus target: trap
-            // focus on it.
+            // Bodies are non-interactive and there's no close button, so
+            // the dialog is the only focus target: trap focus on it.
             ev.preventDefault();
             sheet.focus();
         }

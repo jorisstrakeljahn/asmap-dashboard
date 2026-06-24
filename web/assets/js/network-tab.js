@@ -73,11 +73,10 @@ export function mount(payload) {
         latestUpdate: network.latest_update,
     });
 
-    // The hero is introduced by one paragraph: the static section lede
-    // (what this tab does) plus the crawl provenance (which snapshot the
-    // cards read, and any archived comparison source). They read as one
-    // thought, so they share a single sentence rather than splitting the
-    // provenance into a separate meta line below the heading.
+    // One intro paragraph: the static section lede (what this tab does)
+    // plus the crawl provenance (which snapshot the cards read, any
+    // archived comparison source), joined rather than split into a
+    // separate meta line.
     const ledeSlot = document.querySelector("[data-network-lede]");
     if (ledeSlot) {
         const provenance = t("network.overview.sourceMeta", {

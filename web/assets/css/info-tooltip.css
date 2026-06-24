@@ -1,9 +1,3 @@
-/* Small "i" affordance with a click-/hover-revealed popover. JS in
-   components/info-tooltip.js; placement mirrors dropdown.css (flips
-   above when the viewport edge would clip it, see placePopover).
-   Drop one next to any label that needs more context; keep the
-   popover text short. */
-
 .info-tooltip {
     position: relative;
     display: inline-flex;
@@ -31,10 +25,8 @@
         background var(--motion-fast) var(--motion-ease);
 }
 
-/* Invisible hit-area halo so the pointer does not slip off the 18px
-   icon. The ::before only grows the pointer-events surface, leaving
-   layout untouched: ~26px target for every pointer, widened toward
-   ~32px for coarse pointers below. */
+/* Invisible hit-area halo widening the pointer target past the 14px
+   icon without affecting layout; larger for coarse pointers below. */
 .info-tooltip__trigger::before {
     content: "";
     position: absolute;
@@ -65,24 +57,16 @@
     height: 14px;
 }
 
-/* Card-corner modifier pins the trigger to the card's upper-right;
-   the host card needs `position: relative` for the anchor.
-
-   No z-index on purpose: a z-index here would make this a stacking
-   context that traps its own fixed popover, which would then paint
-   below a later card's icon. Leaving it auto lets the popover
-   (z-popover) rise to the nearest shared context and cover sibling
-   icons. */
+/* No z-index on purpose: it would make this a stacking context that
+   traps its own fixed popover under a later card's icon. */
 .info-tooltip--card-corner {
     position: absolute;
     top: var(--space-3);
     right: var(--space-3);
 }
 
-/* Fixed-position so any overflow:auto ancestor (e.g. the
-   horizontally-scrolling Top Movers table) cannot clip the
-   popover. JS in info-tooltip.js writes top / left in viewport
-   coordinates each time the popover opens. */
+/* Fixed so no overflow:auto ancestor (e.g. the scrolling Top Movers
+   table) can clip it; info-tooltip.js writes top / left each open. */
 .info-tooltip__popover {
     position: fixed;
     top: 0;
@@ -102,26 +86,15 @@
     font-weight: var(--font-weight-regular);
     white-space: normal;
     width: max-content;
-    /* Mirrors PANEL_MAX_WIDTH / VIEWPORT_MARGIN in info-tooltip.js. The
-       JS-set inline style.maxWidth wins at runtime; this rule is the
-       fallback for any future caller that bypasses the JS factory.
-       The viewport term caps the panel on narrow screens so it can
-       never grow wider than the viewport and clip at the right edge —
-       placePopover only moves the panel, it does not shrink it. */
+    /* Mirrors PANEL_MAX_WIDTH / VIEWPORT_MARGIN in info-tooltip.js (the
+       inline style wins at runtime); the viewport term caps narrow screens. */
     max-width: min(480px, calc(100vw - 16px));
-    /* Open/close animation: the panel unfolds out of the "i". JS sets
-       transform-origin and the per-side shift (--tip-enter-shift) so
-       scale+fade reads as growing from the icon. The bare rule here is
-       the visible state; the collapsed state below is carried only
-       during the transition, so a non-JS caller stays fully visible. */
     transform-origin: top center;
     transition:
         opacity var(--motion-slow) var(--ease-decelerate),
         transform var(--motion-slow) var(--ease-decelerate);
-    /* placePopover caps max-height to the viewport on a narrow / short
-       window; let the panel scroll internally then instead of being
-       clipped off-screen. Scroll events here stay inside the tooltip
-       root, so the outside-scroll dismiss does not fire. */
+    /* placePopover caps max-height to the viewport; scroll internally then
+       rather than clip off-screen (scroll stays inside the tooltip root). */
     overflow-y: auto;
     overscroll-behavior: contain;
 }
@@ -135,15 +108,9 @@
     display: none;
 }
 
-/* ── Mobile bottom-sheet ──────────────────────────────────────────
-   On touch devices (pointer: coarse) the anchored popover is replaced
-   by a bottom-sheet: a 14px "i" pinned to a card corner is a poor
-   anchor on a phone, and a fixed panel clamped to the viewport edge
-   reads as cut off. The sheet is a single shared node (one open at a
-   time) created lazily by info-tooltip.js and mounted on <body>, so
-   it escapes every overflow:auto ancestor and covers the sticky
-   header. JS owns open/close, drag-to-dismiss, focus and scroll lock;
-   these rules are the look and the slide/fade transitions. */
+/* ── Mobile bottom-sheet (pointer: coarse) ────────────────────────
+   Shared node mounted on <body> by info-tooltip.js so it escapes every
+   overflow:auto ancestor; JS owns open/close, drag, focus, scroll lock. */
 .info-sheet-backdrop {
     position: fixed;
     inset: 0;
@@ -154,9 +121,7 @@
     background: var(--color-scrim, rgba(0, 0, 0, 0.5));
     opacity: 1;
     transition: opacity var(--motion-sheet) var(--ease-decelerate);
-    /* The scrim swallows pan/zoom gestures (a tap still dismisses), and
-       no overscroll chains out of it — so a swipe on the dimmed area
-       never nudges the page behind the sheet. */
+    /* Swallow pan/zoom on the scrim; no overscroll chains to the page. */
     touch-action: none;
     overscroll-behavior: none;
 }
@@ -172,18 +137,11 @@
 .info-sheet {
     position: relative;
     width: 100%;
-    /* A near-full-screen panel: tall enough to hold the card context
-       plus a longer explanation without feeling cramped, leaving just a
-       sliver of the page (and its scrim) peeking at the top so it still
-       reads as a dismissible sheet, not a route change. dvh tracks the
-       real (browser-chrome aware) viewport on mobile; vh is the fallback. */
+    /* dvh tracks the browser-chrome-aware viewport; vh is the fallback. */
     height: 90vh;
     height: 90dvh;
     display: flex;
     flex-direction: column;
-    /* Only the top corners round — the sheet is flush with the bottom
-       edge. Safe-area padding keeps the last line clear of the iOS
-       home-bar gesture indicator. */
     border-top-left-radius: var(--radius);
     border-top-right-radius: var(--radius);
     border-top: 1px solid var(--color-border-strong);
@@ -192,22 +150,17 @@
     box-shadow: var(--shadow-popover);
     transform: translateY(0);
     transition: transform var(--motion-sheet) var(--ease-decelerate);
-    /* Block stray pans on the sheet chrome; the grip owns the drag (its
-       own touch-action: none) and the scroll region opts back into
-       vertical panning only (pan-y below). Nothing pans sideways. */
+    /* Block stray pans on the chrome; grip drags, scroll region pans-y. */
     touch-action: none;
 }
 
-/* The sheet takes focus on open (it is the dialog and, with no close
-   button, the lone Tab stop), but that programmatic focus should not
-   paint a ring around the whole panel. */
+/* Programmatic focus on open should not paint a ring on the panel. */
 .info-sheet:focus {
     outline: none;
 }
 
-/* During a drag the inline transform is updated every pointermove, so
-   the slow transition must be off or the sheet would lag the finger;
-   it is restored on release for the spring-back / dismiss glide. */
+/* Drag updates the inline transform per pointermove, so the transition
+   must be off or the sheet lags the finger; restored on release. */
 .info-sheet.is-dragging {
     transition: none;
 }
@@ -216,8 +169,6 @@
     transform: translateY(100%);
 }
 
-/* Grip strip: the whole top band is the drag surface, with a visible
-   handle bar centred in it so the swipe-down affordance is obvious. */
 .info-sheet__grip {
     flex: none;
     display: flex;
@@ -239,35 +190,21 @@
     background: var(--color-border-strong);
 }
 
-/* The single scroll region: card header + divider + explanation scroll
-   together inside the fixed-height sheet. overscroll-behavior keeps the
-   scroll from chaining to the locked page behind it; the safe-area pad
-   clears the iOS home-bar. The top pad drops the first line clear of the
-   grip handle and the corner close button so neither overlaps the text. */
 .info-sheet__scroll {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
-    /* No horizontal scroll: wide cloned context (a stacked bar, a long
-       roster line) is clipped to the sheet instead of opening a sideways
-       scroll the finger could swing the content along. */
     overflow-x: hidden;
-    /* `none`, not `contain`: also kills the local rubber-band bounce, so a
-       sheet whose content fits does not wobble when dragged. */
+    /* none (not contain): also kills the local rubber-band bounce. */
     overscroll-behavior: none;
-    /* Vertical panning only — a sideways swipe is ignored here, never
-       shoving the content out of frame. */
     touch-action: pan-y;
     -webkit-overflow-scrolling: touch;
     padding: var(--space-6) var(--space-5) 0;
     padding-bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
 }
 
-/* When the stack is taller than the sheet, fade the clipped edges so a
-   cut-off line reads as "more this way — scroll". JS toggles
-   is-overflowing (content exceeds the box), is-at-top and is-at-bottom
-   (an edge is in view): each edge whose end is reached is forced opaque
-   so the very first and last lines are never left dimmed. */
+/* Fade the clipped edges when the stack overflows; JS forces the
+   reached edge opaque so the first/last line is never left dimmed. */
 .info-sheet__scroll.is-overflowing {
     --info-fade: var(--space-12);
     --info-fade-top: transparent;
@@ -296,9 +233,6 @@
     --info-fade-bottom: #000;
 }
 
-/* Card header: a clone of the host card's content (title, number,
-   description). Mirrors the card's own flex+gap rhythm so it reads
-   exactly like the card it explains. */
 .info-sheet__card {
     display: flex;
     flex-direction: column;
@@ -325,12 +259,8 @@
     line-height: var(--line-normal);
 }
 
-/* Lock the page behind the sheet so a scroll gesture moves the sheet
-   body, never the dashboard underneath it (mirrors body.has-nav-open
-   in layout.css). */
+/* Scroll-lock the page behind the sheet (mirrors body.has-nav-open). */
 body.has-info-sheet-open {
     overflow: hidden;
-    /* Belt-and-braces with the scrim's own guard: no overscroll escapes
-       the locked page while the sheet is up. */
     overscroll-behavior: none;
 }

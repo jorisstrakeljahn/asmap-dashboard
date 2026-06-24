@@ -219,9 +219,9 @@ export function rosterDeltaRow(diff) {
     const tip = createInfoTooltip({
         body: t("diff.rosterDeltaInfo"),
         ariaLabel: t("diff.rosterDeltaInfoAria"),
-        // On a phone the explanation opens as a bottom-sheet; lead it with
-        // this section's own roster line (the AS totals and the
-        // appeared / disappeared counts) so the reader keeps the context.
+        // The mobile sheet leads with this section's own roster line (AS
+        // totals, appeared / disappeared counts) so the reader keeps the
+        // context.
         sheetHeader: () => cloneSheetContext(section),
     });
     tip.classList.add("as-roster-delta__info");

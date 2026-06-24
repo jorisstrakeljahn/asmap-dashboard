@@ -89,13 +89,11 @@
         </header>
         <!-- Reveal the Network tab before first paint when the last visit
              had network data, so the header does not reflow when app.js
-             confirms it a moment later. The tab is opt-in (hidden until
-             network.json is known present), so this only un-hides for
-             returning visitors who already saw it; a deploy that never
-             ships network.json never stored the flag and stays stable.
-             Mirrors the theme pre-paint script; app.js writes the flag in
-             revealNetworkNav. Inline + parser-blocking so it runs before
-             the nav is painted. -->
+             confirms it a moment later. Only un-hides for returning
+             visitors who already saw it; a deploy without network.json
+             never stored the flag and stays stable. Mirrors the theme
+             pre-paint script (app.js writes the flag in revealNetworkNav),
+             inline + parser-blocking so it runs before the nav paints. -->
         <script>
             (function () {
                 try {
