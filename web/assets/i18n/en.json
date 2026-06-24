@@ -63,7 +63,7 @@
 
     "overview": {
         "sectionTitle": "Overview",
-        "sectionLede": "ASmap is the file Bitcoin Core uses to group peers by their network operator, so no single operator can surround a node and isolate it. These cards summarise the build you pick, from how much of the internet it maps to how far it moved since the last release.",
+        "sectionLede": "An ASmap maps an ASN to IP networks under its control. These maps are generated on a regular basis. These cards summarise the build you pick, measure how much of the internet it maps, and gauge how much it has changed since the last release.",
         "noPublishedMaps": "No published maps found in metrics.json.",
         "noVariantData": "Build {name} has no published variant data.",
         "buildSelector": {
@@ -145,7 +145,7 @@
         },
         "driftCumulative": {
             "title": "Cumulative Drift Since the Oldest Build",
-            "lede": "An ASmap build maps each block of IP addresses to the network operator (its autonomous system, or AS) that announces it. Bitcoin Core uses this so a node never leans on a single operator. This chart adds up how far each build has moved from the oldest one, meaning the share of mapped address space that now points to a different AS. A flat stretch means the data held steady, while a steep climb means a lot changed.",
+            "lede": "An ASmap maps an IP network to the autonomous system, or AS, that announces it. This chart adds up how far each build has moved from the oldest one, meaning the share of mapped address space that now points to a different AS. A flat stretch means the data held steady, while a steep climb means a large change.",
             "infoAria": "About cumulative drift",
             "ariaLabel": "Cumulative drift composition since the oldest published build. Reassigned, newly mapped, unmapped, and total drift series.",
             "info": [
@@ -172,7 +172,7 @@
         },
         "driftStep": {
             "title": "Drift Between Builds",
-            "lede": "The same change measured from one build to the next instead of adding up, with one bar for how much moved between each release and the one before it. Tall bars are big updates and short bars are quiet ones. A tall bar right after a long pause is mostly the months in between, not a single event.",
+            "lede": "The same change measured from one build to the next, with one bar for how much moved between each release and the one before it. Tall bars are big updates and short bars are small ones. A tall bar right after a long pause is mostly the months in between, not a single event.",
             "infoAria": "About per build drift",
             "ariaLabel": "Step drift composition between each build and its last diffable predecessor. Reassigned, newly mapped, unmapped, and total drift series.",
             "info": [
@@ -249,7 +249,7 @@
         },
         "diversityChart": {
             "title": "Distinct Operators Per Build",
-            "lede": "How many different network operators (autonomous systems, or ASes) each build can tell apart. Bitcoin Core won't lean all its connections on one operator, so the more operators a map distinguishes, the harder it is for any single one to surround a node. The drift charts above measured how much the map moved; this counts how many operators it can see.",
+            "lede": "Count of unique AS in each ASmap. The drift charts above measured how much the map moved; this counts how many operators it can see.",
             "infoAria": "About distinct operators per build",
             "ariaLabel": "Count of distinct network operators (autonomous systems) mapped per ASmap build. More operators means a node is harder to surround.",
             "empty": "Need at least two builds to plot operator counts.",
