@@ -61,7 +61,7 @@ python -m asmap_dashboard refresh-asn-names \
 
 The first command builds `metrics.json` (maps + diff summary) plus `diffs.json` next to it (the top-mover rosters; override with `--diffs-out`). The second pulls operator labels (`AS7018 (AT&T Services, Inc.)`) from [bgp.tools/asns.csv](https://bgp.tools/asns.csv) and filters them down to the ASNs the payloads actually reference. Missing payload files are skipped with a warning. The ASN-names step is non-fatal: if bgp.tools is unreachable the dashboard falls back to bare `AS<num>` labels. The same two commands run on every Pages deploy and daily via cron.
 
-To regenerate the network section (requires the non-public KIT dossiers and/or the archived Bitnodes snapshots locally), add the snapshot directories. `network.json` is written next to `--out`:
+To regenerate the network section (requires the non-public KIT dossiers and/or the archived Bitnodes snapshots locally), add the snapshot directories. `network.json` is written next to `--out`. The Bitnodes directory may mix the b10c JSON crawls and the bitnod.es (BitMEX) CSV exports in the same tree — the loader dispatches on file extension and recurses into subfolders, so dropping the CSVs into a subdirectory (e.g. `snapshots/bitnodes/bitmex/`) is enough. Each CSV is a cumulative "last seen" dump, so only the rows seen within ~2 days of the file's newest `export_date` are kept, recovering a point-in-time set comparable to one JSON crawl:
 
 ```
 python -m asmap_dashboard metrics --data-dir asmap-data \

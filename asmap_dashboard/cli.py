@@ -1,11 +1,9 @@
 """Command-line entry point for the analysis pipeline.
 
-The module exposes one ``main(argv)`` entry that is wired both into
-``python -m asmap_dashboard`` (via ``__main__.py``) and into the
-``asmap-dashboard`` console script declared in ``pyproject.toml``.
-Each subcommand is implemented as a small ``_run_*`` function so the
-dispatch table at the bottom stays readable and each handler can be
-unit-tested without going through argparse.
+``main(argv)`` is wired into both ``python -m asmap_dashboard`` and the
+``asmap-dashboard`` console script. Each subcommand is a small ``_run_*``
+function so the dispatch table stays readable and handlers unit-test
+without argparse.
 """
 
 from __future__ import annotations
@@ -24,12 +22,8 @@ from asmap_dashboard.metrics import SCHEMA_VERSION, generate_dashboard_data
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    """Construct the top-level argparse parser with every subcommand.
-
-    Kept as a free function so tests and shell-completion generators
-    can introspect the parser without paying the cost of running
-    ``main``.
-    """
+    """Construct the top-level parser, as a free function so tests can
+    introspect it without running ``main``."""
     parser = argparse.ArgumentParser(prog="asmap_dashboard")
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -99,7 +93,10 @@ def _build_parser() -> argparse.ArgumentParser:
         "--bitnodes-dir",
         type=Path,
         default=None,
-        help="Directory of Bitnodes snapshot JSON files; adds the network section.",
+        help=(
+            "Directory of Bitnodes snapshots (b10c JSON crawls and/or "
+            "bitnod.es CSV exports); adds the network section."
+        ),
     )
 
     p_refresh = sub.add_parser(
@@ -136,18 +133,10 @@ def _build_parser() -> argparse.ArgumentParser:
 def _emit_json(result: object, out_path: Path | None, *, compact: bool = False) -> int:
     """Serialise ``result`` to ``out_path`` or stdout, return exit code 0.
 
-    Shared by every subcommand that produces a JSON payload (analyze,
-    diff, metrics) so the on-disk format is identical regardless of
-    caller. ``sort_keys=True`` and a trailing newline keep the output
-    byte-stable across runs so reruns against the same input only
-    diff when the payload actually changed.
-
-    ``compact`` drops the indentation entirely. The metrics payload is
-    fetched by the browser on every dashboard load and the pretty-
-    printed form is ~25 % larger on the wire for zero reader value (the
-    file is far too big to scan by eye anyway); the analyze / diff
-    subcommands keep the indented form because their output is meant
-    to be read in a terminal.
+    ``sort_keys=True`` + trailing newline keep output byte-stable so reruns
+    only diff on real changes. ``compact`` drops indentation for the
+    browser-fetched metrics payload (~25 % smaller on the wire); analyze /
+    diff keep the indented form for terminal reading.
     """
     if compact:
         payload = json.dumps(result, separators=(",", ":"), sort_keys=True) + "\n"
@@ -174,32 +163,16 @@ def _run_diff(args: argparse.Namespace) -> int:
 def _run_metrics(args: argparse.Namespace) -> int:
     """Generate and emit the dashboard payloads.
 
-    With ``--out`` the payload is split into three files along its
-    natural fault lines:
-
-      - maps + diff summary (``--out``): small. Drives the overview,
-        every drift chart, and the Diff Explorer's match banner. Each
-        pair diff is carried here with its aggregate fields but
-        without its ``top_movers`` roster.
-      - diff detail (``--diffs-out``): the per-pair ``top_movers``
-        rosters keyed by ``"<from>|<to>"``; ~99 % of the diff bytes,
-        only the Top Movers table reads them, so the frontend
-        lazy-loads this file when the Diff Explorer tab is first
-        opened rather than on initial paint.
-      - network (``--network-out``): only written when snapshot
-        sources produced a network section; the one part built from
-        non-public inputs and therefore the only one committed to git.
-
-    Without ``--out`` everything goes to stdout as one combined
-    document with the rosters still nested under each diff (handy for
-    piping into jq while debugging).
-
-    Every emitted document carries ``schema_version`` so the frontend
-    can reject a payload generation it does not understand.
+    With ``--out`` the payload splits into three files: maps + diff
+    summary (``--out``, drives first paint), the heavy per-pair
+    ``top_movers`` rosters (``--diffs-out``, ~99 % of the bytes, lazy
+    -loaded by the Diff Explorer), and the network section
+    (``--network-out``, the only git-committed part). Without ``--out``
+    everything goes to stdout as one document. Every document carries
+    ``schema_version``.
     """
-    # Only the sources actually pointed at a directory are passed
-    # through, so ``metrics --data-dir X`` (no snapshot flags) keeps
-    # emitting the snapshot-free payload unchanged.
+    # Only sources actually given a directory are passed through, so
+    # ``metrics --data-dir X`` alone emits the snapshot-free payload.
     snapshot_sources = {
         source: directory
         for source, directory in (
@@ -223,15 +196,9 @@ def _run_metrics(args: argparse.Namespace) -> int:
     network = result.pop("network", None)
     diffs = result.pop("diffs")
 
-    # Split each pair diff into a lightweight summary (the aggregate
-    # fields the Maps tab drift/overview and the Diff Explorer's match
-    # banner need) and the heavy top_movers roster (only the Top
-    # Movers table reads it). The summary rides in metrics.json so the
-    # default Maps view renders without fetching the big file; the
-    # rosters go to diffs.json keyed by "<from>|<to>" and are
-    # lazy-loaded only when the Diff Explorer tab is opened. The
-    # rosters are ~99 % of the diff bytes, so this keeps the first
-    # paint off a multi-megabyte download and parse.
+    # Split each diff into a light summary (rides in metrics.json for
+    # first paint) and the heavy top_movers roster (diffs.json, keyed
+    # "<from>|<to>", lazy-loaded by the Diff Explorer).
     summary = [
         {key: value for key, value in diff.items() if key != "top_movers"}
         for diff in diffs
@@ -260,10 +227,8 @@ def _run_refresh_asn_names(args: argparse.Namespace) -> int:
     return 0
 
 
-# Single-source-of-truth dispatch from subcommand name to handler.
-# argparse already rejects unknown commands at parse time (via
-# ``required=True`` on add_subparsers), so a KeyError here would be
-# a wiring bug rather than user input we need to defend against.
+# Subcommand -> handler. argparse rejects unknown commands at parse time,
+# so a KeyError here would be a wiring bug, not bad user input.
 _COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     "analyze": _run_analyze,
     "diff": _run_diff,

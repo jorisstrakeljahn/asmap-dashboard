@@ -2,13 +2,59 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import json
+from datetime import datetime, timezone
+
+import pytest
 
 from asmap_dashboard.network.snapshots import (
     discover_snapshots,
+    load_bitnodes_csv,
     load_kit_dossier,
     load_snapshot,
 )
+
+_BITNODES_CSV_HEADER = [
+    "export_date",
+    "ip_address",
+    "port",
+    "country",
+    "isp",
+    "services",
+    "protocol_version",
+    "user_agent",
+    "block_height",
+]
+
+
+def _write_bitnodes_csv(path, rows):
+    """Write a bitnod.es-shaped CSV from (export_date, ip, country) tuples.
+
+    Only the three columns the loader reads are meaningful; the rest are
+    filled with plausible constants so the on-disk shape matches a real
+    export (quoted fields, full column set) rather than a trimmed stand-in.
+    """
+    buf = io.StringIO()
+    writer = csv.writer(buf, quoting=csv.QUOTE_ALL)
+    writer.writerow(_BITNODES_CSV_HEADER)
+    for export_date, ip, country in rows:
+        writer.writerow(
+            [
+                export_date,
+                ip,
+                "8333",
+                country,
+                "Example ISP",
+                "1033",
+                "70016",
+                "/Satoshi:29.0.0/",
+                "954621",
+            ]
+        )
+    path.write_text(buf.getvalue())
+    return path
 
 
 def _write_kit(path, entries):
@@ -201,12 +247,8 @@ def test_load_bitnodes_without_any_timestamp_is_rejected(tmp_path):
     path = tmp_path / "notes.json"
     path.write_text(json.dumps({"nodes": {"1.2.3.4:8333": [70016, "/x/", 1, 1, 1]}}))
 
-    try:
+    with pytest.raises(ValueError, match="no capture timestamp"):
         load_snapshot(path, "bitnodes")
-    except ValueError as exc:
-        assert "no capture timestamp" in str(exc)
-    else:  # pragma: no cover - the call above must raise
-        raise AssertionError("expected ValueError for missing timestamp")
 
 
 def test_discover_snapshots_warns_and_skips_bad_files(tmp_path, capsys):
@@ -325,12 +367,112 @@ def test_load_bitnodes_old_numeric_country_loads_without_crash(tmp_path):
     assert node.country is None
 
 
+def _noon_utc(iso_date):
+    """Unix timestamp for ``iso_date`` at 12:00 UTC (the CSV anchor)."""
+    y, m, d = (int(part) for part in iso_date.split("-"))
+    return int(datetime(y, m, d, 12, tzinfo=timezone.utc).timestamp())
+
+
+def test_load_bitnodes_csv_parses_clearnet_drops_onion_and_dates_by_newest(tmp_path):
+    path = tmp_path / "bitcoin_nodes_2026-06-21.csv"
+    _write_bitnodes_csv(
+        path,
+        [
+            ("2026-06-21", "1.1.171.38", "Thailand"),
+            ("2026-06-20", "2a01:4f8::1", "Germany"),
+            # Onion peers carry no resolvable IP and must drop out.
+            ("2026-06-21", "abc.onion", "n/a"),
+        ],
+    )
+
+    snap = load_bitnodes_csv(path)
+
+    # bitnod.es exports surface as their own "bitmex" series, not "bitnodes".
+    assert snap.source == "bitmex"
+    # Newest export_date in the file, anchored at noon UTC.
+    assert snap.timestamp == _noon_utc("2026-06-21")
+    assert snap.label == "2026-06-21"
+    assert snap.onion_skipped == 1
+    by_ip = {n.ip: n for n in snap.nodes}
+    assert set(by_ip) == {"1.1.171.38", "2a01:4f8::1"}
+    # No AS number in the CSV, so every node is unannotated; country is kept.
+    assert by_ip["1.1.171.38"].asn is None
+    assert by_ip["1.1.171.38"].country == "THAILAND"
+    assert by_ip["1.1.171.38"].version == 4
+    assert by_ip["2a01:4f8::1"].version == 6
+
+
+def test_load_bitnodes_csv_drops_stale_last_seen_tail(tmp_path):
+    """Rows last seen before the 2-day window are the decay tail and must
+    not count toward the snapshot's reachable set."""
+    path = tmp_path / "bitcoin_nodes_2026-06-21.csv"
+    _write_bitnodes_csv(
+        path,
+        [
+            ("2026-06-21", "1.1.171.38", "Thailand"),  # newest day: kept
+            ("2026-06-20", "9.9.9.9", "United States"),  # within window: kept
+            ("2026-05-23", "2.2.2.2", "France"),  # ~4 weeks stale: dropped
+        ],
+    )
+
+    snap = load_bitnodes_csv(path)
+
+    assert {n.ip for n in snap.nodes} == {"1.1.171.38", "9.9.9.9"}
+    # observed_total counts only the rows inside the window, so the
+    # diagnostics describe the snapshot population, not the whole file.
+    assert snap.observed_total == 2
+
+
+def test_load_bitnodes_csv_without_parseable_date_is_rejected(tmp_path):
+    path = tmp_path / "bitcoin_nodes_bad.csv"
+    _write_bitnodes_csv(path, [("not-a-date", "1.1.171.38", "Thailand")])
+
+    with pytest.raises(ValueError, match="export_date"):
+        load_bitnodes_csv(path)
+
+
+def test_load_snapshot_routes_csv_through_bitnodes_loader(tmp_path):
+    path = tmp_path / "bitcoin_nodes_2026-05-22.csv"
+    _write_bitnodes_csv(path, [("2026-05-22", "5.6.7.8", "United States")])
+
+    snap = load_snapshot(path, "bitnodes")
+
+    # The CSV dispatch stamps the bitnod.es series, not the b10c one.
+    assert snap.source == "bitmex"
+    assert snap.timestamp == _noon_utc("2026-05-22")
+    assert [n.ip for n in snap.nodes] == ["5.6.7.8"]
+
+
+def test_discover_snapshots_loads_csv_alongside_json(tmp_path):
+    """A Bitnodes directory mixing the b10c JSON crawls and the bitnod.es
+    CSV exports loads both, ordered by capture time, each tagged with its
+    own source so the regrouping in the pipeline can split them."""
+    (tmp_path / "1762444952.json").write_text(
+        json.dumps(
+            {
+                "timestamp": 1762444952,
+                "nodes": {"1.2.3.4:8333": [70016, "/x/", 1, 1, 1]},
+            }
+        )
+    )
+    sub = tmp_path / "bitmex"
+    sub.mkdir()
+    _write_bitnodes_csv(
+        sub / "bitcoin_nodes_2026-06-21.csv",
+        [("2026-06-21", "5.6.7.8", "United States")],
+    )
+
+    snaps = discover_snapshots(tmp_path, "bitnodes")
+
+    assert [s.timestamp for s in snaps] == [1762444952, _noon_utc("2026-06-21")]
+    assert {s.timestamp: s.source for s in snaps} == {
+        1762444952: "bitnodes",
+        _noon_utc("2026-06-21"): "bitmex",
+    }
+
+
 def test_unknown_source_is_rejected(tmp_path):
     path = tmp_path / "x.json"
     path.write_text("{}")
-    try:
+    with pytest.raises(ValueError, match="unknown snapshot source"):
         load_snapshot(path, "nope")
-    except ValueError as exc:
-        assert "unknown snapshot source" in str(exc)
-    else:  # pragma: no cover - the call above must raise
-        raise AssertionError("expected ValueError for unknown source")
