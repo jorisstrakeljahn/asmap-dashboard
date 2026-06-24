@@ -18,11 +18,11 @@ import { FAMILY_IPV6 } from "../../format.js";
 const SKELETON_ROW_COUNT = 8;
 
 // One shimmer bar. ``extra`` is the size modifier(s) from skeleton.css
-// (e.g. "skel-bar--lg"). Always paired with `.skeleton` for the
+// (e.g. "skeleton__bar--lg"). Always paired with `.skeleton` for the
 // moving gradient.
 function bar(extra = "") {
     const span = document.createElement("span");
-    span.className = `skeleton skel-bar ${extra}`.trim();
+    span.className = `skeleton skeleton__bar ${extra}`.trim();
     return span;
 }
 
@@ -41,7 +41,7 @@ function el(tag, className) {
  */
 export function createDiffSkeleton({ family } = {}) {
     const isV6 = family === FAMILY_IPV6;
-    const root = el("div", "diff-explorer skel-diff");
+    const root = el("div", "diff-explorer diff-explorer--skeleton");
     root.append(selectorsSkeleton(), resultsSkeleton(isV6));
     return root;
 }
@@ -67,7 +67,7 @@ function selectorField(labelText) {
     const field = el("div", "diff-selectors__field");
     const label = el("span", "diff-selectors__label");
     label.textContent = labelText;
-    field.append(label, bar("skel-control"));
+    field.append(label, bar("skeleton__control"));
     return field;
 }
 
@@ -88,7 +88,7 @@ function matchBannerSkeleton(isV6) {
     const grid = el("div", "match-banner__family");
 
     const headline = el("div", "match-banner__headline");
-    headline.append(bar("skel-bar--headline"));
+    headline.append(bar("skeleton__bar--headline"));
 
     const caption = el("div", "match-banner__caption");
     caption.textContent = t(
@@ -96,10 +96,10 @@ function matchBannerSkeleton(isV6) {
     );
 
     const detail = el("div", "match-banner__detail");
-    detail.append(bar("skel-bar--lg"));
+    detail.append(bar("skeleton__bar--lg"));
 
     const source = el("div", "match-banner__source");
-    source.append(bar("skel-bar--md"));
+    source.append(bar("skeleton__bar--md"));
 
     grid.append(headline, caption, detail, source);
     banner.append(grid);
@@ -116,7 +116,7 @@ function classificationSkeleton() {
     for (const [labelKey, labelClass] of cells) {
         const cell = el("div", "classification-cell");
         const value = el("div", "classification-cell__value");
-        value.append(bar("skel-bar--value"));
+        value.append(bar("skeleton__bar--value"));
         const label = el("div", `classification-cell__label ${labelClass}`);
         label.textContent = t(labelKey);
         cell.append(value, label);
@@ -138,19 +138,19 @@ function topMoversSkeleton(isV6) {
     const title = el("span", "card__label uppercase-label");
     title.textContent = t("topMovers.title");
     const controls = el("div", "top-movers__header-controls");
-    controls.append(bar("skel-pill skel-pill--wide"));
+    controls.append(bar("skeleton__pill skeleton__pill--wide"));
     header.append(title, controls);
 
     const toolbar = el("div", "top-movers__toolbar");
     const fields = el("div", "top-movers__toolbar-fields");
-    fields.append(bar("skel-input"), bar("skel-pill skel-pill--wide"));
+    fields.append(bar("skeleton__input"), bar("skeleton__pill skeleton__pill--wide"));
     toolbar.append(fields);
 
     const tableWrap = el("div", "top-movers__table");
     tableWrap.append(topMoversTableSkeleton(isV6));
 
     const footer = el("footer", "top-movers__footer");
-    footer.append(bar("skel-bar--md"), bar("skel-pill skel-pill--wide"));
+    footer.append(bar("skeleton__bar--md"), bar("skeleton__pill skeleton__pill--wide"));
 
     card.append(header, toolbar, tableWrap, footer);
     return card;
@@ -198,20 +198,20 @@ function topMoversRow() {
     const tr = el("tr");
 
     const rank = el("td", "top-movers__rank");
-    rank.append(bar("skel-bar--xs"));
+    rank.append(bar("skeleton__bar--xs"));
 
     // AS identity: number line + thinner operator-name line, matching
     // the detailed (default) view's two-line asn-cell.
     const asn = el("td", "top-movers__asn");
     const cell = el("span", "asn-cell");
-    cell.append(bar("skel-bar--sm"), bar("skel-bar--name"));
+    cell.append(bar("skeleton__bar--sm"), bar("skeleton__bar--name"));
     asn.append(cell);
 
     const num = el("td", "top-movers__num");
-    num.append(bar("skel-bar--sm"));
+    num.append(bar("skeleton__bar--sm"));
 
     const direction = el("td", "top-movers__direction");
-    direction.append(bar("skel-bar--lg"));
+    direction.append(bar("skeleton__bar--lg"));
 
     tr.append(rank, asn, num, direction);
     return tr;

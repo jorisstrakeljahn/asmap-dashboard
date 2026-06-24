@@ -34,7 +34,7 @@ export function mountLoading() {
     const familySlot = document.querySelector("[data-diff-family]");
     if (familySlot) {
         const placeholder = document.createElement("span");
-        placeholder.className = "skeleton skel-bar skel-pill skel-pill--toggle";
+        placeholder.className = "skeleton skeleton__bar skeleton__pill skeleton__pill--toggle";
         placeholder.setAttribute("aria-hidden", "true");
         familySlot.replaceChildren(placeholder);
     }

@@ -7,79 +7,79 @@
 /* ── Placeholder bars ────────────────────────────────────────────
    Generic shimmer block sized per slot. Pair with `.skeleton` for the
    moving gradient: <span class="skeleton skel-bar skel-bar--lg">. */
-.skel-bar {
+.skeleton__bar {
     display: block;
     height: 0.85em;
     border-radius: var(--radius-sm);
 }
 
-.skel-bar--headline {
+.skeleton__bar--headline {
     width: 88px;
     height: 30px;
 }
-.skel-bar--xl {
+.skeleton__bar--xl {
     width: 200px;
     max-width: 100%;
 }
-.skel-bar--lg {
+.skeleton__bar--lg {
     width: 160px;
     max-width: 100%;
 }
-.skel-bar--md {
+.skeleton__bar--md {
     width: 96px;
     max-width: 100%;
 }
-.skel-bar--sm {
+.skeleton__bar--sm {
     width: 64px;
 }
-.skel-bar--xs {
+.skeleton__bar--xs {
     width: 40px;
 }
-.skel-bar--value {
+.skeleton__bar--value {
     width: 56px;
     height: 22px;
 }
 /* Second, thinner line under an AS number (the operator name slot the
    detailed view shows). */
-.skel-bar--name {
+.skeleton__bar--name {
     width: 120px;
     max-width: 90%;
     height: 0.7em;
     margin-top: 4px;
     opacity: 0.75;
 }
-.skel-bar--full {
+.skeleton__bar--full {
     width: 100%;
 }
 
 /* Control-shaped placeholders matching the real form controls so the
    skeleton selectors / toolbar line up with what mounts in their place. */
-.skel-control {
+.skeleton__control {
     height: var(--control-height);
     width: 100%;
     border-radius: var(--radius);
 }
-.skel-input {
+.skeleton__input {
     height: var(--control-height-sm);
     width: 240px;
     max-width: 100%;
     border-radius: var(--radius-sm);
 }
-.skel-pill {
+.skeleton__pill {
     height: var(--control-height-sm);
     width: 96px;
     border-radius: var(--radius-pill);
 }
-.skel-pill--toggle {
+.skeleton__pill--toggle {
     width: 94px;
 }
-.skel-pill--wide {
+.skeleton__pill--wide {
     width: 128px;
 }
 
 /* The Top Movers table skeleton reuses the real .top-movers__grid so
    column widths match; these only soften the header/cells while the
    placeholder bars carry the shimmer. */
-.skel-diff .top-movers__grid th .skel-bar {
+.diff-explorer--skeleton .top-movers__grid th .skeleton__bar {
     display: inline-block;
 }
