@@ -1,70 +1,46 @@
 """Source-agnostic loading of observed-node snapshots.
 
-A *snapshot* is one crawler's view of the reachable Bitcoin network at a
-point in time: a list of ``(ip, port)`` peers, optionally annotated with
-the ASN and country the crawler resolved for each. The network-tap
-metrics only ever consume the normalised ``Snapshot`` produced here, so
-adding a new data source means writing one ``load_*`` function and
-registering it in ``_LOADERS`` — the metric code never learns a source's
-on-disk quirks.
+A *snapshot* is one crawler's view of the reachable network at a point in
+time: ``(ip, port)`` peers, optionally annotated with the ASN/country the
+crawler resolved. The metrics only consume the normalised ``Snapshot``
+produced here, so adding a source is one ``load_*`` function plus a
+``_LOADERS`` entry — the metric layer never learns a source's on-disk
+quirks. The per-shape parsing details live in each ``load_*`` below.
 
-Two sources are supported today:
+Sources today: KIT dossiers (hourly JSON, full whois on every node),
+Bitnodes JSON crawls (b10c, two shapes), and bitnod.es CSV exports
+(BitMEX). The CSV carries no AS number, so its nodes load with
+``asn=None`` and the cross-check self-hides; it is stamped
+``source="bitmex"`` so the bitnod.es crawler rides as its own series
+rather than a hidden step in the b10c line.
 
-  KIT dossiers
-    Hourly JSON dumps from the Karlsruhe Institute of Technology monitor
-    nodes. One object keyed by the Python ``repr()`` of an
-    ``(IPvNAddress(...), port)`` tuple, each value carrying a ``whois``
-    block with the ASN and country the crawler resolved. Every node
-    carries full whois, so KIT feeds the ASN cross-check on every
-    snapshot. The country code is kept on ``Node`` for a future
-    geographic view but is not consumed by any current metric. The
-    capture time is encoded in the filename
-    (``YYYYMMDD_HHMMSS_dossier.json``).
-
-  Bitnodes snapshots
-    Crawls shared by b10c, in two shapes that this loader unifies:
-      - "good matches": ``{"timestamp", "nodes": {"addr:port": [...]}}``.
-        The per-node array is either the *compact* form
-        ``[proto, ua, since, services, height]`` (no geo) or the *full*
-        form that additionally carries ``[..., country@7, ..., "AS<n>"@11,
-        name@12]``. Only the full form feeds cross-check / per-country.
-      - "old best effort": a bare list of rows
-        ``[addr, port, proto, ua, since, ..., country@9, ..., "AS<n>"@13,
-        name@14]``. The capture time is the filename stem (a unix ts).
-
-Onion / I2P / CJDNS peers are dropped at load time: they have no IP that
-ASmap can resolve, so they cannot participate in any ASmap-derived metric
-(see the ``onion_skipped`` / ``unresolved_skipped`` diagnostics on the
-``Snapshot``). Keeping that filter here means the metric layer only ever
-sees address-resolvable nodes.
+Onion / I2P / CJDNS peers are dropped at load (no ASmap-resolvable IP);
+the ``*_skipped`` counters on ``Snapshot`` preserve how many and why.
 """
 
 from __future__ import annotations
 
+import csv
 import ipaddress
 import json
 import re
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from asmap_dashboard.loader import PathLike
 
-# KIT keys are Python repr() of an (IPvNAddress('<ip>'), port) tuple, e.g.
-#   "(IPv4Address('5.39.74.166'), 8333)"
-# This pulls the quoted address out without eval()-ing untrusted input.
+# Pull the address out of a KIT key like "(IPv4Address('5.39.74.166'),
+# 8333)" without eval()-ing untrusted input.
 _KIT_ADDRESS_RE = re.compile(r"Address\('([^']+)'\)")
 
-# Bitnodes encodes the resolved ASN as "AS<digits>" or the sentinel "TOR"
-# (and occasionally null). Anything that is not a real numeric ASN
-# resolves to ``None`` so the cross-check never compares against a
-# non-AS placeholder.
+# Bitnodes ASN is "AS<digits>" or a non-AS sentinel ("TOR", null); only a
+# real numeric ASN matches, anything else becomes ``None``.
 _BITNODES_ASN_RE = re.compile(r"^AS(\d+)$")
 
-# Per-node array offsets in the two Bitnodes shapes. Named here so the
-# loaders read as field access rather than magic indices, and so a future
-# Bitnodes schema bump has exactly one place to update.
+# Per-node array offsets in the two Bitnodes JSON shapes. Named so the
+# loaders read as field access, with one place to update on a schema bump.
 _BITNODES_FULL_NODE_LEN = 13
 _BITNODES_FULL_COUNTRY_IDX = 7
 _BITNODES_FULL_ASN_IDX = 11
@@ -73,18 +49,26 @@ _BITNODES_OLD_ROW_MIN_LEN = 14
 _BITNODES_OLD_COUNTRY_IDX = 9
 _BITNODES_OLD_ASN_IDX = 13
 
+# The bitnod.es CSV is a cumulative "last seen" dump. Keeping only rows
+# seen within this many days of the file's newest date recovers a
+# "currently reachable" set comparable to one JSON crawl (~9.7k clearnet);
+# the whole file would track the rolling window and inflate the count by
+# 50-80 %. One day (two calendar days) bridges a mid-day partial export.
+_BITNODES_CSV_WINDOW_DAYS = 1
+
+# Bitnod.es exports carry only a day; noon UTC anchors them within the day
+# to match the KIT dossiers' ~12:00 capture so the series share a time axis.
+_BITNODES_CSV_HOUR_UTC = 12
+
 
 @dataclass(frozen=True)
 class Node:
     """One clearnet peer observed in a snapshot.
 
-    ``asn`` and ``country`` are the values the *crawler* resolved, kept
-    only so the ASN cross-check can compare them against the ASmap
-    lookup and so the per-country breakdown has a grouping key. They are
-    ``None`` whenever the source did not carry them (e.g. Bitnodes'
-    compact node arrays), and the metric layer treats ``None`` as
-    "this node does not contribute to that particular metric" rather
-    than guessing.
+    ``asn`` / ``country`` are what the *crawler* resolved (for the ASN
+    cross-check and per-country grouping). ``None`` when the source did
+    not carry them; the metric layer reads ``None`` as "does not
+    contribute to that metric" rather than guessing.
     """
 
     ip: str
@@ -97,10 +81,10 @@ class Node:
 class Snapshot:
     """One crawler's normalised view of the network at ``timestamp``.
 
-    ``nodes`` holds only address-resolvable clearnet peers; the two
-    ``*_skipped`` counters preserve how many peers were dropped and why,
-    so the dashboard can report (for example) "9 876 clearnet of 10 538
-    observed, 662 onion" instead of silently shrinking the population.
+    ``nodes`` holds only address-resolvable clearnet peers; the
+    ``*_skipped`` counters preserve how many were dropped and why, so the
+    dashboard reports "9 876 clearnet of 10 538 observed" rather than
+    silently shrinking the population.
     """
 
     source: str
@@ -113,31 +97,22 @@ class Snapshot:
 
 
 def _make_node(ip: str, asn: int | None, country: str | None) -> Node | None:
-    """Validate ``ip`` and build a Node, or return None for non-IP peers.
-
-    Returns ``None`` for onion / I2P / CJDNS addresses and anything that
-    does not parse as an IP, so callers can fold the rejects straight
-    into their ``*_skipped`` tallies.
-    """
+    """Validate ``ip`` and build a Node, or return None for non-IP peers
+    (onion / I2P / CJDNS or unparseable), which callers fold into their
+    ``*_skipped`` tallies."""
     try:
         parsed = ipaddress.ip_address(ip)
     except ValueError:
         return None
-    # ``country`` arrives unvalidated from the bare-list Bitnodes rows
-    # (``_load_bitnodes_old`` passes ``row[idx]`` straight through), so a
-    # numeric or otherwise non-string value must not crash the loader.
+    # ``country`` can arrive non-string from the bare-list Bitnodes rows,
+    # so guard the type before normalising.
     country = (country.strip().upper() or None) if isinstance(country, str) else None
     return Node(ip=ip, version=parsed.version, asn=asn, country=country)
 
 
 def _parse_host(addr: str) -> str | None:
-    """Strip the port from a Bitnodes address key, dropping onion peers.
-
-    Handles the three shapes Bitnodes emits: ``v4:port``,
-    ``[v6]:port``, and bare addresses (old-best-effort rows store the
-    address without a port). Returns ``None`` for ``.onion`` peers so
-    they never reach ``ipaddress.ip_address``.
-    """
+    """Strip the port from a Bitnodes address key (``v4:port``,
+    ``[v6]:port``, or bare), returning ``None`` for ``.onion`` peers."""
     addr = addr.strip()
     if addr.startswith("["):
         host = addr[1:].split("]", 1)[0]
@@ -161,10 +136,9 @@ def _parse_bitnodes_asn(value: object) -> int | None:
 def load_kit_dossier(path: PathLike) -> Snapshot:
     """Load a KIT hourly dossier into a Snapshot.
 
-    The capture time comes from the filename stem
-    (``YYYYMMDD_HHMMSS_dossier``); KIT writes one dossier per hour and
-    the analyst picked the ~12:00 file for each day, so the stem is the
-    authoritative timestamp.
+    Keyed by the Python ``repr()`` of an ``(IPvNAddress(...), port)``
+    tuple, each value carrying a ``whois`` block (ASN + country). Capture
+    time is the filename stem (``YYYYMMDD_HHMMSS_dossier``).
     """
     path = Path(path)
     raw = json.loads(path.read_text())
@@ -199,16 +173,24 @@ def load_kit_dossier(path: PathLike) -> Snapshot:
     )
 
 
-def load_bitnodes_snapshot(path: PathLike) -> Snapshot:
-    """Load a Bitnodes snapshot (either on-disk shape) into a Snapshot.
+def load_bitnodes(path: PathLike) -> Snapshot:
+    """Load a Bitnodes snapshot, dispatching on extension: ``.csv`` is a
+    bitnod.es (BitMEX) export, everything else a JSON crawl. One entry
+    point regardless of which forms a directory mixes."""
+    path = Path(path)
+    if path.suffix.lower() == ".csv":
+        return load_bitnodes_csv(path)
+    return load_bitnodes_snapshot(path)
 
-    Dispatches on the parsed JSON's top-level type: a dict is a
-    "good matches" crawl (``{"timestamp", "nodes": {...}}``), a list is
-    an "old best effort" crawl. The capture time is the embedded
-    ``timestamp`` when present, otherwise the filename stem. A file
-    that carries neither raises ``ValueError`` so ``discover_snapshots``
-    skips (and reports) it, instead of silently labelling the crawl
-    1970-01-01 and dragging the time axis three decades wide.
+
+def load_bitnodes_snapshot(path: PathLike) -> Snapshot:
+    """Load a JSON Bitnodes snapshot into a Snapshot.
+
+    Dispatches on the JSON's top-level type: a dict is a "good matches"
+    crawl (``{"timestamp", "nodes": {...}}``), a list is "old best
+    effort". Capture time is the embedded ``timestamp`` or the filename
+    stem; a file with neither raises ``ValueError`` so
+    ``discover_snapshots`` skips it instead of dating the crawl 1970.
     """
     path = Path(path)
     raw = json.loads(path.read_text())
@@ -222,6 +204,76 @@ def load_bitnodes_snapshot(path: PathLike) -> Snapshot:
     if not fallback_ts:
         raise ValueError(f"{path.name}: no capture timestamp")
     return _load_bitnodes_old(raw, fallback_ts)
+
+
+def load_bitnodes_csv(path: PathLike) -> Snapshot:
+    """Load a bitnod.es (BitMEX) CSV export into a Snapshot.
+
+    Columns: ``export_date, ip_address, port, country, isp, ...``. It is a
+    cumulative "last seen" dump, so capture time is the newest
+    ``export_date`` (noon UTC) and only rows within
+    ``_BITNODES_CSV_WINDOW_DAYS`` of it are kept; the rest is the stale
+    tail. No ``export_date`` raises ``ValueError`` so the file is skipped.
+    No AS number (only ``isp``), so nodes load ``asn=None``; stamped
+    ``source="bitmex"`` (see the module docstring).
+    """
+    path = Path(path)
+    with Path(path).open(newline="") as fh:
+        rows = list(csv.DictReader(fh))
+
+    dates = [_parse_iso_date(row.get("export_date")) for row in rows]
+    seen = [d for d in dates if d is not None]
+    if not seen:
+        raise ValueError(f"{path.name}: no parseable export_date")
+    newest = max(seen)
+    cutoff = newest - timedelta(days=_BITNODES_CSV_WINDOW_DAYS)
+    timestamp = int(
+        datetime(
+            newest.year,
+            newest.month,
+            newest.day,
+            _BITNODES_CSV_HOUR_UTC,
+            tzinfo=timezone.utc,
+        ).timestamp()
+    )
+
+    nodes: list[Node] = []
+    onion = 0
+    unresolved = 0
+    observed = 0
+    for row, seen_on in zip(rows, dates, strict=True):
+        if seen_on is None or seen_on < cutoff:
+            continue
+        observed += 1
+        host = _parse_host(str(row.get("ip_address") or ""))
+        if host is None:
+            onion += 1
+            continue
+        node = _make_node(host, None, row.get("country"))
+        if node is None:
+            unresolved += 1
+            continue
+        nodes.append(node)
+
+    return Snapshot(
+        source="bitmex",
+        timestamp=timestamp,
+        label=_to_iso_date(timestamp),
+        nodes=tuple(nodes),
+        observed_total=observed,
+        onion_skipped=onion,
+        unresolved_skipped=unresolved,
+    )
+
+
+def _parse_iso_date(value: object) -> date | None:
+    """Parse a ``YYYY-MM-DD`` CSV field to a date, or None when unusable."""
+    if not isinstance(value, str):
+        return None
+    try:
+        return date.fromisoformat(value.strip())
+    except ValueError:
+        return None
 
 
 def _load_bitnodes_good(raw: dict, timestamp: int) -> Snapshot:
@@ -290,11 +342,8 @@ def _load_bitnodes_old(rows: list, timestamp: int) -> Snapshot:
 
 
 def _bitnodes_node_annotations(fields: object) -> tuple[int | None, str | None]:
-    """Pull (asn, country) from a good-match node array, if it is the full form.
-
-    The compact 5-element array carries no geo, so both come back
-    ``None`` and the node still counts toward the IP-only metrics.
-    """
+    """Pull (asn, country) from a full-form node array; the compact form
+    carries no geo, so both come back ``None``."""
     if not isinstance(fields, list) or len(fields) < _BITNODES_FULL_NODE_LEN:
         return None, None
     asn = _parse_bitnodes_asn(fields[_BITNODES_FULL_ASN_IDX])
@@ -302,12 +351,14 @@ def _bitnodes_node_annotations(fields: object) -> tuple[int | None, str | None]:
     return asn, (country if isinstance(country, str) else None)
 
 
-# Registry mapping a source name to its loader. ``discover_snapshots``
-# and ``load_snapshot`` route through this, so wiring a new crawler in
-# is a one-line addition here plus the loader itself.
+# Input source -> loader. The key is the CLI directory family, not the
+# output series: ``bitnodes`` fans out into the "bitnodes" (JSON) and
+# "bitmex" (CSV) series via ``load_bitnodes``'s extension dispatch, and
+# the metric layer regroups by each snapshot's own ``source``. Wiring a
+# new crawler in is one line here plus the loader itself.
 _LOADERS = {
     "kit": load_kit_dossier,
-    "bitnodes": load_bitnodes_snapshot,
+    "bitnodes": load_bitnodes,
 }
 
 
@@ -323,27 +374,22 @@ def load_snapshot(path: PathLike, source: str) -> Snapshot:
 
 
 def discover_snapshots(directory: PathLike, source: str) -> list[Snapshot]:
-    """Load every ``*.json`` snapshot under ``directory``, sorted in time.
+    """Load every ``*.json`` / ``*.csv`` snapshot under ``directory``, sorted
+    in time.
 
-    Recurses so the Bitnodes "old best effort" subfolder is picked up
-    alongside the good matches in the same pass. Files that fail to
-    parse or are structurally malformed are skipped rather than aborting
-    the run, because one corrupt snapshot should not take down the whole
-    network section — but each skip is reported on stderr so a broken
-    source directory is visible in the pipeline log instead of silently
-    shrinking the series.
+    Recurses so subfolders and CSV exports are picked up in one pass. A
+    snapshot that fails to parse or is malformed is skipped (with a stderr
+    warning) rather than aborting the run, so one corrupt file does not
+    take down the whole network section.
     """
     directory = Path(directory)
     out: list[Snapshot] = []
-    for path in sorted(directory.rglob("*.json")):
+    paths = sorted([*directory.rglob("*.json"), *directory.rglob("*.csv")])
+    for path in paths:
         try:
             out.append(load_snapshot(path, source))
-        # Valid JSON of the wrong shape (a list where a dict is expected,
-        # a scalar where an object is expected) reaches the loaders'
-        # ``.get``/``.items``/index assumptions and raises Attribute/Type/
-        # Key/IndexError. Catch those too so the documented skip-with-
-        # warning contract holds for structural malformations, not only
-        # parse failures.
+        # Also catch the structural errors valid-but-wrong-shape JSON
+        # raises in the loaders, not just parse failures.
         except (
             ValueError,
             json.JSONDecodeError,
