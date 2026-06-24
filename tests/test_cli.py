@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import io
 import ipaddress
 import json
 from unittest.mock import patch
@@ -12,21 +11,7 @@ import pytest
 from asmap_dashboard.cli import main
 from asmap_dashboard.metrics import SCHEMA_VERSION
 
-from .conftest import write_asmap
-
-
-def _fake_csv_response(body: bytes):
-    """Minimal urlopen() stand-in supporting the context manager protocol."""
-
-    class _Response(io.BytesIO):
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *_exc):
-            self.close()
-            return False
-
-    return _Response(body)
+from .conftest import fake_urlopen_response, write_asmap
 
 
 def test_analyze_writes_json_to_stdout(tmp_path, capsys):
@@ -204,7 +189,7 @@ def test_refresh_asn_names_writes_labels_from_payload(tmp_path):
 
     with patch(
         "asmap_dashboard.asn_names.urllib.request.urlopen",
-        return_value=_fake_csv_response(b"asn,name\n174,Cogent\n"),
+        return_value=fake_urlopen_response(b"asn,name\n174,Cogent\n"),
     ):
         rc = main(["refresh-asn-names", "--payload", str(payload), "--out", str(out)])
 

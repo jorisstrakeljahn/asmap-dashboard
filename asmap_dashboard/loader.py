@@ -1,11 +1,8 @@
 """Shared loader for ASmap binary files.
 
-Both the per-map profile (analyze) and the two-map diff need a
-parsed ASMap and the on-disk size of the source file. Loading is
-isolated here so the metrics pipeline can parse each .dat file
-exactly once and feed the parsed result into every downstream
-caller, instead of re-parsing the same file 2*(N-1) times across
-the all-pairs diff loop.
+Parses each .dat once into an ASMap plus the per-ASN caches analyze and
+diff reuse, so the all-pairs diff loop never re-parses or re-walks the
+same map.
 """
 
 from __future__ import annotations
@@ -29,47 +26,24 @@ PathLike = str | Path
 class LoadedMap:
     """An ASmap binary file parsed once, ready for analyze or diff.
 
-    ``entries_count`` is the minimal-overlapping trie size (the form
-    ``to_entries()`` returns by default). It is the historical
-    "how big is this map?" number kept for backwards compatibility.
+    All fields are precomputed at load so the all-pairs diff never
+    re-walks the trie:
 
-    ``ipv4_address_space`` / ``ipv6_address_space`` are the total
-    number of IP addresses the map assigns a non-zero ASN to, split
-    by family. This is the denominator the headline drift metric
-    needs: a diff that touches a /8 weighs the same as one that
-    touches 65 536 distinct /24 prefixes, both in terms of address
-    coverage moved. Without this, IPv6 noise from many tiny
-    allocations drowns out real IPv4 BGP reorganisations.
+      ``entries_count``            minimal-overlapping trie size.
+      ``ipv{4,6}_address_space``   addresses mapped to a non-zero ASN,
+                                   per family — the headline drift
+                                   denominator (weights a /8 over many
+                                   tiny IPv6 allocations).
+      ``ipv{4,6}_address_ranges``  the same coverage as sorted disjoint
+                                   ``[start, end)`` ranges; the diff
+                                   merges two maps' ranges into their
+                                   union denominator.
+      ``entries_per_asn``          trie leaves per AS (ASN 0 excluded).
+      ``ipv{4,6}_addresses_per_asn`` addresses per AS, the Top Movers
+                                   "Touched" denominator.
 
-    ``ipv4_address_ranges`` / ``ipv6_address_ranges`` are the same
-    coverage as sorted, disjoint half-open ``[start, end)`` ranges
-    in each family's own address space (see ``_prefix``). The diff
-    merges the ranges of two maps to obtain their union coverage —
-    the denominator of the match banner and the drift ratios, where
-    a per-map total would not be guaranteed to contain every
-    changed prefix. Their total size equals
-    ``ipv{4,6}_address_space`` by construction.
-
-    The three ``*_per_asn`` Counters carry per-AS presence in each
-    currency:
-
-      ``entries_per_asn``         number of (prefix, asn) trie leaves
-                                  the AS owns. Used by the diff to
-                                  render the entry-level "Touched"
-                                  multiplier and to filter ASN 0 out
-                                  of roster counts.
-      ``ipv4_addresses_per_asn``  IPv4 addresses the AS owns, summed
-                                  over the AS's non-overlapping
-                                  prefixes. Denominator for the per-AS
-                                  IPv4 coverage view in Top Movers.
-      ``ipv6_addresses_per_asn``  Same for IPv6.
-
-    The address-space counters sum to ``ipv{4,6}_address_space`` by
-    construction, so the per-AS view and the headline drift view
-    cannot disagree on what "100 % of map X" means.
-
-    Every field is precomputed at load time so the all-pairs diff
-    loop never re-walks the trie for the same map.
+    The ``*_per_asn`` address counters sum to ``ipv{4,6}_address_space``
+    by construction, so per-AS and headline views agree on "100 %".
     """
 
     asmap: ASMap
@@ -120,19 +94,11 @@ def load_map(path: PathLike) -> LoadedMap:
 def _measure_per_asn_address_space(
     asmap: ASMap,
 ) -> tuple[Counter[int], Counter[int], list[tuple[int, int]], list[tuple[int, int]]]:
-    """Sum non-overlapping prefix sizes per ASN, split by address family.
+    """Sum non-overlapping prefix sizes per ASN, split by family, and
+    collect each mapped prefix as a raw ``[start, end)`` range.
 
-    Walks the flat (non-overlapping) trie so each address is counted
-    exactly once even when a smaller prefix overrides a larger
-    parent. ASN 0 is the asmap sentinel for "no routing information"
-    and is excluded so the totals represent address space the map
-    actually has an opinion about, not raw trie coverage.
-
-    Also collects every mapped prefix as a raw ``[start, end)``
-    address range per family. The caller merges those into the
-    canonical sorted disjoint form once, so the all-pairs diff loop
-    can union two maps' coverage by a single merge instead of
-    re-walking either trie.
+    Walks the flat trie so each address counts once; ASN 0 ("no routing
+    info") is excluded. The caller merges the ranges into canonical form.
     """
     ipv4_per_asn: Counter[int] = Counter()
     ipv6_per_asn: Counter[int] = Counter()

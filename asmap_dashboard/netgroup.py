@@ -1,13 +1,9 @@
 """Default Bitcoin Core NetGroup buckets for IPv4 and IPv6 addresses.
 
-This is the baseline that Bitcoin Core's GetGroup() falls back on
-when no ASmap is loaded. The dashboard compares it against the
-ASmap-derived NetGroup count to quantify the diversity gain ASmap
-provides over plain prefix bucketing.
-
-Rules, mirrored from ``NetGroupManager::GetGroup()`` in Bitcoin
-Core's src/netgroup.cpp together with ``CNetAddr::GetLinkedIPv4()``
-in src/netaddress.cpp:
+The baseline GetGroup() falls back on with no ASmap; the dashboard
+compares it against the ASmap-derived count to quantify ASmap's
+diversity gain. Rules mirrored from ``NetGroupManager::GetGroup()`` and
+``CNetAddr::GetLinkedIPv4()`` in Bitcoin Core:
 
   - IPv4 addresses bucket by /16.
   - IPv6 addresses that merely transport an IPv4 host (v4-mapped
@@ -70,16 +66,10 @@ def default_netgroup(ip: str | IPAddress) -> NetGroup:
 def linked_ipv4(ip: ipaddress.IPv6Address) -> ipaddress.IPv4Address | None:
     """The IPv4 address embedded in ``ip``, or None for native IPv6.
 
-    Mirrors ``CNetAddr::GetLinkedIPv4()``: each branch reads the
-    IPv4 host out of the byte positions the respective RFC assigns.
-    The ranges are mutually disjoint, so the check order does not
-    matter for correctness; it follows Core's for easy side-by-side
-    review.
-
-    Public because the network metrics need the same unwrap for
-    their asmap lookups — Core's ``GetMappedAS()`` resolves a
-    linked-IPv4 peer through the map as that IPv4, not as the
-    IPv6 wrapper.
+    Mirrors ``CNetAddr::GetLinkedIPv4()``: each branch reads the IPv4 host
+    from the byte positions its RFC assigns (ranges are disjoint, so order
+    only follows Core's for review). Public because the network metrics
+    need the same unwrap for their asmap lookups.
     """
     if ip.ipv4_mapped is not None:
         return ip.ipv4_mapped
