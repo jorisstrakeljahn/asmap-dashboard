@@ -1,31 +1,15 @@
-"""Aggregate per-build profiles and every-pair diffs into a single payload.
+"""Aggregate per-build profiles and every-pair diffs into the Maps-tab payload.
 
-The result is the data contract the frontend consumes for the Maps tab.
-Discovery is deliberately tied to the asmap-data layout (year folders
-holding files named ``<unix_timestamp>_asmap.dat`` and / or
-``<unix_timestamp>_asmap_unfilled.dat``) rather than a generic glob, so
-the released-at date can be derived from the filename without parsing
-git history.
+A "build" is a (year-folder, timestamp) pair; discovery is tied to the
+asmap-data layout (``<year>/<timestamp>_asmap[_unfilled].dat``) so the
+release date comes from the filename, not git history. Each build can
+publish two variants: ``unfilled`` (the canonical upstream pipeline
+output) and ``filled`` (the same data with adjacent same-AS prefixes
+merged — the form Bitcoin Core embeds). A build with only one variant
+surfaces the other as ``present: false``.
 
-A "build" is the (year-folder, timestamp) pair. Each build can publish
-two binary variants:
-
-  - unfilled: only the prefixes that came out of the upstream data
-    pipeline (RPKI / IRR / Routeviews). This is the canonical source
-    of truth - filled can be derived deterministically from it,
-    the reverse is not possible.
-  - filled:   the same data with ``asmap-tool encode --fill`` applied
-    so adjacent same-AS prefixes collapse into a smaller binary. This
-    is the form Bitcoin Core embeds.
-
-Most published builds carry both. A few historical builds carry only
-one; the dashboard surfaces that asymmetry as a ``present: false`` flag
-on the missing side, instead of silently dropping the other variant.
-
-Each .dat file is read and parsed exactly once. Both the analyze and
-the all-pairs diff phases reuse the same parsed map, which avoids
-the O(N^2) re-parse that would otherwise dominate runtime as the
-upstream history grows.
+Each .dat is parsed once and reused by both the analyze and all-pairs
+diff phases, avoiding an O(N^2) re-parse.
 """
 
 from __future__ import annotations
@@ -42,15 +26,11 @@ from asmap_dashboard.loader import LoadedMap, PathLike, load_map
 from asmap_dashboard.network.metrics import build_network_section
 from asmap_dashboard.network.snapshots import discover_snapshots
 
-# Version of the JSON data contract between this pipeline and the
-# frontend (web/assets/js/app.js mirrors it as EXPECTED_SCHEMA_VERSION).
-# Bump it on any change to field names or semantics in the emitted
-# payloads. The frontend refuses to render a payload whose version it
-# does not expect: a stale cached app.js paired with a fresh payload
-# (or vice versa) would otherwise silently compute nonsense — exactly
-# the failure mode observed when the union-coverage fields landed and
-# cached clients kept dividing by a field that no longer existed.
-SCHEMA_VERSION = 4
+# JSON data-contract version (app.js mirrors it as
+# EXPECTED_SCHEMA_VERSION). Bump on any field-name or semantics change;
+# the frontend refuses a payload whose version it does not expect rather
+# than silently computing nonsense against a renamed field.
+SCHEMA_VERSION = 8
 
 FILLED_FILENAME_RE = re.compile(r"^(\d+)_asmap\.dat$")
 UNFILLED_FILENAME_RE = re.compile(r"^(\d+)_asmap_unfilled\.dat$")
@@ -61,11 +41,9 @@ YEAR_DIRNAME_RE = re.compile(r"^\d{4}$")
 class DiscoveredBuild:
     """One published asmap-data build, indexed by its release timestamp.
 
-    ``name`` is the variant-agnostic identifier shared by both binary
-    files (``"2025/1755187200"``). The two variant paths are absolute
-    references into the data directory; either one (but never both) can
-    be ``None`` for builds where the corresponding file was not
-    published.
+    ``name`` is the variant-agnostic id shared by both files
+    (``"2025/1755187200"``). Either variant path (never both) is ``None``
+    when that file was not published.
     """
 
     timestamp: int
@@ -77,17 +55,11 @@ class DiscoveredBuild:
 def discover_maps(data_dir: PathLike) -> list[DiscoveredBuild]:
     """Return one DiscoveredBuild per (year, timestamp), sorted in time.
 
-    Both variants of a build are merged into a single entry so the
-    pipeline reasons about "the 2025-08-14 build" rather than about
-    two disjoint files. Builds that carry only one variant still
-    appear, with the missing side set to ``None``; downstream code
-    decides per-metric whether that constitutes a hole in the chart
-    or a graceful fallback.
-
-    Only four-digit year subdirectories are walked so unrelated entries
-    in the asmap-data checkout (``.git``, ``README.md``, future
-    ``docs/`` folder, ``latest_asmap.dat`` convenience copy at the root,
-    etc.) cannot accidentally feed the parser.
+    Both variants merge into one entry so the pipeline reasons about "the
+    2025-08-14 build", not two files; a one-variant build keeps the
+    missing side ``None``. Only four-digit year subdirectories are walked,
+    so other entries in the checkout (``.git``, ``latest_asmap.dat``, ...)
+    cannot feed the parser.
     """
     data_dir = Path(data_dir)
     builds: dict[tuple[str, int], dict[str, Path | None]] = {}
@@ -107,12 +79,9 @@ def discover_maps(data_dir: PathLike) -> list[DiscoveredBuild]:
     for (year, ts), slot in builds.items():
         unfilled = slot["unfilled"]
         filled = slot["filled"]
-        # ``name`` is the variant-agnostic id. We pick whichever side
-        # exists to derive it. Both variants live in the same year
-        # folder under the same numeric stem, so the identifier is
-        # well-defined regardless of which file we inspect.
+        # Either variant gives the same id (same year folder, same stem).
         sample = unfilled or filled
-        assert sample is not None  # reached only if ``builds`` had a key
+        assert sample is not None  # a key exists only if a file filled it
         name = f"{year}/{sample.stem.split('_', 1)[0]}"
         out.append(
             DiscoveredBuild(
@@ -129,10 +98,8 @@ def discover_maps(data_dir: PathLike) -> list[DiscoveredBuild]:
 def _classify(filename: str) -> tuple[int | None, str | None]:
     """Return (timestamp, "unfilled" | "filled") or (None, None).
 
-    The unfilled match is checked first because both regexes share the
-    ``\\d+_asmap`` prefix; matching unfilled before filled avoids the
-    edge case where ``\\d+_asmap`` would also partially match the
-    unfilled filename.
+    Unfilled is matched first: both regexes are anchored, but checking the
+    longer ``_asmap_unfilled`` suffix first keeps the intent obvious.
     """
     m = UNFILLED_FILENAME_RE.match(filename)
     if m:
@@ -168,41 +135,26 @@ def generate_dashboard_data(
           "diffs": [{from, to, total_changes, ...}, ...]
         }
 
-    When ``snapshot_sources`` is given (a ``{source_name: directory}``
-    map, e.g. ``{"kit": "...", "bitnodes": "..."}``), a ``network`` key
-    is added carrying the network-tap metrics for those observed-node
-    snapshots scored against this build history. The key is omitted
-    entirely when no sources are passed or none yield usable snapshots,
-    so the Maps/Diff payload stays byte-for-byte identical for callers
-    that do not opt in (the public deploy when KIT data is not yet
-    public, for instance).
+    When ``snapshot_sources`` (a ``{source_name: directory}`` map) is
+    given, a ``network`` key carries the network-tap metrics for those
+    snapshots; it is omitted when no sources are passed or none yield
+    usable snapshots, so the Maps/Diff payload stays byte-identical for
+    callers that do not opt in.
 
-    Builds are sorted chronologically by released_at. ``name`` is the
-    variant-agnostic identifier (``<year>/<timestamp>``) so the
-    frontend reasons about builds, not about individual files. Each
-    map entry carries both variants under explicit ``unfilled`` /
-    ``filled`` sub-objects; the missing side becomes ``{"present":
-    false}`` on builds that only published one. This keeps the schema
-    rectangular (no missing keys to defend against in the frontend).
+    Each map entry carries both variants under ``unfilled`` / ``filled``,
+    the missing side as ``{"present": false}``, keeping the schema
+    rectangular. Diffs prefer the unfilled variant (see
+    ``_compute_pair_diffs``) and carry an explicit ``variant`` field.
 
-    Diffs are computed from the unfilled variant of both sides
-    whenever available (see ``_compute_pair_diffs`` for why). Each
-    diff entry carries an explicit ``variant`` field so the frontend
-    can label the comparison and so a future switch in the picking
-    rule stays auditable.
-
-    The payload is intentionally free of machine-local context (input
-    directory, generation timestamp): it must stay byte-stable across
-    runs whenever the underlying .dat files are unchanged, so the daily
-    CI refresh only commits when the dashboard data actually shifted.
+    The payload carries no machine-local context (input dir, timestamps)
+    so it stays byte-stable across runs on unchanged inputs, and the daily
+    CI refresh only commits real data shifts.
     """
     data_dir = Path(data_dir)
     builds = discover_maps(data_dir)
 
-    # Parse every published .dat file exactly once and remember the
-    # parsed result keyed by absolute path. Both the per-variant
-    # profiling pass and the diff pass below pick from this cache, so
-    # no .dat is touched twice across the run.
+    # Parse every .dat once, keyed by path; both the profiling and diff
+    # passes read from this cache.
     loaded: dict[Path, LoadedMap] = {}
     for build in builds:
         for path in (build.unfilled_path, build.filled_path):
@@ -218,10 +170,16 @@ def generate_dashboard_data(
     }
 
     if snapshot_sources:
-        snapshots_by_source = {
-            source: discover_snapshots(directory, source)
-            for source, directory in snapshot_sources.items()
-        }
+        # Group by each snapshot's *own* source, not the directory key:
+        # the Bitnodes dir mixes b10c JSON ("bitnodes") and bitnod.es CSV
+        # ("bitmex"), and splitting them keeps the crawler handover a
+        # distinct line. Re-sort since the interleaving breaks ordering.
+        snapshots_by_source: dict[str, list] = {}
+        for source, directory in snapshot_sources.items():
+            for snapshot in discover_snapshots(directory, source):
+                snapshots_by_source.setdefault(snapshot.source, []).append(snapshot)
+        for snapshots in snapshots_by_source.values():
+            snapshots.sort(key=lambda s: s.timestamp)
         network = build_network_section(builds, loaded, snapshots_by_source)
         if network:
             payload["network"] = network
@@ -235,59 +193,28 @@ def _compute_pair_diffs(
 ) -> list[dict]:
     """Diff every chronological pair of builds, preferring unfilled.
 
-    Why unfilled: filled-vs-filled diffs conflate two unrelated
-    sources of change. Real BGP shifts in the underlying RPKI / IRR /
-    Routeviews data show up as prefix reassignments, but so does any
-    rebalancing the ``--fill`` heuristic does when adjacent same-AS
-    prefixes appear or disappear. Unfilled-vs-unfilled isolates the
-    first signal, which is the one a Maps-tab reviewer actually
-    wants to see.
+    Why unfilled: filled-vs-filled would conflate real BGP/RPKI/IRR
+    shifts with the rebalancing the ``--fill`` heuristic does, so only
+    unfilled-vs-unfilled isolates the signal a reviewer wants. A pair is
+    diffed only when both sides have an unfilled variant; a filled-only
+    build drops out of the timeline and the frontend shows a gap, never a
+    misleading number.
 
-    Pair selection is asymmetric on purpose. A pair is only diffed
-    when both sides published an unfilled variant; mixed
-    unfilled-vs-filled is silently skipped because the two encodings
-    answer different questions and a number derived from them would
-    be misleading. Any filled-only build therefore drops out of the
-    diff timeline until / unless an unfilled is back-published for
-    it. The frontend surfaces this as a gap in the drift chart, not
-    as a wrong number.
-
-    Scaling note: this is an explicit O(N^2) all-pairs walk so the
-    Diff Explorer can pivot to any (A, B) pair without a backend.
-    The cost budget today (~50 published builds = 1225 pair diffs,
-    each touching one trie diff plus two cached per-AS counters) is
-    a few seconds of CPU and well under 1 MB of payload per
-    ``TOP_MOVERS_LIMIT``-capped row set. The CI cron has a generous
-    daily budget, so the constant factor is fine. The switch point
-    is the build count at which either the runtime or the payload
-    size pushes the daily refresh out of the workflow's wall-clock
-    budget; at the upstream's current ~1 build / week release
-    cadence that crosses ~150 builds around 2027-2028. The drop-in
-    alternative is to materialise only adjacent pairs plus a small
-    set of reference distances (e.g. last-known-good, 30-day,
-    90-day) and to compute arbitrary pairs lazily in the browser
-    against the cached map profiles. The trade-off lives here, not
-    in a TODO, so a reviewer hitting the limit knows exactly which
-    knob to turn.
-
-    Budget note: when snapshot sources are configured, the network
-    section runs a *second* all-pairs pass over the same diffable
-    builds (``network.metrics._build_node_impact`` scores the
-    observed node set against every (from, to) pair). It is far
-    cheaper per pair — integer comparisons over precomputed ASN
-    vectors, no trie walk — but it shares the same O(N^2) pair count
-    and the same daily wall-clock budget, so the switch point above
-    is reached by whichever pass blows the budget first.
+    Explicit O(N^2) all-pairs walk so the Diff Explorer can pivot to any
+    (A, B) with no backend. Affordable today (~50 builds = 1225 diffs,
+    seconds of CPU); the switch point is ~150 builds (~2027-2028), where
+    the drop-in is adjacent pairs + a few reference distances computed
+    lazily in the browser. With snapshot sources a second, cheaper
+    all-pairs pass runs (``network.metrics._build_node_impact``) under the
+    same pair count and budget.
     """
     diffable: list[tuple[DiscoveredBuild, LoadedMap]] = [
         (build, loaded[build.unfilled_path])
         for build in builds
         if build.unfilled_path is not None
     ]
-    # Per-ASN presence (entries, IPv4 addresses, IPv6 addresses) is
-    # cached on each LoadedMap at parse time, so the all-pairs diff
-    # loop reuses those caches O(N) times instead of re-walking the
-    # trie on every pair.
+    # Per-ASN presence is cached on each LoadedMap at parse time, so this
+    # loop reuses those caches instead of re-walking the trie per pair.
     out: list[dict] = []
     for (build_a, loaded_a), (build_b, loaded_b) in itertools.combinations(diffable, 2):
         diff = diff_loaded_maps(loaded_a, loaded_b)
@@ -319,10 +246,8 @@ def _variant_payload(
 ) -> dict:
     """Return the per-variant profile dict, or {"present": false}.
 
-    Both branches return a dict with the same outer shape (an
-    ``"present"`` flag plus optional profile fields), so the frontend
-    can always read ``map.unfilled.present`` without checking for
-    missing keys.
+    Both branches share the ``"present"`` flag so the frontend reads
+    ``map.unfilled.present`` without guarding for missing keys.
     """
     if path is None:
         return {"present": False}

@@ -10,10 +10,13 @@ from asmap_dashboard.metrics import generate_dashboard_data
 from asmap_dashboard.network.metrics import (
     _Build,
     _build_node_impact,
-    _decay_curve,
+    _drift_curve,
     _impact_dict,
+    _latest_update_impact,
+    _map_target,
     _select_in_effect_build,
     _snapshot_metrics,
+    _truth_target,
 )
 from asmap_dashboard.network.snapshots import Node, Snapshot
 
@@ -200,10 +203,10 @@ def test_snapshot_metrics_hides_cross_check_when_coverage_thin():
     assert result["cross_check"] is None
 
 
-def test_decay_curve_is_anchored_on_reference_and_fixed_node_set():
+def test_map_decay_curve_is_anchored_on_reference_and_fixed_node_set():
     snap = _snapshot(1710000001, NODES)
 
-    decay = _decay_curve(snap, [BUILD1, BUILD2], reference=BUILD2)
+    decay = _drift_curve(snap, [BUILD1, BUILD2], BUILD2, BUILD2, _map_target)
 
     assert decay["reference_build"] == BUILD2.name
     # Only the two nodes the reference maps to a real AS are scored.
@@ -216,6 +219,49 @@ def test_decay_curve_is_anchored_on_reference_and_fixed_node_set():
     # Age is measured from the reference release backwards, never negative.
     assert points[BUILD1.name]["age_days"] == 115
     assert points[BUILD2.name]["age_days"] == 0
+
+
+def test_truth_decay_curve_scores_against_whois():
+    # Reality anchor: both mapped nodes carry whois, and their whois
+    # equals the newest build here, so age 0 is 0% and build1 disagrees
+    # on 1.1.1.1 (whois AS200 vs build1 AS100) -> 1/2.
+    snap = _snapshot(1710000001, NODES)
+
+    decay = _drift_curve(snap, [BUILD1, BUILD2], BUILD2, BUILD2, _truth_target)
+
+    assert decay["node_set_size"] == 2
+    points = {p["build"]: p for p in decay["points"]}
+    assert points[BUILD2.name]["drift_pct"] == 0.0
+    assert points[BUILD1.name]["drift_pct"] == 50.0
+
+
+def test_drift_curve_ages_from_a_separate_reference():
+    # A frozen crawl: its freshest map is BUILD1, but the newest build
+    # overall is BUILD2. Scored over the [BUILD1] window only (no future
+    # maps), yet aged from BUILD2, so its single point lands at the
+    # BUILD2 - BUILD1 offset instead of age 0.
+    snap = _snapshot(1700000001, NODES)
+    decay = _drift_curve(snap, [BUILD1], BUILD1, BUILD2, _map_target)
+    assert [p["build"] for p in decay["points"]] == [BUILD1.name]
+    pt = decay["points"][0]
+    assert pt["age_days"] == 115
+    # BUILD1 against itself never drifts, so the freshest point is 0.
+    assert pt["drift_pct"] == 0.0
+
+
+def test_truth_decay_curve_is_empty_without_whois():
+    # A node set the reference maps but that carries no crawler whois:
+    # the reality anchor has nothing to score, so node_set_size is 0 and
+    # the build loop returns a flat zero curve. The source then has no
+    # decay_truth attached and is greyed out of the "vs reality" view.
+    nodes = [Node(ip="1.1.1.1", version=4, asn=None, country=None)]
+    snap = _snapshot(1710000001, nodes)
+    truth = _drift_curve(snap, [BUILD1, BUILD2], BUILD2, BUILD2, _truth_target)
+    assert truth["node_set_size"] == 0
+    assert all(p["drift_pct"] == 0.0 for p in truth["points"])
+    # The map-versus-map anchor is unaffected by missing whois.
+    mapped = _drift_curve(snap, [BUILD1, BUILD2], BUILD2, BUILD2, _map_target)
+    assert mapped["node_set_size"] == 1
 
 
 def test_impact_dict_counts_overall_and_per_family():
@@ -251,7 +297,7 @@ def test_build_node_impact_emits_pairs_and_latest_update():
         1720000001, [Node(ip="1.1.1.1", version=4, asn=None, country=None)]
     )
 
-    latest_update, pair_impact = _build_node_impact(snap, [build1, build2, build3])
+    pair_impact = _build_node_impact(snap, [build1, build2, build3])
 
     # One entry per (from, to) pair, keyed to match the diff keys.
     assert set(pair_impact["pairs"]) == {
@@ -263,7 +309,8 @@ def test_build_node_impact_emits_pairs_and_latest_update():
     one_pair = pair_impact["pairs"]["2023/1700000000|2024/1710000000"]
     assert one_pair["total_nodes"] == 1
     assert one_pair["reassigned"] == 1
-    # latest_update is the two most recent builds.
+    # The two-newest-builds impact comes from _latest_update_impact.
+    latest_update = _latest_update_impact(snap, [build1, build2, build3])
     assert latest_update["from_build"] == build2.name
     assert latest_update["to_build"] == build3.name
     assert latest_update["reassigned"] == 1
@@ -275,10 +322,8 @@ def test_build_node_impact_latest_update_none_with_single_build():
         1710000001, [Node(ip="1.1.1.1", version=4, asn=None, country=None)]
     )
 
-    latest_update, pair_impact = _build_node_impact(snap, [build])
-
-    assert latest_update is None
-    assert pair_impact["pairs"] == {}
+    assert _build_node_impact(snap, [build])["pairs"] == {}
+    assert _latest_update_impact(snap, [build]) is None
 
 
 def _write_kit_dossier(path, ip_to_asn):
@@ -311,6 +356,9 @@ def test_generate_dashboard_data_attaches_network_when_sources_given(tmp_path):
     kit = payload["network"]["sources"]["kit"]
     assert len(kit["snapshots"]) == 1
     assert kit["decay"]["reference_build"] == "2024/1710000000"
+    # The KIT dossier ships whois, so a reality curve is attached and
+    # anchored on the same (only) snapshot.
+    assert kit["decay_truth"]["node_set_size"] == 1
     # Node impact rides along: the node 1.1.1.1 (in 1.0.0.0/8) is
     # reassigned AS100 -> AS200 between the two diffable builds.
     network = payload["network"]
@@ -318,6 +366,10 @@ def test_generate_dashboard_data_attaches_network_when_sources_given(tmp_path):
     assert network["latest_update"]["reassigned"] == 1
     pair_key = "2024/1700000000|2024/1710000000"
     assert network["pair_impact"]["pairs"][pair_key]["reassigned"] == 1
+    # The same impact rides along on the source itself, so the hero's
+    # impact card can follow the source switch.
+    assert kit["latest_update"]["reassigned"] == 1
+    assert kit["latest_update"]["to_build"] == "2024/1710000000"
 
 
 def test_generate_dashboard_data_omits_network_without_sources(tmp_path):

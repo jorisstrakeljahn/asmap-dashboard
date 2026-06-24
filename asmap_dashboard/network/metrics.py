@@ -1,73 +1,16 @@
 """Network-tap metrics: observed nodes scored against the ASmap history.
 
-Seven metrics, all derived from the same normalised ``Snapshot`` stream
-so a reviewer can trace every number back to a public input:
+The seven metrics and what each answers are catalogued in
+``docs/architecture.md`` ("The seven network-tap metrics"); the per-node
+arithmetic lives in the leaf functions below. All of them consume the
+same normalised ``Snapshot`` stream, so KIT, Bitnodes, or a future
+crawler flow through identical code and produce comparable series.
 
-  1. Map staleness / decay
-     For one fixed node set (a source's most recent snapshot), look every
-     node up in *every* published build and count how many resolve to a
-     different ASN than they do under the newest build. Plotted against
-     build age this is the "how stale is an N-day-old embedded map for
-     today's network?" curve — the direct answer to whether Bitcoin Core
-     should ship a fresher asmap. The node set is held fixed on purpose:
-     comparing different populations is what makes a naive churn series
-     look non-monotonic.
-
-  2. AS concentration (HHI)
-     Bucket each snapshot's nodes by the ASN the *in-effect* build
-     resolves, then compute the Herfindahl-Hirschman index over those
-     buckets. Low HHI = peers spread across many ASes = healthier peer
-     diversity.
-
-  3. Bucketing effectiveness
-     Count the distinct peer-diversity buckets the same node set falls
-     into under ASmap (Core's GetGroup with an asmap loaded: the ASN, or
-     the default group when unmapped) versus under Core's default /16-/32
-     bucketing. ASmap *consolidates* many prefix buckets into fewer AS
-     buckets — the reduction ratio is the security-relevant number, not a
-     raw "more is better" count.
-
-  4. NetGroup diversity over time
-     The ASmap-bucket count from metric 3, surfaced as its own time
-     series so the trend (are nodes spreading across more ASes over
-     time?) is readable without re-deriving it.
-
-  5. ASN attribution cross-check
-     For nodes the crawler annotated with its own whois ASN, the share
-     that agrees with the ASmap lookup. A persistent gap flags either a
-     stale embedded map or a crawler whois source drifting from the BGP
-     view ASmap is built on.
-
-  6. ASmap coverage of observed nodes
-     How many of the observed clearnet nodes the in-effect build
-     resolves to a real AS at all (``mapped`` vs ``nodes_clearnet``).
-     The most direct "does the map fit the real network?" reading:
-     a coverage share that sinks over time means kartograf's input
-     data is falling behind the network, independent of how the
-     mapped majority is distributed.
-
-  7. ASes to reach 50%
-     The minimum number of autonomous systems that together hold at
-     least half of the mapped nodes. Where HHI summarises the whole
-     distribution, this answers the blunt adversarial question "how
-     many ASes would an attacker have to control to sit next to 50 %
-     of the network?" — higher is healthier. Computed over mapped
-     nodes, consistent with the HHI denominator. (Decentralisation
-     studies call this the AS Nakamoto coefficient; the dashboard
-     labels it "ASes to reach 50%" so the UI reads without jargon, and
-     this module keeps the same plain name end to end.)
-
-Every per-snapshot metric is additionally split by address family
-(``families.ipv4`` / ``families.ipv6``). The family is the *effective*
-one after the linked-IPv4 unwrap, so a 6to4 or NAT64 peer counts as
-IPv4 exactly like Core's GetGroup() treats it. Bitcoin Core's peer
-diversity logic handles the two families as independent dimensions,
-so a combined number can mask one family concentrating while the
-other improves.
-
-Source-agnostic: the functions here only ever touch ``Snapshot`` /
-``Node`` plus the loaded ``ASMap`` objects, so KIT, Bitnodes, or a future
-crawler all flow through the same code and produce comparable series.
+Every per-snapshot metric is also split by *effective* address family
+(after the linked-IPv4 unwrap, so a 6to4/NAT64 peer counts as IPv4 like
+Core's GetGroup does). Core treats the two families as independent peer
+-diversity dimensions, so a combined number can hide one family
+concentrating while the other improves.
 """
 
 from __future__ import annotations
@@ -76,7 +19,9 @@ import bisect
 import ipaddress
 import itertools
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 from asmap_dashboard._prefix import classify_asn_change, ip_to_prefix, is_ipv4_prefix
 from asmap_dashboard._vendor.asmap import ASMap
@@ -85,30 +30,28 @@ from asmap_dashboard.network.snapshots import Node, Snapshot
 
 TOP_ASES_LIMIT = 15
 
-# Which source's most recent snapshot is the node set the impact
-# numbers are scored over. KIT first because it is the live, fully
-# annotated crawl; the frontend treats it as primary too
-# (series-data.js SOURCE_ORDER), so the dashboard card / diff banner
-# and this payload agree on whose nodes were counted.
-PRIMARY_SOURCE_ORDER = ("kit", "bitnodes")
+# Preferred node set for the all-pairs node-impact pass. Mirrors the
+# frontend's series-data.js SOURCE_ORDER so card and payload count the
+# same nodes; KIT first because it is the live, fully annotated crawl.
+PRIMARY_SOURCE_ORDER = ("kit", "bitnodes", "bitmex")
 
-# A snapshot only feeds the cross-check view when enough of its nodes
-# carry the crawler annotation; below this the sample is too thin to
-# be worth a (misleading) number. Expressed as a share of clearnet
-# nodes so it scales with snapshot size.
+# Minimum share of clearnet nodes that must carry a crawler ASN before
+# the cross-check is shown; below it the sample is too thin to trust.
 ANNOTATION_COVERAGE_FLOOR = 0.5
 
 SECONDS_PER_DAY = 86_400
 
+# A build is stamped a few hours after the same-day crawl with the same
+# routing data, so widen the "build at or before the snapshot" rule by one
+# day. A crawl then pairs with its own same-day build, not the previous
+# release, while staying well below the multi-week release cadence.
+IN_EFFECT_TOLERANCE_SECONDS = SECONDS_PER_DAY
+
 
 @dataclass(frozen=True)
 class _Build:
-    """The minimum a metric needs about one published build.
-
-    Decouples the network metrics from the discovery dataclass in
-    ``metrics.py`` so this module can be unit-tested with hand-built
-    ASMaps and never imports the year-folder discovery machinery.
-    """
+    """One published build, decoupled from ``metrics.DiscoveredBuild`` so
+    this module unit-tests with hand-built ASMaps."""
 
     name: str
     timestamp: int
@@ -116,39 +59,30 @@ class _Build:
 
 
 def _node_ip_to_prefix(ip: str) -> list[bool]:
-    """Return the lookup prefix for a node's IP string.
-
-    Thin wrapper over the shared ``_prefix.ip_to_prefix`` so the
-    string-keyed crawl data and the diff ``--addrs`` path share one
-    linked-IPv4 unwrap and one prefix conversion (see that function
-    for the Core-parity rationale).
-    """
+    """Lookup prefix for a node's IP, via the shared ``ip_to_prefix`` so
+    crawl data and the diff ``--addrs`` path share one linked-IPv4 unwrap."""
     return ip_to_prefix(ipaddress.ip_address(ip))
 
 
 def _lookup_asn(asmap: ASMap, prefix: list[bool]) -> int:
-    """ASN for a prefix, with the lookup's None/0 sentinels folded to 0.
-
-    ``ASMap.lookup`` returns ``None`` for an indeterminate prefix and
-    ``0`` for an explicitly-unassigned one; both mean "no AS opinion" for
-    every metric here, so they collapse to 0.
-    """
+    """ASN for a prefix, folding lookup's None/0 sentinels (both "no AS
+    opinion") to 0."""
     return asmap.lookup(prefix) or 0
 
 
 @dataclass(frozen=True)
 class _PreparedNode:
-    """A snapshot node with its lookup prefix precomputed once.
-
-    The decay curve looks the same node set up against ~16 builds, so
-    converting the address to a bit prefix once (instead of per build)
-    keeps that pass at one ``net_to_prefix`` per node rather than per
-    (node, build) pair.
-    """
+    """A snapshot node with its lookup prefix precomputed once, so the
+    decay curve's ~16-build pass converts each address once, not per build."""
 
     prefix: list[bool]
     asn: int | None
     ip: str
+
+
+# A per-node drift target: given a prepared node and its ASN under the
+# reference build, the AS it should resolve to, or None to drop the node.
+TargetFn = Callable[[_PreparedNode, int], int | None]
 
 
 def _prepare_nodes(nodes: tuple[Node, ...]) -> list[_PreparedNode]:
@@ -171,19 +105,15 @@ def _prepare_nodes(nodes: tuple[Node, ...]) -> list[_PreparedNode]:
 def _select_in_effect_build(builds: list[_Build], timestamp: int) -> _Build:
     """Return the build a node operator would have embedded at ``timestamp``.
 
-    That is the most recent build whose release is at or before the
-    snapshot. Snapshots older than the first build fall back to that
-    first build, since there is nothing earlier to compare against.
-    The fallback fires in the real history: the KIT dossier of
-    2024-01-05 12:55 UTC sits about an hour before the first build's
-    14:00 UTC file timestamp. Scoring it against that build is the
-    right call — the build represents that day's routing data, and
-    the alternative (dropping the snapshot) would discard a full
-    crawl over a file-metadata artefact.
-    ``builds`` is assumed sorted by timestamp (the caller guarantees it).
+    That is the most recent build released at or before the snapshot,
+    widened by ``IN_EFFECT_TOLERANCE_SECONDS`` (see that constant) so a
+    crawl pairs with its own same-day build rather than the previous one.
+    Snapshots older than every build fall back to the earliest, since
+    there is nothing earlier to compare against. ``builds`` is assumed
+    sorted by timestamp (the caller guarantees it).
     """
     times = [b.timestamp for b in builds]
-    idx = bisect.bisect_right(times, timestamp) - 1
+    idx = bisect.bisect_right(times, timestamp + IN_EFFECT_TOLERANCE_SECONDS) - 1
     if idx < 0:
         idx = 0
     return builds[idx]
@@ -202,20 +132,17 @@ def _hhi(counts: Counter[int]) -> float:
 
 
 class _Tally:
-    """Accumulator for one node population (the whole snapshot or one
-    address family).
+    """Accumulator for one node population (whole snapshot or one family).
 
-    Keeping the per-population arithmetic in one place means the
-    overall numbers and the families split can never drift apart:
-    both are fed from the identical per-node classification loop in
-    ``_snapshot_metrics``.
+    Overall and per-family numbers share this one classifier so they can
+    never drift apart.
     """
 
     def __init__(self) -> None:
         self.asn_counts: Counter[int] = Counter()
         self.unmapped = 0
-        # Two bucket vocabularies over the identical node set: what Core
-        # buckets into with this asmap loaded vs. with no asmap at all.
+        # The same node set bucketed two ways: with this asmap loaded vs.
+        # with no asmap at all.
         self.asmap_buckets: set[object] = set()
         self.default_buckets: set[object] = set()
 
@@ -226,8 +153,8 @@ class _Tally:
             self.asmap_buckets.add(("as", asn))
         else:
             self.unmapped += 1
-            # Core falls back to the default group for unmapped peers,
-            # so the honest ASmap-bucket count includes that fallback.
+            # Core buckets unmapped peers by the default group, so the
+            # honest ASmap-bucket count includes that fallback.
             self.asmap_buckets.add(("net", default_group))
 
     @property
@@ -251,17 +178,10 @@ class _Tally:
 def _snapshot_metrics(snapshot: Snapshot, build: _Build) -> dict:
     """Score one snapshot's nodes against the build in effect at its time.
 
-    The emitted dict only carries the fields the frontend renders
-    (overview cards, HHI / operators / coverage series, cross-check
-    table). Skip diagnostics and the matched-build echo used to ride
-    along but were never consumed; they can be re-derived from the
-    raw snapshots if a future view needs them.
-
-    ``families`` repeats the headline numbers per effective address
-    family (after the linked-IPv4 unwrap, mirroring Core's GetGroup),
-    because Core treats IPv4 and IPv6 as independent peer-diversity
-    dimensions and a combined HHI can mask one family concentrating
-    while the other improves.
+    Emits only the fields the frontend renders, plus the in-effect build
+    (name + timestamp) so the overview caption can name the map the
+    numbers are scored against. ``families`` repeats the headline numbers
+    per effective address family (see the module docstring for why).
     """
     prepared = _prepare_nodes(snapshot.nodes)
 
@@ -290,6 +210,9 @@ def _snapshot_metrics(snapshot: Snapshot, build: _Build) -> dict:
         "source": snapshot.source,
         "label": snapshot.label,
         "timestamp": snapshot.timestamp,
+        # The in-effect build every number here is scored against; the
+        # overview caption surfaces its date.
+        "build": {"name": build.name, "timestamp": build.timestamp},
         "nodes_clearnet": overall.clearnet,
         "mapped": overall.mapped,
         "unique_asns": len(overall.asn_counts),
@@ -305,14 +228,9 @@ def _snapshot_metrics(snapshot: Snapshot, build: _Build) -> dict:
 
 
 def _family_payload(tally: _Tally) -> dict:
-    """The per-family slice of the snapshot metrics.
-
-    Same vocabulary as the top level (nodes, mapped, HHI, bucketing)
-    so the frontend's family toggle can swap accessors without
-    reshaping anything. A family with zero observed nodes still
-    emits the full dict — the schema stays rectangular and the
-    frontend never defends against missing keys.
-    """
+    """The per-family slice, same shape as the top level so the frontend's
+    family toggle swaps accessors without reshaping. A zero-node family
+    still emits the full dict, keeping the schema rectangular."""
     return {
         "nodes": tally.clearnet,
         "mapped": tally.mapped,
@@ -325,13 +243,11 @@ def _family_payload(tally: _Tally) -> dict:
 def _ases_to_reach_share(
     asn_counts: Counter[int], threshold: float = 0.5
 ) -> int | None:
-    """Minimum number of ASes that together hold >= ``threshold`` of
-    the mapped nodes (the "ASes to reach 50%" card at the default 0.5).
+    """Minimum number of ASes that together hold >= ``threshold`` of the
+    mapped nodes (the "ASes to reach 50%" card at the default 0.5).
 
-    The blunt adversarial reading of the AS distribution: an attacker
-    controlling that many networks sits next to half the (mapped)
-    listening nodes. Returns ``None`` when nothing is mapped, so the
-    frontend can show an explicit no-data state instead of a fake 0.
+    Returns ``None`` when nothing is mapped, so the frontend shows a
+    no-data state instead of a fake 0.
     """
     total = sum(asn_counts.values())
     if total == 0:
@@ -360,12 +276,9 @@ def _top_ases(asn_counts: Counter[int], mapped: int) -> list[dict]:
 def _cross_check(
     compared: int, agree: int, annotated: int, clearnet: int
 ) -> dict | None:
-    """Crawler-whois vs ASmap agreement, or None when coverage is too thin.
-
-    Returns ``None`` (so the frontend hides the panel) when fewer than
-    ``ANNOTATION_COVERAGE_FLOOR`` of clearnet nodes carry a crawler ASN,
-    e.g. Bitnodes' compact snapshots that ship no whois at all.
-    """
+    """Crawler-whois vs ASmap agreement, or None when fewer than
+    ``ANNOTATION_COVERAGE_FLOOR`` of clearnet nodes carry a crawler ASN
+    (e.g. compact snapshots with no whois), so the frontend hides the panel."""
     if clearnet == 0 or annotated / clearnet < ANNOTATION_COVERAGE_FLOOR:
         return None
     return {
@@ -375,40 +288,68 @@ def _cross_check(
     }
 
 
-def _decay_curve(snapshot: Snapshot, builds: list[_Build], reference: _Build) -> dict:
-    """Drift of a fixed node set across every build, vs the newest build.
+def _map_target(node: _PreparedNode, reference_asn: int) -> int | None:
+    """Map-versus-map target: the newest build's own lookup of the node,
+    or ``None`` for nodes the newest build does not map (nothing to
+    drift against). Drift here is divergence from the freshest map, so
+    the newest build sits at 0 — the pure aging signal, defined for
+    every crawler."""
+    return reference_asn or None
 
-    For each build B, ``drift_pct`` is the share of nodes — among those
-    the reference build maps to a real AS — that resolve to a *different*
-    AS under B. Held against build age (reference release minus B's
-    release) this is the decay curve. The node set is the snapshot's,
-    held fixed across all points so the series reflects map age alone,
-    not a changing population.
+
+def _truth_target(node: _PreparedNode, reference_asn: int) -> int | None:
+    """Reality target: the crawler's own whois ASN, restricted to nodes
+    the newest build also maps so age 0 reads as the attribution gap.
+    ``None`` drops nodes without whois (or unmapped by the newest
+    build), so a crawler whose anchor snapshot ships no whois yields an
+    empty curve and is greyed out of the reality view."""
+    return node.asn if (reference_asn and node.asn is not None) else None
+
+
+def _drift_curve(
+    snapshot: Snapshot,
+    builds: list[_Build],
+    target_reference: _Build,
+    age_reference: _Build,
+    target: TargetFn,
+) -> dict:
+    """Drift of a fixed node set across ``builds`` against a per-node target.
+
+    ``target(node, reference_asn)`` returns the AS each node should resolve
+    to — the freshest map (``_map_target``) or crawler whois
+    (``_truth_target``) — or ``None`` to drop it; ``reference_asn`` is the
+    lookup under ``target_reference`` (the in-effect build), restricting to
+    nodes it maps so the freshest point reads as the attribution gap, not a
+    coverage artefact. Per build, drift is the share of kept nodes resolving
+    to a different AS than their target. ``age_days`` is measured from
+    ``age_reference`` (newest build overall) so every source shares one
+    age-to-calendar axis.
     """
     prepared = _prepare_nodes(snapshot.nodes)
-    reference_asns = [_lookup_asn(reference.asmap, n.prefix) for n in prepared]
-    mapped_idx = [i for i, asn in enumerate(reference_asns) if asn]
+    reference_asns = [_lookup_asn(target_reference.asmap, n.prefix) for n in prepared]
+    targets = [
+        target(node, ref) for node, ref in zip(prepared, reference_asns, strict=True)
+    ]
+    idx = [i for i, tgt in enumerate(targets) if tgt]
 
     points: list[dict] = []
     for build in builds:
-        differ = 0
-        for i in mapped_idx:
-            if _lookup_asn(build.asmap, prepared[i].prefix) != reference_asns[i]:
-                differ += 1
-        denom = len(mapped_idx)
+        differ = sum(
+            1 for i in idx if _lookup_asn(build.asmap, prepared[i].prefix) != targets[i]
+        )
         points.append(
             {
                 "build": build.name,
                 "build_timestamp": build.timestamp,
-                "age_days": _age_days(build.timestamp, reference.timestamp),
-                "drift_pct": round(100 * differ / denom, 4) if denom else 0.0,
+                "age_days": _age_days(build.timestamp, age_reference.timestamp),
+                "drift_pct": round(100 * differ / len(idx), 4) if idx else 0.0,
             }
         )
     return {
         "node_set_label": snapshot.label,
-        "node_set_size": len(mapped_idx),
-        "reference_build": reference.name,
-        "reference_timestamp": reference.timestamp,
+        "node_set_size": len(idx),
+        "reference_build": target_reference.name,
+        "reference_timestamp": target_reference.timestamp,
         "points": points,
     }
 
@@ -453,25 +394,15 @@ def _impact_dict(
     return result
 
 
-def _build_node_impact(
-    snapshot: Snapshot, diffable_builds: list[_Build]
-) -> tuple[dict | None, dict]:
+def _build_node_impact(snapshot: Snapshot, diffable_builds: list[_Build]) -> dict:
     """Score one node set against every diffable build pair.
 
-    Each node's ASN is looked up once per build (``net_to_prefix`` is
-    precomputed by ``_prepare_nodes``), then every pair is a cheap
-    integer comparison over those vectors — so this stays affordable
-    even though the pair count is the same O(N^2) all-pairs set the
-    Diff Explorer carries.
-
-    Returns ``(latest_update, pair_impact)``:
-
-      - ``latest_update`` is the impact of the two most recent diffable
-        builds — "did the last release move the observed network?" —
-        or ``None`` when fewer than two diffable builds exist.
-      - ``pair_impact`` carries one entry per (from, to) build pair,
-        keyed ``"<from>|<to>"`` to match the Diff Explorer's diff keys,
-        so the explorer can join a node-impact banner onto any pair.
+    Each node's ASN is looked up once per build, then every pair is a
+    cheap integer comparison over those vectors, keeping the O(N^2)
+    all-pairs set affordable. Returns ``{"pairs": {...}}``, one entry per
+    pair keyed ``"<from>|<to>"`` to match the Diff Explorer's diff keys.
+    The two-newest-builds impact for the banner comes from the per-source
+    ``_latest_update_impact`` instead.
     """
     prepared = _prepare_nodes(snapshot.nodes)
     families = ["ipv4" if is_ipv4_prefix(n.prefix) else "ipv6" for n in prepared]
@@ -485,33 +416,40 @@ def _build_node_impact(
         pairs[f"{build_a.name}|{build_b.name}"] = _impact_dict(
             families, asn_by_build[build_a.name], asn_by_build[build_b.name]
         )
-
-    latest_update: dict | None = None
-    if len(diffable_builds) >= 2:
-        prev_build, last_build = diffable_builds[-2], diffable_builds[-1]
-        latest_update = {
-            "from_build": prev_build.name,
-            "to_build": last_build.name,
-            "from_timestamp": prev_build.timestamp,
-            "to_timestamp": last_build.timestamp,
-            **_impact_dict(
-                families,
-                asn_by_build[prev_build.name],
-                asn_by_build[last_build.name],
-            ),
-        }
-
-    return latest_update, {"pairs": pairs}
+    return {"pairs": pairs}
 
 
-def _lift_builds(builds: list, loaded: dict, pick_path) -> list[_Build]:
-    """Lift the builds whose ``pick_path`` variant is present into
-    ``_Build``, sorted by timestamp.
+def _latest_update_impact(
+    snapshot: Snapshot, diffable_builds: list[_Build]
+) -> dict | None:
+    """Impact of the two most recent diffable builds on one node set.
 
-    ``pick_path(build)`` returns the .dat path to read for one build, or
-    ``None`` to drop it. The two variant rules (diffable vs. lookup) live
-    in the thin wrappers below so the loop itself stays shared.
+    The "latest update impact" card number for any source. ``None`` below
+    two builds. Looks up only the two newest builds (not the full all-pairs
+    set), so attaching it to every source stays cheap.
     """
+    if len(diffable_builds) < 2:
+        return None
+    prev_build, last_build = diffable_builds[-2], diffable_builds[-1]
+    prepared = _prepare_nodes(snapshot.nodes)
+    families = ["ipv4" if is_ipv4_prefix(n.prefix) else "ipv6" for n in prepared]
+    asns_prev = [_lookup_asn(prev_build.asmap, n.prefix) for n in prepared]
+    asns_last = [_lookup_asn(last_build.asmap, n.prefix) for n in prepared]
+    return {
+        "from_build": prev_build.name,
+        "to_build": last_build.name,
+        "from_timestamp": prev_build.timestamp,
+        "to_timestamp": last_build.timestamp,
+        **_impact_dict(families, asns_prev, asns_last),
+    }
+
+
+def _lift_builds(
+    builds: list, loaded: dict, pick_path: Callable[..., Path | None]
+) -> list[_Build]:
+    """Lift the builds whose ``pick_path(build)`` variant is present into
+    ``_Build``, sorted by timestamp (``None`` drops the build). The variant
+    rules live in the thin wrappers below so the loop stays shared."""
     out: list[_Build] = []
     for build in builds:
         path = pick_path(build)
@@ -526,13 +464,97 @@ def _lift_builds(builds: list, loaded: dict, pick_path) -> list[_Build]:
 
 def _diffable_builds(builds: list, loaded: dict) -> list[_Build]:
     """The builds the Diff Explorer can pair: those with an unfilled
-    variant, lifted into ``_Build`` and sorted by timestamp.
-
-    The diff pipeline only emits unfilled-vs-unfilled diffs, so scoring
-    node impact over the same set keeps the ``"<from>|<to>"`` keys here
-    in lockstep with the diff keys the frontend looks up.
-    """
+    variant. Matching the diff pipeline's unfilled-vs-unfilled set keeps
+    the ``"<from>|<to>"`` keys in lockstep with the frontend's diff keys."""
     return _lift_builds(builds, loaded, lambda build: build.unfilled_path)
+
+
+def _decay_window(
+    anchor: Snapshot,
+    prepared_builds: list[_Build],
+    reference: _Build,
+    target: TargetFn,
+) -> dict | None:
+    """Drift curve for ``anchor`` over the builds at or older than it (same
+    one-day tolerance as ``_select_in_effect_build``), so a frozen crawl
+    stops at its last observation and its freshest point lands on its own
+    same-day build."""
+    window = [
+        b
+        for b in prepared_builds
+        if b.timestamp <= anchor.timestamp + IN_EFFECT_TOLERANCE_SECONDS
+    ]
+    if not window:
+        return None
+    return _drift_curve(anchor, window, window[-1], reference, target)
+
+
+def _build_source_entry(
+    usable: list[Snapshot],
+    prepared_builds: list[_Build],
+    reference: _Build,
+    diffable: list[_Build],
+) -> dict:
+    """One source's payload: per-snapshot series, up to two decay curves,
+    and the latest-update card.
+
+    ``decay`` (vs the snapshot's own freshest map) exists for every crawler;
+    ``decay_truth`` (vs crawler whois) needs a whois-bearing anchor, so
+    whois-less crawlers (BitMEX CSVs) omit it and are greyed out of that view.
+    """
+    series = [
+        _snapshot_metrics(s, _select_in_effect_build(prepared_builds, s.timestamp))
+        for s in usable
+    ]
+    entry: dict = {"snapshots": series}
+
+    map_curve = _decay_window(usable[-1], prepared_builds, reference, _map_target)
+    if map_curve is not None:
+        entry["decay"] = map_curve
+
+    truth_anchor = next(
+        (s for s in reversed(usable) if any(n.asn is not None for n in s.nodes)),
+        None,
+    )
+    if truth_anchor is not None:
+        truth_curve = _decay_window(
+            truth_anchor, prepared_builds, reference, _truth_target
+        )
+        if truth_curve is not None:
+            entry["decay_truth"] = truth_curve
+
+    latest_update = _latest_update_impact(usable[-1], diffable)
+    if latest_update is not None:
+        entry["latest_update"] = latest_update
+    return entry
+
+
+def _build_diff_banner(
+    latest_snapshot_by_source: dict[str, Snapshot],
+    sources_out: dict[str, dict],
+    diffable: list[_Build],
+) -> dict:
+    """Diff-banner keys: score the primary source's newest node set against
+    every diffable pair. The keys are optional in the payload, so an older
+    network.json without them still renders.
+    """
+    primary = next(
+        (s for s in PRIMARY_SOURCE_ORDER if s in latest_snapshot_by_source),
+        next(iter(latest_snapshot_by_source)),
+    )
+    node_set = latest_snapshot_by_source[primary]
+    meta = {
+        "node_set_source": primary,
+        "node_set_label": node_set.label,
+        "node_set_timestamp": node_set.timestamp,
+    }
+    banner: dict = {}
+    # Reuse the primary's own per-source latest_update rather than recompute.
+    primary_latest = sources_out[primary].get("latest_update")
+    if primary_latest is not None:
+        banner["latest_update"] = {**meta, **primary_latest}
+    banner["pair_impact"] = {**meta, **_build_node_impact(node_set, diffable)}
+    return banner
 
 
 def build_network_section(
@@ -543,18 +565,19 @@ def build_network_section(
     """Assemble the ``network`` payload from snapshots and loaded builds.
 
     ``builds`` is the ``DiscoveredBuild`` list from ``metrics.discover_maps``
-    and ``loaded`` the path -> ``LoadedMap`` cache, so this reuses the
-    maps the Maps/Diff pipeline already parsed instead of re-reading any
-    .dat file. Each source contributes a per-snapshot time series plus
-    one decay curve anchored on its most recent snapshot.
+    and ``loaded`` the path -> ``LoadedMap`` cache, so this reuses the maps
+    the Maps/Diff pipeline already parsed instead of re-reading any .dat
+    file. Each source contributes a per-snapshot series plus its decay
+    curves; the primary source also feeds the diff banner.
 
-    Returns ``{}`` when there are no builds or no snapshots, which keeps
+    Returns ``{}`` when there are no builds or no usable snapshots, keeping
     the caller's "omit the key entirely" contract simple.
     """
     prepared_builds = _prepare_builds(builds, loaded)
     if not prepared_builds:
         return {}
     reference = prepared_builds[-1]
+    diffable = _diffable_builds(builds, loaded)
 
     sources_out: dict[str, dict] = {}
     latest_snapshot_by_source: dict[str, Snapshot] = {}
@@ -562,54 +585,30 @@ def build_network_section(
         usable = [s for s in snapshots if s.nodes]
         if not usable:
             continue
-        series = [
-            _snapshot_metrics(s, _select_in_effect_build(prepared_builds, s.timestamp))
-            for s in usable
-        ]
-        decay = _decay_curve(usable[-1], prepared_builds, reference)
-        sources_out[source] = {"snapshots": series, "decay": decay}
+        sources_out[source] = _build_source_entry(
+            usable, prepared_builds, reference, diffable
+        )
         latest_snapshot_by_source[source] = usable[-1]
 
     if not sources_out:
         return {}
 
-    out = {
+    out: dict = {
         "reference_timestamp": reference.timestamp,
         "sources": sources_out,
     }
-
-    # Node-impact: score the primary source's most recent node set
-    # against every diffable build pair. Additive and optional — the
-    # frontend renders the impact card / diff banner only when these
-    # keys are present, so an older committed network.json keeps
-    # working unchanged.
-    diffable = _diffable_builds(builds, loaded)
-    primary = next(
-        (s for s in PRIMARY_SOURCE_ORDER if s in latest_snapshot_by_source),
-        next(iter(latest_snapshot_by_source)),
-    )
     if len(diffable) >= 2:
-        node_set = latest_snapshot_by_source[primary]
-        latest_update, pair_impact = _build_node_impact(node_set, diffable)
-        meta = {
-            "node_set_source": primary,
-            "node_set_label": node_set.label,
-            "node_set_timestamp": node_set.timestamp,
-        }
-        if latest_update is not None:
-            out["latest_update"] = {**meta, **latest_update}
-        out["pair_impact"] = {**meta, **pair_impact}
-
+        out.update(_build_diff_banner(latest_snapshot_by_source, sources_out, diffable))
     return out
 
 
 def _prepare_builds(builds: list, loaded: dict) -> list[_Build]:
-    """Lift DiscoveredBuilds into _Build, preferring the unfilled variant.
+    """Lift DiscoveredBuilds into _Build, preferring unfilled.
 
     Filled and unfilled resolve every lookup identically (filling only
     merges adjacent same-AS prefixes), so a filled-only build is still a
-    valid lookup source; unfilled is preferred purely to stay consistent
-    with the diff pipeline's variant choice.
+    valid lookup source; unfilled is preferred only to match the diff
+    pipeline's choice.
     """
     return _lift_builds(
         builds, loaded, lambda build: build.unfilled_path or build.filled_path
