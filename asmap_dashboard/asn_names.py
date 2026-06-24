@@ -1,18 +1,10 @@
 """Refresh the frontend ASN \u2192 operator-name lookup table.
 
-The dashboard renders top-mover rows as ``AS<num> (Operator)`` when a
-human-readable name is available. The labels are sourced from
-bgp.tools' canonical asns.csv dump, filtered down to the ASNs that
-actually appear in the dashboard payloads (diffs.json's top movers
-plus network.json's operator breakdown) so the JSON we ship to the
-frontend stays compact (a few kilobytes instead of the full 5 MB
-dump).
-
-This module is intentionally a build-time utility, not part of the
-analysis pipeline: analyze, diff, and metrics never touch it, and
-the pipeline payloads remain the single source of truth for diff
-numbers. A stale or missing ``asn-names.json`` only downgrades label
-rendering to bare ``AS<num>``, which the frontend already handles.
+Labels top-mover rows as ``AS<num> (Operator)`` from bgp.tools' asns.csv,
+filtered to the ASNs the payloads actually reference so the shipped JSON
+stays a few kilobytes, not 5 MB. A build-time utility only: the pipeline
+payloads stay the source of truth, and a missing file just downgrades
+labels to bare ``AS<num>``.
 """
 
 from __future__ import annotations
@@ -40,25 +32,11 @@ USER_AGENT = (
 def extract_asns(metrics: dict) -> set[int]:
     """Return every ASN referenced in a dashboard payload.
 
-    Collects, from each top-mover row, the row ``asn`` plus the
-    per-family ``ipv4_primary_counterpart`` / ``ipv6_primary_counterpart``
-    the Direction column actually renders — the per-family pick can
-    differ from the row's own ASN ranking, so collecting only the row
-    ASNs would leave counterpart cells unlabeled — and from the
-    network section the operator breakdown
-    (``network.sources[*].snapshots[*].top_ases``), so operator labels
-    are fetched for the Top Movers table and the network tab alike.
-
-    Two top-mover layouts are accepted so the same function works on
-    every payload variant passed to ``refresh``:
-
-      - ``diffs[*].top_movers`` — the nested layout, as in the
-        combined stdout document.
-      - ``top_movers`` keyed by ``"<from>|<to>"`` — the split detail
-        file (diffs.json) the frontend lazy-loads.
-
-    ASN 0 is the "unmapped" sentinel and is dropped so it never asks
-    bgp.tools for a name that does not exist.
+    Collects each top-mover row's ``asn`` plus its rendered
+    ``ipv{4,6}_primary_counterpart`` (which can differ from the row ASN),
+    and the network section's ``top_ases`` operators. Accepts both
+    top-mover layouts (nested ``diffs[*].top_movers`` and the split
+    ``top_movers`` keyed ``"<from>|<to>"``). ASN 0 (unmapped) is dropped.
     """
     wanted: set[int] = set()
 
@@ -89,13 +67,9 @@ def extract_asns(metrics: dict) -> set[int]:
 def parse_csv(body: str) -> dict[int, str]:
     """Parse a bgp.tools-style CSV (asn,name,...) into {asn: name}.
 
-    Tolerates two ASN formats: bgp.tools prefixes every value with
-    ``AS`` (``AS174``), while other dumps (and the older bgp.tools
-    schema) use the bare integer (``174``). Both are accepted so a
-    different mirror or a fallback source can be plugged in without
-    touching this code. Extra columns are ignored; rows missing a
-    numeric asn or a non-empty name are skipped rather than crashing
-    the whole refresh.
+    Accepts both ``AS174`` and bare ``174`` ASN forms so a different
+    mirror plugs in unchanged; rows missing a numeric asn or name are
+    skipped, not fatal.
     """
     reader = csv.DictReader(io.StringIO(body))
     out: dict[int, str] = {}
@@ -121,13 +95,8 @@ def fetch_bgp_tools_csv(
 
 
 def build_subset(wanted: Iterable[int], all_names: dict[int, str]) -> dict[str, str]:
-    """Keep labels only for ``wanted`` ASNs, JSON-stringified and sorted.
-
-    Sorting by integer keeps the output diff-friendly across refreshes;
-    string keys keep the JSON valid (JSON objects cannot have integer
-    keys) and consistent with the manually curated file the frontend
-    already loads.
-    """
+    """Keep labels only for ``wanted`` ASNs, as sorted string keys
+    (integer-sorted for diff-friendly output, stringified for valid JSON)."""
     return {str(asn): all_names[asn] for asn in sorted(wanted) if asn in all_names}
 
 
@@ -139,16 +108,9 @@ def refresh(
 ) -> int:
     """End-to-end: read payloads, fetch source, write subset JSON.
 
-    ``payload_paths`` is one path or a list of them (metrics.json,
-    diffs.json, network.json after the payload split); the wanted-ASN
-    set is the union across every file. Missing files are skipped
-    with a stderr warning rather than failing the run: the network
-    payload is optional by design (it only exists when snapshot
-    sources were available at metrics time), and the same CI
-    invocation must work in both worlds.
-
-    Returns the number of ASNs written to the output file so callers
-    (CLI, CI) can log a one-line summary.
+    ``payload_paths`` is one path or several; the wanted-ASN set is their
+    union. Missing files are skipped with a warning (the network payload
+    is optional), and the ASN count written is returned for a log line.
     """
     if isinstance(payload_paths, (str, Path)):
         payload_paths = [payload_paths]
@@ -161,12 +123,9 @@ def refresh(
             continue
         found += 1
         wanted |= extract_asns(json.loads(path.read_text()))
-    # An empty ``wanted`` from existing-but-empty payloads is legitimate
-    # (a build with no diffs yet) and proceeds to write a tiny file. But
-    # if *no* payload existed at all — a CI path typo, a failed earlier
-    # step — writing would replace a previously good ``asn-names.json``
-    # with an empty subset and silently degrade every label on the
-    # dashboard to a bare ``AS<num>``. Refuse before fetching the CSV.
+    # An empty ``wanted`` from present-but-empty payloads is fine. But if
+    # *no* payload existed (a CI typo), writing would overwrite a good
+    # asn-names.json with an empty subset — refuse before fetching.
     if found == 0:
         raise FileNotFoundError(
             "none of the payload files exist: "

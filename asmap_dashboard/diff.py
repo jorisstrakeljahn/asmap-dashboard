@@ -21,22 +21,10 @@ from asmap_dashboard._prefix import (
 from asmap_dashboard._vendor.asmap import ASMap
 from asmap_dashboard.loader import LoadedMap, PathLike, load_map
 
-# Cap on how many top-mover ASes a single diff records *per
-# currency*. The roster is the union of the top ``TOP_MOVERS_LIMIT``
-# ASes under each of the two rendered currencies (IPv4 and IPv6
-# coverage), so the upper bound on row count is ``2 *
-# TOP_MOVERS_LIMIT`` in the rare case the two rankings disagree
-# completely. Real diffs see heavy overlap because the biggest ASes
-# dominate both families, so the union typically lands well under
-# that.
-#
-# The cap exists to bound the detail payload (diffs.json) size: an
-# uncapped diff at the high end of the change distribution touches a
-# few thousand distinct ASes, and the long tail (ASes with one or
-# two changes) carries no analytical value at the diff-explorer tier
-# and is not reachable through the paginated table anyway. 50 keeps
-# the visible roster focused per family while still covering every
-# AS a reader would plausibly page to.
+# Top-mover ASes recorded per currency. The roster is the union of the
+# top ``TOP_MOVERS_LIMIT`` under each rendered currency (IPv4 then IPv6
+# coverage). Caps the diffs.json size: the long tail of one-or-two-change
+# ASes carries no value at this tier and is unreachable in the table.
 TOP_MOVERS_LIMIT = 50
 
 
@@ -69,170 +57,58 @@ def diff_loaded_maps(
       newly_mapped: ASN 0 in map_a, real ASN in map_b
       unmapped:     real ASN in map_a, ASN 0 in map_b
 
-    Two parallel measurements are recorded for every bucket:
+    Two measurements per bucket: entry-level fields count distinct trie
+    leaves (cheap, but a /8 weighs the same as a /48); coverage fields
+    (``*_addresses``) weight each prefix by its address-space size and are
+    the headline drift number, split per family because Core treats v4/v6
+    as independent diversity dimensions. The two can diverge by an order
+    of magnitude. IPv6 coverage exceeds 2**53, so JSON consumers round it
+    to ~1e-16 relative error — harmless, since everything is quantised to
+    /32 blocks before display; exact integer round-tripping is not
+    promised.
 
-      Entry-level fields (``reassigned``, ``reassigned_ipv4``, ...)
-      count distinct prefix records in the trie diff. Cheap to
-      compute, but treats a single /8 reassignment as one unit of
-      drift even though the same unit covers 16M IPs. Kept for
-      backwards compatibility and as a debug view.
+    Top movers are ranked by the two rendered currencies (IPv4 then IPv6
+    coverage; the union keeps every table-visible AS reachable). Each row
+    carries: ``changes`` (entry-level total, tooltip only),
+    ``ipv{4,6}_addresses_changed`` / ``_gained`` / ``_lost``,
+    ``ipv{4,6}_primary_counterpart`` (the AS most space was exchanged
+    with, from the larger direction so the arrow never points at 0), and
+    ``ipv{4,6}_addresses_in_a`` / ``_in_b`` (per-AS coverage, the
+    "Touched" denominator).
 
-      Coverage fields (``reassigned_ipv4_addresses``,
-      ``reassigned_ipv6_addresses``, ...) weight every changed
-      prefix by the size of the address space it covers. This is
-      the metric the frontend surfaces as the headline drift
-      number, because it answers "how much of the IPv4 / IPv6
-      address space had its ASN assignment change?" rather than
-      "how many trie leaves moved?". The per-family split matters
-      for Bitcoin Core peer diversity, which treats v4 and v6 as
-      independent diversity dimensions.
+    With ``addrs_file`` (one IP per line, ``#`` comments skipped) a
+    ``bitcoin_node_impact`` section counts how many of those IPs resolve
+    to a different ASN under map_b vs map_a.
 
-      The two views can diverge by an order of magnitude: many
-      small IPv6 reassignments inflate the entry count while
-      moving very little address space, and a single large IPv4
-      reassignment can dominate coverage while contributing one
-      entry.
-
-      A note on integer width: IPv6 coverage figures routinely
-      exceed 2**53 (a single /32 is ~7.9e28 addresses). Python
-      emits them exactly, but JSON consumers that parse numbers
-      into IEEE-754 doubles — JavaScript among them — round to a
-      relative error of ~1e-16. That is deliberate and harmless:
-      every consumer quantises these figures to /32 NetGroup
-      blocks before display, and an absolute error of ~1e18
-      addresses vanishes under a 2**96-per-block divisor. Exact
-      integer round-tripping through JSON is not promised.
-
-    Top movers are ranked in all three currencies (entries, IPv4
-    addresses, IPv6 addresses) but each row only carries the fields
-    the frontend renders:
-
-      ``changes``
-          Entry-level total (gained + lost trie leaves, both
-          families). Surfaces in the row hover tooltip as "prefix
-          entries changed"; the per-direction entry counts and the
-          entry-level counterpart used to ride along but were
-          never rendered, so they are not emitted any more.
-      ``ipv4_addresses_changed`` / ``_gained`` / ``_lost``
-          Entry counts weighted by IPv4 prefix size.
-      ``ipv6_addresses_changed`` / ``_gained`` / ``_lost``
-          The same for IPv6.
-      ``ipv4_primary_counterpart`` / ``ipv6_primary_counterpart``
-          The single AS most address space was exchanged with under
-          that family. Picked from whichever direction (gain vs
-          loss) contributed more under the same family, so the
-          arrow rendered in the Top Movers table never points at an
-          arbitrary 0.
-      ``ipv4_addresses_in_a`` / ``ipv4_addresses_in_b``
-      ``ipv6_addresses_in_a`` / ``ipv6_addresses_in_b``
-          Per-AS coverage on either side. Denominator for the
-          "Touched" multiplier in the IPv4 / IPv6 Top Movers view.
-
-    The top_movers row set is the union of the top-``TOP_MOVERS_LIMIT``
-    ASes under each of the two rendered currencies (IPv4 then IPv6
-    coverage). This keeps every AS that would rank in the
-    user-visible table reachable regardless of which currency the
-    frontend picker selects, without the payload blowing up: the two
-    rankings overlap heavily on real diffs, and ASes that fail to
-    rank under either currency contribute no information at the
-    top-movers tier. The legacy entry-level ("changes") currency is
-    no longer a ranking key — it is not a sortable column in the UI,
-    so an AS that ranks only by entry count would arrive as a row no
-    picker can ever surface. The per-row ``changes`` total is still
-    emitted for the row tooltip.
-
-    When ``addrs_file`` is given it is read line by line as one IP per
-    line (blank lines and lines starting with '#' are skipped) and a
-    bitcoin_node_impact section is included that counts how many of
-    those IPs would resolve to a different ASN under map_b vs map_a.
-
-    Returns a dict with these keys (entry-level first, coverage second,
-    roster third, top movers, optional node impact). The per-map entry
-    counts are not repeated here: the frontend reads them off the maps[]
-    profiles, which are keyed by the same build names as ``from`` /
-    ``to``.
-        total_changes:                 int, sum of the three buckets.
-        reassigned:                    int.
-        reassigned_ipv4:               int, IPv4 share of ``reassigned``.
-        reassigned_ipv6:               int, IPv6 share of ``reassigned``.
-        newly_mapped:                  int.
-        newly_mapped_ipv4:             int.
-        newly_mapped_ipv6:             int.
-        unmapped:                      int.
-        unmapped_ipv4:                 int.
-        unmapped_ipv6:                 int.
-        ipv4_address_space_union:      int, IPv4 addresses mapped
-                                       (asn != 0) by map_a, map_b,
-                                       or both. Denominator of the
-                                       IPv4 drift ratios. The union
-                                       (not either map's total) is
-                                       the one denominator every
-                                       changed prefix is guaranteed
-                                       to fall under: a newly
-                                       mapped prefix lives only in
-                                       map_b's coverage, an
-                                       unmapped one only in
-                                       map_a's, so dividing by a
-                                       single side could exceed 1.
-        ipv6_address_space_union:      int, same for IPv6.
-        ipv4_buckets_changed:          int, distinct /16 NetGroup
-                                       buckets that carry at least
-                                       one changed prefix between
-                                       map_a and map_b. Numerator
-                                       of the match banner's IPv4
-                                       column.
-        ipv4_bucket_space_union:       int, distinct /16 NetGroup
-                                       buckets covered by map_a,
-                                       map_b, or both. Denominator
-                                       of the same column; a
-                                       superset of the changed
-                                       buckets by construction.
-        ipv6_blocks_changed:           int, distinct /32 NetGroup
-                                       blocks that carry at least
-                                       one changed prefix. Same
-                                       vocabulary as the IPv4
-                                       buckets, so the two match
-                                       banner columns read
-                                       identically.
-        ipv6_block_space_union:        int, distinct /32 NetGroup
-                                       blocks covered by either
-                                       map.
-        reassigned_ipv4_addresses:     int, IPv4 addresses whose ASN
-                                       changed between maps.
-        reassigned_ipv6_addresses:     int, same for IPv6.
-        newly_mapped_ipv4_addresses:   int, IPv4 addresses that gained
-                                       an ASN (sentinel 0 -> real ASN).
-        newly_mapped_ipv6_addresses:   int, same for IPv6.
-        unmapped_ipv4_addresses:       int, IPv4 addresses that lost
-                                       their ASN (real ASN -> 0).
-        unmapped_ipv6_addresses:       int, same for IPv6.
-        ipv4_addresses_changed:        int, sum of the three IPv4
-                                       coverage buckets above.
-        ipv6_addresses_changed:        int, same for IPv6.
-        as_total_a:                    int, number of distinct ASes
-                                       that hold at least one prefix
-                                       in map_a.
-        as_total_b:                    int, same for map_b.
-        as_appeared:                   int, count of ASes present in
-                                       map_b but not in map_a. Peer-
-                                       diversity signal: new ASes are
-                                       new potential buckets for
-                                       Bitcoin Core peer selection.
-        as_disappeared:                int, count of ASes present in
-                                       map_a but not in map_b.
-        top_movers:                    list of per-AS rows; see field
-                                       breakdown above.
-        bitcoin_node_impact:           optional dict, present only
-                                       when addrs_file is set.
+    Returns a dict with these keys (per-map entry counts are not repeated;
+    the frontend reads them off the maps[] profiles):
+        total_changes, reassigned[_ipv4/_ipv6], newly_mapped[_ipv4/_ipv6],
+        unmapped[_ipv4/_ipv6]:         entry-level bucket counts.
+        ipv{4,6}_address_space_union:  addresses mapped by map_a, map_b,
+                                       or both. The union (not a single
+                                       side) is the drift-ratio
+                                       denominator every changed prefix
+                                       falls under, so ratios stay <= 1.
+        ipv4_buckets_changed / ipv4_bucket_space_union,
+        ipv6_blocks_changed / ipv6_block_space_union:
+                                       changed vs total /16 (IPv4) and
+                                       /32 (IPv6) NetGroup buckets — the
+                                       match banner's numerator/denominator.
+        {reassigned,newly_mapped,unmapped}_ipv{4,6}_addresses:
+                                       coverage-weighted change counts.
+        ipv{4,6}_addresses_changed:    sum of the three coverage buckets.
+        as_total_a / as_total_b:       distinct ASes per map.
+        as_appeared / as_disappeared:  ASes only in map_b / only in map_a.
+        top_movers:                    per-AS rows (see above).
+        bitcoin_node_impact:           present only with addrs_file.
     """
     asmap_a = loaded_a.asmap
     asmap_b = loaded_b.asmap
 
     buckets = _DiffBuckets()
     activity = _PerAsActivity()
-    # Every changed prefix is also collected as an address range so
-    # the match banner numerators can be counted in NetGroup buckets
-    # (/16 for IPv4, /32 for IPv6) after a single merge below.
+    # Changed prefixes as address ranges, so the match-banner bucket
+    # counts come from one merge below.
     changed_ipv4_ranges: list[tuple[int, int]] = []
     changed_ipv6_ranges: list[tuple[int, int]] = []
     for prefix, old_asn, new_asn in asmap_a.diff(asmap_b):
@@ -247,12 +123,8 @@ def diff_loaded_maps(
         else:
             changed_ipv6_ranges.append(prefix_address_range(prefix))
 
-    # Union coverage: the addresses (and the NetGroup buckets they
-    # fall into) that at least one of the two maps has an opinion
-    # about. A changed prefix always has a non-zero ASN on at least
-    # one side, so it is contained in the union by construction —
-    # which makes these the only denominators under which the match
-    # banner and the drift ratios can never exceed 100 %.
+    # Union coverage = addresses either map has an opinion about. Every
+    # changed prefix falls inside it, so the ratios never exceed 100 %.
     union_ipv4 = merge_ranges(
         [*loaded_a.ipv4_address_ranges, *loaded_b.ipv4_address_ranges]
     )
@@ -265,10 +137,8 @@ def diff_loaded_maps(
     ranked_asns = activity.ranked_asns(TOP_MOVERS_LIMIT)
     top_movers = [activity.row(asn, loaded_a, loaded_b) for asn in ranked_asns]
 
-    # AS roster delta. ``entries_per_asn`` keys are exactly the
-    # ASNs with at least one non-zero leaf in each map, which is
-    # the right population for the "Bitcoin Core peer-bucket count"
-    # signal (ASN 0 is not a real AS).
+    # ``entries_per_asn`` keys are the ASNs with a non-zero leaf (ASN 0
+    # excluded), the right population for the roster delta.
     asns_a = set(loaded_a.entries_per_asn)
     asns_b = set(loaded_b.entries_per_asn)
 
@@ -309,14 +179,9 @@ def diff_loaded_maps(
 
 
 class _DiffBuckets:
-    """Mutable accumulator for the three change buckets, by family.
-
-    Local to this module: the diff loop is the only producer, the
-    enclosing function is the only consumer. Pulling the running
-    totals out of the main function body shrinks ``diff_loaded_maps``
-    enough that the per-prefix loop reads as a single intent
-    ("classify and record"), not a bookkeeping ladder.
-    """
+    """Accumulator for the three change buckets, by family, so the
+    per-prefix loop reads as "classify and record" not a bookkeeping
+    ladder."""
 
     def __init__(self) -> None:
         self.reassigned = 0
@@ -375,21 +240,12 @@ class _DiffBuckets:
 
 
 class _PerAsActivity:
-    """Per-AS gained / lost counters in all three currencies.
-
-    Keeping the three currencies side by side here (instead of as
-    independent Counters scattered across the main function) means
-    the top-N union pass and the row builder both read from one
-    consistent source. Each ``record`` call increments exactly the
-    counters relevant to one diff entry; the unit picker in the
-    frontend later selects which set the user sees.
-    """
+    """Per-AS gained / lost counters in all three currencies, side by side
+    so the top-N union pass and the row builder share one source."""
 
     def __init__(self) -> None:
-        # Entry-level counters only feed the row's combined
-        # ``changes`` figure and the entries leg of the top-N union
-        # ranking; per-direction entry fields are not emitted, so no
-        # entry-level counterpart map is kept.
+        # Entry-level counters feed only the row's ``changes`` total and
+        # the entries leg of ranking; no per-direction counterpart map.
         self._gained_entries: Counter[int] = Counter()
         self._lost_entries: Counter[int] = Counter()
         self._gained_ipv4: Counter[int] = Counter()
@@ -420,20 +276,10 @@ class _PerAsActivity:
                 self._gained_from_ipv6[new_asn][old_asn] += addresses
 
     def ranked_asns(self, limit: int) -> list[int]:
-        """Return the union of the top ``limit`` ASes per rendered currency.
-
-        Only the two currencies the Top Movers table can actually
-        sort by are ranked: IPv4 coverage first, then IPv6. The
-        entry-level ("changes") view is no longer a UI column, so an
-        AS that ranks only by entry count — but moves no measurable
-        IPv4 or IPv6 address space — would arrive as a row every
-        currency filter prunes; ranking by the two visible currencies
-        keeps the roster to what the table can show.
-
-        IPv4 is unioned first so it wins insertion-order ties, which
-        matches the table's default IPv4 view. The frontend re-sorts
-        client-side per the active currency, so this order is only the
-        default rendering when no sort is applied.
+        """Union of the top ``limit`` ASes per rendered currency (IPv4
+        coverage then IPv6 — the only two the table sorts by, so an
+        entry-only AS never arrives as an unsortable row). IPv4 first wins
+        ties, matching the table's default view.
         """
         ordered: dict[int, None] = {}
         for asn, count in self._total(self._gained_ipv4, self._lost_ipv4).most_common(
@@ -452,14 +298,9 @@ class _PerAsActivity:
     def _total(gained: Counter[int], lost: Counter[int]) -> Counter[int]:
         """Per-AS total = gained + lost.
 
-        Lost is folded in first so that, on a tie, the losing AS
-        ranks ahead of the gaining one. This keeps the rendered
-        Top Movers order stable across the IPv4 and IPv6 currencies:
-        the AS that gave up the prefixes is the more natural
-        "headline" of a reassignment event, and surfacing it first
-        matches what every prior frontend release showed.
-        Counter+Counter would also drop zero rows, which we need
-        to keep for the union-top-N pass to see every active AS.
+        Lost is folded first so a tie ranks the losing AS ahead (the more
+        natural headline of a reassignment). Manual summing (not
+        Counter+Counter) keeps zero rows the union pass still needs.
         """
         combined: Counter[int] = Counter()
         for asn, count in lost.items():
@@ -469,12 +310,8 @@ class _PerAsActivity:
         return combined
 
     def row(self, asn: int, loaded_a: LoadedMap, loaded_b: LoadedMap) -> dict:
-        """Build one top_movers row for ``asn``.
-
-        The per-AS presence figures (``*_in_a`` / ``*_in_b``) come
-        straight from the loader caches, so the diff never re-walks
-        a trie to size the "Touched" denominator.
-        """
+        """Build one top_movers row for ``asn``. The ``*_in_a`` / ``*_in_b``
+        presence figures come from the loader caches, so no trie re-walk."""
         gained_entries = self._gained_entries.get(asn, 0)
         lost_entries = self._lost_entries.get(asn, 0)
         gained_ipv4 = self._gained_ipv4.get(asn, 0)
@@ -515,14 +352,9 @@ def _primary_counterpart(
     gained_from: Counter[int] | None,
     lost_to: Counter[int] | None,
 ) -> int:
-    """Return the single AS this row most frequently exchanged with.
-
-    The direction with the larger total (gained vs lost) wins so
-    the rendered arrow points at the real source / destination
-    rather than at an arbitrary 0 when one side is empty. Ties
-    favour the gain side: a row that gained and lost equally is
-    more naturally described by "where did it come from?".
-    """
+    """The single AS this row most exchanged space with. The larger
+    direction (gained vs lost) wins so the arrow points at the real
+    source/destination, not an arbitrary 0; ties favour the gain side."""
     if gained >= lost and gained_from:
         return gained_from.most_common(1)[0][0]
     if lost_to:
@@ -531,12 +363,8 @@ def _primary_counterpart(
 
 
 def _node_impact(asmap_a: ASMap, asmap_b: ASMap, addrs_file: PathLike) -> dict:
-    """Replay lookup() on each IP in addrs_file against both maps.
-
-    Streams the address file line by line so this stays flat in memory
-    even when the same file is replayed across many (map_a, map_b)
-    pairs in the all-pairs Coverage pipeline.
-    """
+    """Replay lookup() on each IP in addrs_file against both maps,
+    streaming the file so memory stays flat across many pairs."""
     reassigned = 0
     newly_mapped = 0
     unmapped = 0

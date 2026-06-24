@@ -5,13 +5,8 @@ from __future__ import annotations
 from asmap_dashboard._prefix import is_ipv4_prefix
 from asmap_dashboard.loader import LoadedMap, PathLike, load_map
 
-# Cap on top_ases rows. Matches TOP_MOVERS_LIMIT in diff.py in
-# style (named constant at module top, used in the .most_common
-# call below) so reviewers find both limits in the same place
-# without grepping for magic numbers. The cap exists because the
-# tail of the distribution is dominated by ASes with one or two
-# prefixes, which carry no analytical value at the per-build
-# overview tier.
+# Cap on top_ases rows; the tail is one-or-two-prefix ASes with no value
+# at the per-build overview tier.
 TOP_ASES_LIMIT = 20
 
 
@@ -34,33 +29,20 @@ def analyze_map(path: PathLike) -> dict:
 def analyze_loaded_map(loaded: LoadedMap) -> dict:
     """Profile an already-loaded ASmap.
 
-    Counts entries, splits by address family, and ranks the most
-    prefix-heavy ASes. Unmapped entries (ASN 0) are counted in the
-    totals but excluded from the unique-AS count and the top-AS
-    ranking, since ASN 0 is a sentinel rather than a real AS.
+    Counts entries, splits by family, and ranks prefix-heavy ASes. ASN 0
+    counts in the totals but not in ``unique_asns`` or ``top_ases``.
 
-    Returns a dict with these keys:
-        entries_count:        int, number of (prefix, asn) entries in
-                              the trie's minimal-overlapping form.
-        unique_asns:          int, number of distinct non-zero ASNs.
-        ipv4_count:           int, entries whose prefix sits in
-                              ::ffff:0:0/96.
-        ipv6_count:           int, native IPv6 entries.
-        ipv4_address_space:   int, total number of IPv4 addresses
-                              assigned to a non-zero ASN. Read off
-                              ``LoadedMap`` so the diff-side denominator
-                              and the profile-side coverage report
-                              cannot drift apart.
-        ipv6_address_space:   int, same for IPv6.
-        file_size_bytes:      int, raw size of the .dat file.
-        top_ases:             list of {"asn": int, "prefix_count": int},
-                              sorted by prefix_count descending, capped
-                              at TOP_ASES_LIMIT entries.
+    Returns a dict:
+        entries_count:        minimal-overlapping trie size.
+        unique_asns:          distinct non-zero ASNs.
+        ipv4_count/ipv6_count: entries per family.
+        ipv{4,6}_address_space: addresses mapped to a non-zero ASN (read
+                              off ``LoadedMap`` so it matches the diff).
+        file_size_bytes:      raw .dat size.
+        top_ases:             [{"asn", "prefix_count"}], capped at
+                              TOP_ASES_LIMIT.
     """
-    # The same bit-comparison helper as diff.py; sharing the
-    # address-family classifier means the analyze totals and the
-    # diff buckets can never disagree on what counts as IPv4 for
-    # the same .dat file.
+    # Shares is_ipv4_prefix with diff/loader so the family split agrees.
     ipv4_count = 0
     ipv6_count = 0
     for prefix, _asn in loaded.asmap.to_entries():

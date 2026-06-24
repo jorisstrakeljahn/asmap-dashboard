@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-import io
 import json
 from unittest.mock import patch
 
 import pytest
 
 from asmap_dashboard import asn_names
+
+from .conftest import fake_urlopen_response
 
 
 def test_extract_asns_collects_top_movers_and_counterparts():
@@ -200,7 +201,7 @@ def test_refresh_writes_subset_and_about_section(tmp_path):
 
     with patch(
         "asmap_dashboard.asn_names.urllib.request.urlopen",
-        return_value=_fake_response(fake_csv),
+        return_value=fake_urlopen_response(fake_csv),
     ):
         count = asn_names.refresh(metrics_path, out_path)
 
@@ -238,7 +239,7 @@ def test_refresh_unions_multiple_payloads_and_skips_missing(tmp_path, capsys):
 
     with patch(
         "asmap_dashboard.asn_names.urllib.request.urlopen",
-        return_value=_fake_response(fake_csv),
+        return_value=fake_urlopen_response(fake_csv),
     ):
         count = asn_names.refresh([diffs_path, network_path, missing_path], out_path)
 
@@ -258,7 +259,7 @@ def test_refresh_with_no_matching_asns_writes_empty_subset(tmp_path):
 
     with patch(
         "asmap_dashboard.asn_names.urllib.request.urlopen",
-        return_value=_fake_response(fake_csv),
+        return_value=fake_urlopen_response(fake_csv),
     ):
         count = asn_names.refresh(metrics_path, out_path)
 
@@ -288,17 +289,3 @@ def test_refresh_raises_when_no_payload_exists_and_never_fetches(tmp_path):
             )
 
     assert not out_path.exists()
-
-
-def _fake_response(body: bytes):
-    """Minimal urlopen() stand-in supporting the context manager protocol."""
-
-    class _Response(io.BytesIO):
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *_exc):
-            self.close()
-            return False
-
-    return _Response(body)
