@@ -16,10 +16,9 @@ export function createCard(label, { info, infoAria, badge } = {}) {
         const tip = createInfoTooltip({
             body: info,
             ariaLabel: infoAria,
-            // On a phone the explanation opens as a bottom-sheet; lead it
-            // with a clone of this card's own content (title, number,
-            // description) so the reader keeps the context the desktop
-            // popover gets from sitting right next to the card.
+            // The mobile sheet leads with a clone of this card's content
+            // (title, number, description) so the reader keeps the context
+            // the desktop popover gets from sitting next to the card.
             sheetHeader: () => cloneSheetContext(card),
         });
         tip.classList.add("info-tooltip--card-corner");
@@ -56,11 +55,10 @@ export function deltaLine(text) {
     return node;
 }
 
-// "vs previous" / "vs <date>" comparison line. Same look as a delta
-// line but pinned to the card's bottom edge (.card__meta), so this
-// context line aligns across a row of cards instead of floating right
-// under the data. Use it for the comparison/date line, not for figures
-// that belong with the description.
+// "vs previous" / "vs <date>" comparison line. Like a delta line but
+// pinned to the card's bottom edge (.card__meta) so it aligns across a
+// row of cards. Use it for the comparison/date line, not for figures that
+// belong with the description.
 export function metaLine(text) {
     const node = document.createElement("p");
     node.className = "card__meta";

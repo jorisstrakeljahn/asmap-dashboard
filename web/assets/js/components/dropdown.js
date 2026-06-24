@@ -378,11 +378,10 @@ function buildTrigger({ ariaLabel, ariaLabelledBy, panelId }) {
     return button;
 }
 
-// Three nested layers so the open/close reveal stays clean: the
-// positioned ``panel`` runs the grid-rows tween, ``inner`` clips the
-// overflow and carries the surface + blur fade, and the ``ul`` is the
-// scrollable listbox. Returns the panel (mounted) and the list (for the
-// options + listbox semantics).
+// Three nested layers keep the reveal clean: the positioned ``panel``
+// runs the grid-rows tween, ``inner`` clips overflow and carries the
+// surface + blur fade, and the ``ul`` is the scrollable listbox. Returns
+// the panel (mounted) and the list (options + listbox semantics).
 function buildPanel(panelId, ariaLabel, ariaLabelledBy) {
     const panel = document.createElement("div");
     panel.className = "dropdown__panel";

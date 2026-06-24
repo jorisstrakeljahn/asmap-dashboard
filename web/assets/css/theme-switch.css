@@ -1,22 +1,14 @@
-/* Header theme switch: the shared mode-switch (mode-switch.css) with
-   the .theme-switch modifier. These rules only cover its place in the
-   header (inside .site-header__actions) and the icon-only collapse. */
-
 .site-header__actions {
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    /* Right-hand cluster. The centred nav's auto margins (desktop) and
-       space-between (mobile) pin this right, so no margin needed. */
 }
 
 .theme-switch {
     flex: 0 0 auto;
 }
 
-/* Icon-only at every width: the sun/moon glyph carries the control,
-   so the label is clipped (not display:none) to keep each segment's
-   name and active state for screen readers. */
+/* Visually hidden, kept in the a11y tree so each segment keeps its name. */
 .theme-switch .mode-switch__label {
     position: absolute;
     width: 1px;
@@ -29,13 +21,7 @@
     border: 0;
 }
 
-/* With the label gone the segment is a square-ish icon button; even
-   side padding keeps the two glyphs balanced under the sliding pill. */
 .theme-switch.mode-switch--with-icons .mode-switch__btn {
     gap: 0;
     padding: 0 var(--space-3);
 }
-
-/* On phones the burger owns the right edge; the switch sits just left
-   of it. Both stay vertically centred in the header row via the
-   actions flexbox above — no extra rules needed below 720px. */

@@ -83,21 +83,18 @@ export function mountTimeSeriesCard(parent, config) {
     slot.className = "chart-card__plot";
     card.append(slot);
 
-    const handle = mountResponsiveChart(slot, {
+    return mountResponsiveChart(slot, {
         title: null,
         draw: drawPlot,
         layout,
     });
-
-    return handle;
 }
 
 function buildHeader(title, subtitle, lede, headerExtra) {
-    // The header stacks two bands: a top row holding the title (and any
-    // control floated right), then the lede on its own line spanning the
-    // full card width — it runs under the control too, so the
-    // explanation fills the width instead of being boxed into a narrow
-    // left column beside the switch.
+    // Two bands: a top row with the title (and any control floated right),
+    // then the lede on its own full-width line below — it runs under the
+    // control too, so the explanation fills the width instead of being
+    // boxed into a narrow column beside the switch.
     const header = document.createElement("div");
     header.className = "chart-card__header";
 

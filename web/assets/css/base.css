@@ -8,9 +8,6 @@ html,
 body {
     margin: 0;
     padding: 0;
-    /* Stop the horizontal rubber-band / pan on touch devices: a sideways
-       flick can never drag the layout sideways out of frame. Vertical
-       scrolling is untouched. */
     overscroll-behavior-x: none;
 }
 
@@ -22,8 +19,6 @@ body {
     background: var(--color-bg);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Let variable UI fonts switch to their display optical size at
-       large sizes and back to the text cut for body copy. */
     font-optical-sizing: auto;
 }
 
@@ -35,7 +30,6 @@ h4 {
     color: var(--color-text-strong);
     font-weight: var(--font-weight-semibold);
     letter-spacing: var(--letter-tight);
-    /* Even out ragged headings so a lone word never wraps alone. */
     text-wrap: balance;
 }
 
@@ -76,17 +70,8 @@ svg {
     color: var(--color-text-muted);
 }
 
-/* Stacked explainer paragraphs shared by the info-tooltip popover and
-   the always-on chart "About" disclosure (components/paragraphs.js).
-   The first hugs the top edge, the rest pick up vertical rhythm; the
-   bold lead is the labelled prefix multi-bucket explainers use. */
 .rich-paragraph {
     margin: 0;
-    /* Justified block paragraph, matching the section / chart ledes
-       (layout.css, charts.css): the explanatory copy in the info popover,
-       the mobile sheet and the chart "About" disclosure all read as the
-       same tidy both-edges-flush block, with pretty wrapping so the last
-       line never orphans a single word. */
     text-align: justify;
     text-wrap: pretty;
 }
@@ -100,17 +85,6 @@ svg {
     font-weight: var(--font-weight-semibold);
 }
 
-/* Theme cross-fade. components/theme-switch.js adds this class to
-   <html> for one frame and removes it ~360ms later, tweening the
-   surfaces so the page eases between palettes instead of hard-cutting.
-   Scoped to a class so it only runs on an explicit toggle, never taxing
-   hover/scroll repaints. Only the surfaces (background, border, shadow)
-   ease; foreground content — text, numbers and currentColor icons —
-   snaps to the new palette instantly. Tweening text colour reads as the
-   figures lagging behind, "popping" to their final colour mid-fade; an
-   instant swap is crisp and stays legible against the easing surface.
-   Layout geometry keeps its own transitions; reduced-motion drops the
-   cross-fade entirely. */
 @media (prefers-reduced-motion: no-preference) {
     html.theme-transition,
     html.theme-transition *,

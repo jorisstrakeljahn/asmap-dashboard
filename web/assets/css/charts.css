@@ -1,24 +1,13 @@
-/* Time-series charts: shared SVG primitives plus the floating
-   tooltip that follows the cursor. Charts are self-rendered, so
-   the styles here only theme the SVG geometry; layout sizing is
-   driven by the chart-slot wrapper. */
-
 .chart-card {
     min-height: auto;
 }
 
-/* Header-bearing chart card (mountTimeSeriesCard): a title row on top,
-   then the lede on its own full-width line below. Splitting the header
-   into two bands lets the lede run under the control instead of being
-   squeezed into a narrow column beside it. */
 .chart-card__header {
     display: flex;
     flex-direction: column;
     gap: var(--space-1);
 }
 
-/* Top band: the title (flush left) and any control pushed to the right.
-   The control never shrinks below its own width. */
 .chart-card__header-row {
     display: flex;
     align-items: flex-start;
@@ -31,8 +20,6 @@
     flex-shrink: 0;
 }
 
-/* Label + secondary note (e.g. the active drift unit) on one baseline,
-   wrapping together when the header runs out of room. */
 .chart-card__title {
     display: flex;
     align-items: baseline;
@@ -49,10 +36,8 @@
     margin-top: var(--space-2);
 }
 
-/* The plot slot reuses the standard chart card internals from
-   mountResponsiveChart, but the wrapper already paints the card
-   chrome. Strip the inner one so the chart is not double-bordered and
-   uses the card's full width. */
+/* Strip the inner card chrome so the plot is not double-bordered when
+   mountResponsiveChart renders inside the wrapper card. */
 .chart-card__plot .chart-card {
     border: 0;
     background: transparent;
@@ -64,35 +49,19 @@
     display: none;
 }
 
-/* Always-visible chart summary under the title. Set in muted ink so the
-   strong, uppercase title clearly leads and the lede reads as its
-   supporting explanation — the same title-then-lede hierarchy the
-   section headers use. The deep methodology lives on asmap.org, so the
-   lede is the on-page explanation and may run to a few sentences. It
-   spans the full card width (no max-width cap) so the text fills the row
-   under the control rather than leaving an empty gutter on the right. */
 .chart-card__lede {
     margin: 0;
     color: var(--color-text-muted);
     font-size: var(--font-size-sm);
     line-height: var(--line-normal);
-    /* Justified block paragraph (flush both edges) with pretty wrapping
-       so the full-width explanation reads as a clean block and the last
-       line never orphans a single word. */
     text-align: justify;
     text-wrap: pretty;
 }
 
-/* mountResponsiveChart path (no header control): the lede is a direct
-   sibling of the card label, so it carries its own tight top gap. */
 .card__label + .chart-card__lede {
     margin-top: var(--space-1);
 }
 
-/* Stable resize anchor: the inner chart is re-rendered whenever
-   this slot's width changes, so the ResizeObserver needs an
-   element that lives across renders. The chart-shell inside
-   provides the tooltip's positioning context. */
 .chart-slot {
     position: relative;
     width: 100%;
@@ -103,18 +72,14 @@
     position: relative;
 }
 
-/* Keyboard users land on the shell (role="application") to scrub the
-   chart with arrow keys; give that focus a visible ring like every
-   other interactive control. */
+/* Keyboard scrub lands on the shell (role="application"). */
 .chart-shell:focus-visible {
     outline: var(--focus-ring-width) solid var(--color-accent);
     outline-offset: var(--focus-ring-offset);
     border-radius: var(--radius-sm);
 }
 
-/* Spoken-only mirror of the tooltip text for screen readers. Clipped,
-   not display:none, so the live region stays in the accessibility
-   tree and its updates are announced. */
+/* Visually hidden live region, kept in the a11y tree so updates speak. */
 .chart-shell__live {
     position: absolute;
     width: 1px;
@@ -134,9 +99,6 @@
 .chart-tooltip {
     position: absolute;
     z-index: var(--z-tooltip);
-    /* max-content sizes to the longest row instead of forcing awkward
-       line breaks inside a numeric value; min/max-width keep the title
-       and label columns from collapsing or overflowing small screens. */
     width: max-content;
     min-width: 200px;
     max-width: min(420px, 92vw);
@@ -145,7 +107,6 @@
     border: 1px solid var(--color-border);
     background: var(--color-bg);
     box-shadow: var(--shadow-tooltip);
-    /* Compact UI scale: chart readouts stay tight (see tokens.css). */
     font-size: var(--font-size-control);
     line-height: var(--line-normal);
     pointer-events: none;
@@ -162,11 +123,8 @@
     visibility: visible;
 }
 
-/* Docked reading strip for narrow touch devices, where a floating
-   tooltip would cover the point it describes. JS (shouldDockReadout)
-   toggles the shell class that reveals it, so the breakpoint lives in
-   one place and floating charts reserve no empty space. Inner rows
-   reuse .chart-tooltip__* so docked and floating readings can't drift. */
+/* Docked readout for narrow touch screens, where a floating tooltip
+   would cover the point it describes; JS toggles the shell class. */
 .chart-readout {
     display: none;
 }
@@ -195,9 +153,7 @@
     margin-top: var(--space-2);
 }
 
-/* Numeric values read as one atomic unit, so never break them
-   mid-value. The label column may still wrap — verbal text
-   tolerates a soft break far better than a number does. */
+/* Never break a numeric value mid-value; the label column may wrap. */
 .chart-tooltip__kv strong {
     white-space: nowrap;
 }
@@ -209,10 +165,6 @@
     word-break: break-word;
 }
 
-/* Colour dot that buildTooltipBody prepends to a row's label when
-   the caller passes a swatch class. Reuses the legend swatch colour
-   classes for the fill, so a tooltip dot and a legend swatch for the
-   same series can never drift apart. */
 .chart-tooltip__swatch {
     display: inline-block;
     width: 8px;
@@ -226,10 +178,8 @@
     width: 100%;
     height: auto;
     margin-top: var(--space-2);
-    /* Let a vertical drag scroll the page while a horizontal drag
-       scrubs the series (see attachTouchInspect in
-       chart-interaction.js). Without it the browser claims every
-       touch gesture for panning and tap-to-inspect never fires. */
+    /* Vertical drag scrolls the page, horizontal drag scrubs the series
+       (attachTouchInspect); without it the browser claims every gesture. */
     touch-action: pan-y;
 }
 
@@ -247,14 +197,10 @@
 .chart__y-label,
 .chart__x-label {
     font-family: var(--font-sans);
-    /* Compact UI scale: chart axis text stays tight (see tokens.css). */
     font-size: var(--font-size-chart-axis);
     fill: var(--color-text-subtle);
 }
 
-/* Rotated y-axis unit label in the left gutter. Same subtle gray
-   as the tick labels so it reads as a quiet unit indicator, and
-   uppercase tracking matches the card label. */
 .chart__y-title {
     font-family: var(--font-sans);
     font-size: var(--font-size-chart-axis);
@@ -271,9 +217,6 @@
     stroke-linecap: round;
 }
 
-/* Tinted fill between the line and the bottom of the plot area.
-   currentColor lets the area inherit --color-accent through the
-   .chart__area selector below, so theming stays driven by tokens. */
 .chart__area {
     fill: var(--color-accent);
     fill-opacity: 0.08;
@@ -300,18 +243,10 @@
         opacity var(--motion-fast) var(--motion-ease);
 }
 
-/* Hovered bar fades to the soft accent so the eye locks onto the
-   bar the tooltip describes. Mirrors the cursor line used by the
-   line charts: a visible "you are here" marker that doesn't shift
-   geometry. */
 .chart__bar--active {
     fill: var(--color-accent-soft);
 }
 
-/* Stacked bar segments share the same .chart__bar reset but pick
-   up the category colour from a modifier so the step drift card
-   can stack Reassigned / Newly Mapped / Unmapped in the same
-   palette the cumulative line chart uses. */
 .chart__bar--reassigned {
     fill: var(--color-accent);
 }
@@ -324,11 +259,6 @@
     fill: var(--color-warning);
 }
 
-/* Hover affordance for a stacked column: brighten the active
-   stack and dim the rest. Opacity (instead of swapping every
-   segment to a single soft tone) preserves the category colours
-   inside the active stack so the tooltip's category readings
-   still match what the eye sees. */
 .chart__stack {
     transition: opacity var(--motion-fast) var(--motion-ease);
 }
@@ -341,20 +271,13 @@
     opacity: 1;
 }
 
-/* Invisible per-slot hit target. Stretches the full plot height
-   so the user can hover anywhere in a column to surface its
-   tooltip — not just inside the drawn segments. ``pointer-events:
-   all`` makes the otherwise-invisible rect actually catch the
-   cursor. */
+/* Invisible full-height hit target so a hover anywhere in a column
+   surfaces its tooltip, not just inside the drawn segments. */
 .chart__bar-capture {
     fill: transparent;
     pointer-events: all;
 }
 
-/* Dual-line filled-vs-unfilled series. Filled (embedded) keeps the
-   primary accent; unfilled (source) reuses the soft accent already
-   used for IPv6 in the overview split bar, so the palette stays
-   consistent. */
 .chart__line--filled,
 .chart__dot--filled {
     stroke: var(--color-accent);
@@ -375,10 +298,6 @@
     fill: none;
 }
 
-/* Drift composition series, three categories on one axis.
-   Reassigned uses the primary accent (the dominant, headline
-   category), Newly Mapped the success green (growth), Unmapped the
-   warning amber (lost coverage warrants attention). */
 .chart__line--reassigned,
 .chart__dot--reassigned {
     stroke: var(--color-accent);
@@ -409,10 +328,6 @@
     fill: none;
 }
 
-/* Total drift overlay. Drawn last in the SVG so the dashed line
-   sits visually above the categories without occluding them.
-   Neutral muted colour and a dashed stroke so the eye reads it
-   as an aggregate rather than another category. */
 .chart__line--total,
 .chart__dot--total {
     stroke: var(--color-text-muted);
@@ -424,26 +339,19 @@
     stroke-dasharray: 6 3;
 }
 
-/* "You are here" marker on the active slot. Fill comes from the
-   series' dot class; this rule owns only the background ring and is
-   placed after the colour modifiers so the ring stroke wins over the
-   series stroke. */
+/* Background ring on the active dot; placed after the colour modifiers
+   so the ring stroke wins over the series stroke. */
 .chart__marker {
     stroke: var(--color-bg);
     stroke-width: 2;
     pointer-events: none;
 }
 
-/* Inline legend above the chart slot, wrapping on narrow screens.
-   Items are plain spans (single-mode) or buttons (multi-series with
-   a click toggle); button styling lives on button.chart-legend__item
-   so the span variant keeps zero chrome. */
 .chart-legend {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-3);
     margin-top: var(--space-2);
-    /* Compact UI scale: legend toggles are buttons (see tokens.css). */
     font-size: var(--font-size-control);
     color: var(--color-text-strong);
 }
@@ -481,17 +389,11 @@
     background: var(--color-warning);
 }
 
-/* The total swatch mirrors the line: a hollow pill with a dashed
-   border carrying the same neutral colour. */
 .chart-legend__swatch--total {
     background: transparent;
     border: 1.5px dashed var(--color-text-muted);
 }
 
-/* Button variant of the legend item used when entries are
-   clickable. Strip native button chrome so it matches the span
-   variant visually, then add a hover affordance and an off
-   modifier the JS toggles when a series is hidden. */
 button.chart-legend__item {
     border: 0;
     background: transparent;
@@ -528,9 +430,6 @@ button.chart-legend__item:focus-visible {
     text-decoration: line-through;
 }
 
-/* Finger-target growth for the clickable legend toggles. The mouse
-   variant stays tight; on touch the buttons gain padding and a
-   ~36px min height since charts can carry up to six of these. */
 @media (pointer: coarse) {
     button.chart-legend__item {
         padding: var(--space-2) var(--space-2);

@@ -1,32 +1,18 @@
-/* Drift card: cumulative and step each render one of these. The
-   header carries the title and lede, the legend sits above the plot,
-   and the plot itself reuses the shared chart shell from charts.css.
-   Everything below is the chrome on top of it. */
-
 .drift-chart {
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
 }
 
-/* The drift card centres its header (title + unit baseline) and lets it
-   wrap, where the default chart-card header pins to the top. Scoped to
-   .drift-chart so the shared mountTimeSeriesCard header keeps its
-   flex-start default everywhere else. */
 .drift-chart .chart-card__header-row {
     align-items: center;
     flex-wrap: wrap;
 }
 
-/* mountTimeSeriesCard already spaces the plot from the header; the
-   drift card stacks header, legend, and plot with a uniform gap, so
-   drop the extra top margin to avoid doubling it. */
 .drift-chart .chart-card__plot {
     margin-top: 0;
 }
 
-/* Pin the header to the top on narrow screens so the title and lede
-   stay aligned with the left edge as they wrap. */
 @media (max-width: 600px) {
     .drift-chart .chart-card__header-row {
         align-items: flex-start;

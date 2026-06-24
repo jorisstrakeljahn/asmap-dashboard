@@ -37,11 +37,10 @@ export function renderResults(
     const explainer = createInfoTooltip({
         body: t("diff.results.info"),
         ariaLabel: t("diff.results.infoAria"),
-        // On a phone the explanation opens as a bottom-sheet; lead it with
-        // the headline breakdown this explainer describes — match banner,
-        // classification, stacked bar. The roster-delta line and
-        // node-impact banner carry their own "i", so they are left out
-        // here to keep this header focused on what the text covers.
+        // The mobile sheet leads with the headline breakdown this text
+        // describes (match banner, classification, stacked bar). The
+        // roster-delta line and node-impact banner carry their own "i", so
+        // they are excluded here.
         sheetHeader: () =>
             cloneSheetContext(card, { exclude: [".as-roster-delta", ".node-impact"] }),
     });

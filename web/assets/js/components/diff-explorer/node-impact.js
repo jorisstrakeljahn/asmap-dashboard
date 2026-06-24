@@ -38,9 +38,8 @@ export function nodeImpactBanner(pairImpact, fromName, toName, family) {
     const tip = createInfoTooltip({
         body: t("diff.nodeImpact.info"),
         ariaLabel: t("diff.nodeImpact.infoAria"),
-        // On a phone the explanation opens as a bottom-sheet; lead it with
-        // this banner's own figures (the affected share, the counts and the
-        // node-set source) so the reader keeps the context.
+        // The mobile sheet leads with this banner's own figures (affected
+        // share, counts, node-set source) so the reader keeps the context.
         sheetHeader: () => cloneSheetContext(wrap),
     });
     // Pulled out of the grid flow (absolute, top-right) so it does not

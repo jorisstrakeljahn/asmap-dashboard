@@ -1,18 +1,9 @@
-/* Diff Explorer: Map A vs Map B picker, headline match-rate
-   banner, three-column classification breakdown, and a stacked
-   bar that visualises the same numbers as proportions. */
-
 .diff-explorer {
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
 }
 
-/* Map A / Map B row: no surrounding card chrome so the Diff
-   Explorer is not a box inside a box. Selects share the global
-   trigger style. The IPv4 / IPv6 master toggle lives in the
-   section header next to the title (like History tab's drift
-   unit picker), so this row only carries the build pickers. */
 .diff-selectors {
     min-height: auto;
     border: none;
@@ -54,10 +45,6 @@
     gap: var(--space-5);
 }
 
-/* Match banner. One family at a time — the master toggle in
-   the toolbar above picks IPv4 or IPv6 and the block re-renders.
-   The block carries a big percent, a small caption naming the
-   family, and one detail line in the family native unit. */
 .match-banner {
     display: flex;
     flex-direction: column;
@@ -73,10 +60,6 @@
     align-items: baseline;
 }
 
-/* Headline number spans all three rows on the left so the caption,
-   detail, and source line stack on the right in a single column,
-   visually anchored against the percent. Mirrors the node-impact
-   block below so the two banners read on the same rail. */
 .match-banner__headline {
     grid-column: 1;
     grid-row: 1 / span 3;
@@ -106,24 +89,14 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* Variant source line. Sits as the block's third row, under the
-   bucket detail, in subtle text colour so the reader eye picks up
-   the match percent and counts first and then the "which variant"
-   metadata. Parallel to .node-impact__source below. */
 .match-banner__source {
     grid-column: 2;
     grid-row: 3;
-    /* Matches the detail line above so the two stacked lines read as
-       one block, not a detail line and a fainter footnote. */
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
     font-variant-numeric: tabular-nums;
 }
 
-/* Real node impact: a downstream banner under the prefix breakdown.
-   A top divider sets it apart as "what this means for live peers",
-   then it borrows the match-banner grid so the headline percent reads
-   on the same visual rail. */
 .node-impact {
     position: relative;
     display: grid;
@@ -179,7 +152,6 @@
     right: 0;
 }
 
-/* The "not covered yet" fallback is a plain muted note, no grid. */
 .node-impact--empty {
     display: block;
     margin: 0;
@@ -206,8 +178,6 @@
     font-weight: var(--font-weight-medium);
 }
 
-/* Label colour matches its segment in the stacked bar below, so the
-   eye links each label to its slice without an extra legend row. */
 .classification-cell__label--reassigned {
     color: var(--color-accent);
 }
@@ -252,9 +222,6 @@
     background: var(--color-warning);
 }
 
-/* AS roster delta: a divided section between the stacked bar and the
-   node-impact banner. Muted text so the numbers above stay the
-   headline; tabular figures keep the two totals aligned. */
 .as-roster-delta {
     position: relative;
     padding-top: var(--space-4);
@@ -263,8 +230,6 @@
 
 .as-roster-delta__text {
     margin: 0;
-    /* Room for the corner-pinned info icon so the line never runs
-       under it on a narrow card. */
     padding-right: var(--space-7);
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
@@ -297,8 +262,7 @@
         gap: var(--space-2);
     }
     .diff-selectors__arrow {
-        /* Plain glyph, centred between the stacked pickers. rotate()
-           turns the → into a ↓ for the vertical layout. */
+        /* rotate() turns the → into a ↓ for the stacked layout. */
         align-self: center;
         padding: 0;
         color: var(--color-text-muted);
@@ -306,8 +270,6 @@
         line-height: 1;
         transform: rotate(90deg);
     }
-    /* Keep the three counts side by side; three short numbers fit a
-       phone row and avoid the dead vertical space a stack leaves. */
     .classification-row {
         grid-template-columns: repeat(3, 1fr);
         gap: var(--space-2);

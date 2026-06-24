@@ -1,12 +1,3 @@
-/* Diff Explorer loading skeleton. diffs.json is lazy-loaded on first
-   Diff-tab open (app.js), so the tab paints a layout-mirroring
-   placeholder, then swaps it in one replaceChildren. Bars reuse the
-   `.skeleton` shimmer from layout.css; `.skel-bar` only sets the
-   per-slot geometry. */
-
-/* ── Placeholder bars ────────────────────────────────────────────
-   Generic shimmer block sized per slot. Pair with `.skeleton` for the
-   moving gradient: <span class="skeleton skel-bar skel-bar--lg">. */
 .skeleton__bar {
     display: block;
     height: 0.85em;
@@ -39,8 +30,6 @@
     width: 56px;
     height: 22px;
 }
-/* Second, thinner line under an AS number (the operator name slot the
-   detailed view shows). */
 .skeleton__bar--name {
     width: 120px;
     max-width: 90%;
@@ -52,8 +41,6 @@
     width: 100%;
 }
 
-/* Control-shaped placeholders matching the real form controls so the
-   skeleton selectors / toolbar line up with what mounts in their place. */
 .skeleton__control {
     height: var(--control-height);
     width: 100%;
@@ -77,9 +64,6 @@
     width: 128px;
 }
 
-/* The Top Movers table skeleton reuses the real .top-movers__grid so
-   column widths match; these only soften the header/cells while the
-   placeholder bars carry the shimmer. */
 .diff-explorer--skeleton .top-movers__grid th .skeleton__bar {
     display: inline-block;
 }

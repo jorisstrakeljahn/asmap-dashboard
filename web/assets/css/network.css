@@ -1,13 +1,3 @@
-/* Network tab: source-comparison series colours (KIT vs Bitnodes)
-   and the small chart header layout. Geometry and the shared tooltip
-   live in charts.css; this file only adds the semantic colours. */
-
-/* Network hero: six cards paired thematically (what we see on top,
-   what it means below). Higher specificity than the base overview
-   grid so it wins without touching the shared rule. */
-/* Skeleton mirror of the hero so the page does not reflow when the
-   real cards swap in: first two placeholders span 3 columns, the
-   rest span 2. */
 .skeleton-grid--network-hero {
     grid-template-columns: repeat(6, minmax(0, 1fr));
 }
@@ -20,9 +10,6 @@
     grid-column: span 3;
 }
 
-/* Two cards per row, paired by theme (see overview.js). A uniform
-   2-column grid reads cleaner than the old 2+3+1 spans; collapses to
-   one column on narrow viewports. */
 [data-network-overview] .card-row {
     grid-template-columns: repeat(2, 1fr);
 }
@@ -33,10 +20,6 @@
     }
 }
 
-/* Source series. KIT is the primary crawl, so it keeps the main
-   accent; Bitnodes rides along on the success token, mirroring how
-   the drift chart pairs the accent with green for its secondary
-   category. */
 .chart__line--kit,
 .chart__dot--kit {
     stroke: var(--color-accent);
@@ -65,12 +48,6 @@
     background: var(--color-success);
 }
 
-/* Per-operator colours for the breakdown bars, from the shared
-   categorical palette (tokens.css --color-series-*) so operators read
-   as distinct categories. Each operator keeps one colour across every
-   bar so the eye can follow it through tier reshuffles. Bar class
-   paints the segment, swatch class the tooltip dot — this chart has no
-   static legend since the top five changes per period. */
 .chart__bar--op1 {
     fill: var(--color-series-1);
 }
@@ -151,11 +128,6 @@
     background: var(--color-series-10);
 }
 
-/* Data-quality stat closing the Trends section: a single KPI plus a
-   sentence (the ASN-attribution agreement is near constant, so a stat
-   not a chart). The note spans the full card width and is justified to
-   match the section / chart ledes, so it reads as the same tidy
-   both-edges-flush block of copy rather than a capped column. */
 .network-quality__note {
     margin-top: var(--space-2);
     line-height: var(--line-normal);
