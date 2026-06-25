@@ -14,6 +14,11 @@
     grid-template-columns: repeat(2, 1fr);
 }
 
+.network-overview__meta {
+    margin: 0 0 var(--space-3);
+    font-size: var(--font-size-sm);
+}
+
 @media (max-width: 640px) {
     [data-network-overview] .card-row {
         grid-template-columns: 1fr;
@@ -40,12 +45,26 @@
     fill: none;
 }
 
+.chart__line--bitmex,
+.chart__dot--bitmex {
+    stroke: var(--color-series-2);
+    fill: var(--color-series-2);
+}
+
+.chart__line--bitmex {
+    fill: none;
+}
+
 .chart-legend__swatch--kit {
     background: var(--color-accent);
 }
 
 .chart-legend__swatch--bitnodes {
     background: var(--color-success);
+}
+
+.chart-legend__swatch--bitmex {
+    background: var(--color-series-2);
 }
 
 .chart__bar--op1 {

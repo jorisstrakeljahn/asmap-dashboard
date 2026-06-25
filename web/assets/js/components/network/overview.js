@@ -34,7 +34,7 @@ import {
 
 const TARGET_STALENESS_DAYS = 365;
 
-export function mount(parent, { snapshot, decay, latestUpdate }) {
+export function mount(parent, { snapshot, decay, latestUpdate, asOf }) {
     if (!parent) return;
     if (!snapshot) {
         parent.replaceChildren(mutedNote(t("network.overview.empty")));
@@ -44,7 +44,9 @@ export function mount(parent, { snapshot, decay, latestUpdate }) {
     row.className = "card-row";
     // The optional latest-update card slots into row 2 next to
     // staleness (both speak to map freshness); without it, nodes/
-    // buckets reflow up so the pairing degrades without a hole.
+    // buckets reflow up so the pairing degrades without a hole. Every
+    // source ships its own latest_update now, so the card is normally
+    // present; it only drops when fewer than two builds are diffable.
     const cards = [
         concentrationCard(snapshot),
         reach50Card(snapshot),
@@ -53,7 +55,18 @@ export function mount(parent, { snapshot, decay, latestUpdate }) {
     if (latestUpdate) cards.push(latestUpdateCard(latestUpdate));
     cards.push(nodesCard(snapshot), bucketsCard(snapshot));
     row.append(...cards);
-    parent.replaceChildren(row);
+    // A muted caption on the card row naming the crawl and its snapshot
+    // date: the source switch lives in the section header, so the date
+    // sits where the numbers are and updates with the switch.
+    const children = [];
+    if (asOf) {
+        const meta = document.createElement("p");
+        meta.className = "network-overview__meta muted";
+        meta.textContent = asOf;
+        children.push(meta);
+    }
+    children.push(row);
+    parent.replaceChildren(...children);
 }
 
 // Just the headline count: the source / snapshot date is stated once

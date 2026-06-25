@@ -46,6 +46,10 @@ export function mountSeriesChart(parent, config) {
         // title (e.g. a per-chart mode switch). Built by the caller
         // so this module stays agnostic of what the control does.
         headerExtra = null,
+        // Series with no line in this view, listed greyed in the legend
+        // with a reason on hover instead of vanishing. Shape:
+        // { key, label, swatchClass, title }.
+        unavailableSeries = [],
         // Pass-through to buildLineChart: a non-calendar x axis
         // (numeric domain + caller-supplied ticks). See line-chart.js.
         linearDomain = false,
@@ -75,6 +79,7 @@ export function mountSeriesChart(parent, config) {
             else state.hidden.add(key);
             ctrl?.rerender();
         },
+        unavailable: unavailableSeries,
     });
 
     ctrl = mountTimeSeriesCard(parent, {
