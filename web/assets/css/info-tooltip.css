@@ -169,12 +169,17 @@
     transform: translateY(100%);
 }
 
+/* The whole strip is the swipe-down target (info-tooltip.js binds the
+   drag here), so give it a comfortable ~44px touch height rather than a
+   thin band around the handle, which is fiddly to catch on a phone. */
 .info-sheet__grip {
     flex: none;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: var(--space-3) 0 var(--space-2);
+    min-height: 44px;
+    padding: var(--space-4) 0 var(--space-3);
+    box-sizing: border-box;
     cursor: grab;
     touch-action: none;
 }
@@ -184,8 +189,8 @@
 }
 
 .info-sheet__handle {
-    width: 36px;
-    height: 4px;
+    width: 44px;
+    height: 5px;
     border-radius: var(--radius-pill);
     background: var(--color-border-strong);
 }

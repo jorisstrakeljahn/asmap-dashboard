@@ -106,12 +106,14 @@ export function formatMegabytes(bytes) {
 // Glue a number to its adjacent word so a tight column never orphans
 // the unit ("0\nunmapped") or its label ("IPv4\n7,024"). Only spaces
 // directly next to a digit become non-breaking; every other space
-// stays a valid wrap point, and comma separators are untouched so a
-// count list still breaks between segments.
+// stays a valid wrap point. A space that follows a comma is left alone
+// so a comma-separated count list ("64 reassigned, 8 newly mapped, 0
+// unmapped") still breaks between its segments instead of fusing into
+// one unbreakable run that overflows a narrow column.
 export function glueUnits(text) {
     return String(text)
         .replace(/(\d)\u0020/g, "$1\u00A0")
-        .replace(/\u0020(\d)/g, "\u00A0$1");
+        .replace(/(?<!,)\u0020(\d)/g, "\u00A0$1");
 }
 
 export function formatDate(isoDate) {
