@@ -13,6 +13,11 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: var(--space-3);
+    /* Let a wide header tool (e.g. the operator source switch) drop to
+       its own line on a narrow screen instead of overflowing the card
+       and dragging the whole page into a horizontal scroll. */
+    flex-wrap: wrap;
+    row-gap: var(--space-2);
 }
 
 .chart-card__header-extra {

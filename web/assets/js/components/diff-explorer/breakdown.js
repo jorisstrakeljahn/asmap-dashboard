@@ -119,13 +119,16 @@ function familyBlock({ captionKey, view, family, variantLabel }) {
 
     const detail = document.createElement("span");
     detail.className = "match-banner__detail";
-    detail.textContent = glueUnits(
-        t("diff.matchBanner.detail", {
-            changed: view.format(view.changed),
-            denominator: view.format(view.denominator),
-            unit: t(UNIT_LABEL_KEY_BY_FAMILY[family]),
-        }),
-    );
+    // Glue only the unit ("IPv4 /16 buckets") so "/16" never orphans
+    // from its noun, while the surrounding sentence keeps its normal
+    // wrap points. Gluing the whole string fuses every digit-adjacent
+    // space ("6,003 of 52,466 IPv4 /16 buckets") into one unbreakable
+    // run that sets a wide min-content floor and overflows a narrow card.
+    detail.textContent = t("diff.matchBanner.detail", {
+        changed: view.format(view.changed),
+        denominator: view.format(view.denominator),
+        unit: glueUnits(t(UNIT_LABEL_KEY_BY_FAMILY[family])),
+    });
 
     const source = document.createElement("span");
     source.className = "match-banner__source";
