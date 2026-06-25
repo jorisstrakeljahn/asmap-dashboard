@@ -1,7 +1,7 @@
-// Top-operator breakdown (KIT only) as stacked vertical bars: one
-// bar per snapshot, segmented into that snapshot's actual top five
-// operators by node share, so the stack height is the true CR5 of
-// that period.
+// Top-operator breakdown for one crawler (picked via the header
+// source switch) as stacked vertical bars: one bar per snapshot,
+// segmented into that snapshot's actual top five operators by node
+// share, so the stack height is the true CR5 of that period.
 //
 // Why bars, not a fixed-set line chart: summing the same five
 // window-wide top operators every period understates the combined
@@ -30,7 +30,7 @@ const OPERATOR_LIMIT = 5;
 // that the colours cycle and the tooltip dot keeps rows unambiguous.
 const COLOR_SLOTS = 10;
 
-export function mountOperatorsChart(parent, { snapshots, bounds }) {
+export function mountOperatorsChart(parent, { snapshots, bounds, headerExtra = null }) {
     if (!parent) return;
 
     const rows = buildRows(snapshots, bounds.cutoff);
@@ -43,6 +43,7 @@ export function mountOperatorsChart(parent, { snapshots, bounds }) {
     mountTimeSeriesCard(parent, {
         title: t("network.concentration.operatorsTitle"),
         lede: t("network.concentration.operatorsLede"),
+        headerExtra,
         drawPlot: ({ width, height, layout }) =>
             drawPlot(rows, palette, bounds, width, height, layout),
     });

@@ -10,6 +10,7 @@ import { createModeSwitch } from "../mode-switch.js";
 import { mountOperatorsChart } from "./operators-chart.js";
 import { mountSeriesChart } from "./series-chart.js";
 import {
+    SOURCE_ORDER,
     buildUnionTimeline,
     sourceLabel,
     sourceSeries,
@@ -20,8 +21,6 @@ import {
     clampTimelineMax,
     dayUnionTimeline,
 } from "./timelines.js";
-
-const SECONDS_PER_DAY = 86400;
 
 // Create a header mode-switch once and cache it on the chart's
 // persistent ``state`` bag. mountSeriesChart rebuilds the card on every
@@ -39,108 +38,129 @@ function ensureToggle(state, factory) {
 // toggle changes.
 export function mountTrendCharts(network, sources, bounds, states, rerender) {
     mountDecayChart(network, sources, bounds, states.decay, rerender);
-    mountConcentrationChart(network, bounds);
+    mountConcentrationChart(network, bounds, states.operators, rerender);
     mountHhiChart(network, sources, bounds, states.hhi, rerender);
     mountCoverageChart(network, sources, bounds, states.coverage);
 }
 
-// ---- Decay: drift of today's node set vs each build's age -------
+// ---- Decay: how stale an older map is for a crawler's nodes ------
 
-// Two x-axis views over the same curve, switchable in the header:
+// A reversed calendar axis — today on the left, the past on the right —
+// so every line climbs as its map ages. Each crawler's line starts at
+// the date of its own freshest snapshot (a frozen archive starts months
+// back) and runs only over builds at or older than that, so it never
+// scores a crawl against maps from its future. A header toggle picks
+// what "stale" is measured against:
 //
-//   - "age" (default): x is the map's age in days, answering the
-//     update-cadence question directly. Drift rises with age.
-//   - "date": x is the build's release date, lined up with the calendar.
+//   - "truth" (default): vs reality. Each build's disagreement with the
+//     crawler's own whois ASN. The freshest point is the attribution
+//     gap (the map is already that wrong vs live routing), rising into
+//     the past — the direct "when do I need a fresher map?" reading.
+//     Only crawlers whose anchor snapshot ships whois can be scored, so
+//     the rest are greyed out of the legend.
+//   - "map": vs that crawler's own freshest map. Its newest map is the
+//     yardstick and sits at 0, isolating how much aging alone reshuffles
+//     the bucketing. Defined for every crawler.
 //
-// Both honour the 1Y/3Y/5Y/Max range picker. The age view windows by
-// age, not calendar: age = reference − build date, so the picker's
-// calendar span maps onto a max map age of the same width. The two
-// windows are equal in width but not in build set — date is anchored at
-// "now", age at the reference build, so they coincide only while the
-// newest build is current (see the ageWindowDays note below).
+// The axis is laid out in days before today — 0 on the left is "now",
+// the same right-edge the other Trends charts anchor to, just mirrored
+// into the past — and labelled with the calendar date each offset maps
+// back to. The freshest map is a couple of months old, so every line
+// starts a short way in from the left edge. The 1Y/3Y/5Y/Max picker
+// windows by that span (the "now" terms cancel in domainEnd − cutoff),
+// exactly like the calendar charts, so it never shrinks on a pause.
 function mountDecayChart(network, sources, bounds, state, rerender) {
-    const referenceTs = network.reference_timestamp;
-    const ageMode = state.axis === "age";
+    // The shared "now" edge: rangeBounds pins domainEnd to today, so the
+    // decay axis mirrors the other charts off the same instant.
+    const nowMs = bounds.domainEnd;
+    const truthMode = (state.ref ?? "truth") === "truth";
+    // Each mode reads its own curve: "map" is anchored on every
+    // crawler's newest snapshot; "truth" only exists for crawlers that
+    // ship whois, anchored on their newest whois-bearing snapshot.
+    const key = truthMode ? "decay_truth" : "decay";
 
-    const entries = sources.map((source) => ({
+    const usable = sources.filter((s) => network.sources[s][key]?.points?.length);
+    // Crawlers with no reality curve (no whois): kept in the legend,
+    // greyed with a reason, so they read as "no data here", not a bug.
+    const missing = truthMode
+        ? sources.filter((s) => !network.sources[s].decay_truth)
+        : [];
+
+    const entries = usable.map((source) => ({
         source,
-        points: network.sources[source].decay.points.map((p) => ({
-            ts: ageMode ? p.age_days : toMs(p.build_timestamp),
+        points: network.sources[source][key].points.map((p) => ({
+            // Days before today: today is the left edge, and each build
+            // sits its real age in from there.
+            ts: (nowMs - toMs(p.build_timestamp)) / MS_PER_DAY,
             value: p.drift_pct,
         })),
     }));
-    // The age axis has no calendar — age 0 is always the freshest
-    // build. So the picker windows it by age span: "1Y" keeps map ages
-    // up to ~365 days. Same 365 / 1095 / 1825-day width the date view
-    // spans (the "now" terms cancel in domainEnd − cutoff), but it never
-    // shrinks when the crawler pauses. "max" (cutoff −Infinity) keeps
-    // the whole curve.
+
     const ageWindowDays =
         bounds.cutoff === -Infinity
             ? Infinity
             : (bounds.domainEnd - bounds.cutoff) / MS_PER_DAY;
-    const timeline = ageMode
-        ? clampTimelineMax(buildUnionTimeline(entries), ageWindowDays)
-        : clampTimeline(buildUnionTimeline(entries), bounds.cutoff);
+    const timeline = clampTimelineMax(buildUnionTimeline(entries), ageWindowDays);
 
-    const axisToggle = ensureToggle(state, () =>
+    const refToggle = ensureToggle(state, () =>
         createModeSwitch({
-            options: ["age", "date"].map((value) => ({
+            options: ["truth", "map"].map((value) => ({
                 value,
-                label: t(`network.decay.axis.${value}`),
+                label: t(`network.decay.reference.${value}`),
             })),
-            value: state.axis,
+            value: state.ref ?? "truth",
             onChange: (next) => {
-                state.axis = next;
+                state.ref = next;
                 rerender();
             },
-            ariaLabel: t("network.decay.axis.ariaLabel"),
+            ariaLabel: t("network.decay.reference.ariaLabel"),
         }),
     );
 
     mountSeriesChart(document.querySelector("[data-network-decay]"), {
         title: t("network.decay.title"),
-        lede: t("network.decay.lede"),
+        lede: t(truthMode ? "network.decay.ledeTruth" : "network.decay.ledeMap"),
         ariaLabel: t("network.decay.ariaLabel"),
-        headerExtra: axisToggle,
+        headerExtra: refToggle,
         timestamps: timeline.timestamps,
-        series: legendSeries(sources),
+        series: legendSeries(usable),
+        unavailableSeries: missing.map((s) => ({
+            ...sourceSeries(s),
+            title: t("network.decay.noWhois"),
+        })),
         valueAt: timeline.valueAt,
         yFormat: formatPercentNumber,
         yFloorZero: true,
-        ...(ageMode ? ageAxisSpec(decayAxisMax(timeline.timestamps, bounds)) : {
-            domainStart: bounds.domainStart,
-            domainEnd: bounds.domainEnd,
-        }),
+        ...ageAxisSpec(decayAxisMax(timeline.timestamps, bounds), nowMs),
         tooltipTitleAt: (i) =>
             t("network.decay.tooltipTitle", {
-                date: formatDate(
-                    new Date(
-                        ageMode
-                            ? toMs(referenceTs - timeline.timestamps[i] * SECONDS_PER_DAY)
-                            : timeline.timestamps[i],
-                    ),
-                ),
-                days: ageMode
-                    ? timeline.timestamps[i]
-                    : ageDays(referenceTs, timeline.timestamps[i]),
+                date: formatDate(new Date(nowMs - timeline.timestamps[i] * MS_PER_DAY)),
+                days: Math.round(timeline.timestamps[i]),
             }),
         tooltipRowsAt: (i) =>
-            sourceRows(sources, timeline, i, (v) => formatPercentNumber(v)),
+            sourceRows(usable, timeline, i, (v) => formatPercentNumber(v)),
         state,
     });
 }
 
-// Calendar units for the age axis, largest first. Raw day counts read
-// poorly on a multi-year curve ("1,825d" vs "5y"). Unit chosen from the
-// span: years past two years, months past a quarter, days below. Steps
-// are calendar-nice (1/2/5 years, 1/3/6 months) so ticks land on whole
-// years and quarters. The tooltip keeps the exact day count, so no
-// precision is lost.
+// Compact month + year for the reversed-calendar ticks ("Jun 2026"); a
+// day-precise label would crowd a multi-year axis, and the tooltip keeps
+// the exact build date anyway.
+const tickDateFormatter = new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    timeZone: "UTC",
+});
+
+// Calendar step sizes for the age axis, largest first. The axis is laid
+// out in age days but ticks are labelled with the date they map back to,
+// so the spacing must land on calendar-nice ages: whole years past two
+// years, quarters past a quarter, weeks/months below. The tooltip keeps
+// the exact day count and date, so no precision is lost.
 const AGE_AXIS_UNITS = [
-    { minDays: 2 * 365, days: 365, steps: [1, 2, 5, 10], labelKey: "tickYears" },
-    { minDays: 91, days: 30, steps: [1, 2, 3, 6], labelKey: "tickMonths" },
-    { minDays: 0, days: 1, steps: [7, 14, 30, 60, 90], labelKey: "tickDays" },
+    { minDays: 2 * 365, days: 365, steps: [1, 2, 5, 10] },
+    { minDays: 91, days: 30, steps: [1, 2, 3, 6] },
+    { minDays: 0, days: 1, steps: [7, 14, 30, 60, 90] },
 ];
 
 // The age the x axis spans. A bounded range pins the axis to the full
@@ -153,9 +173,11 @@ function decayAxisMax(ages, bounds) {
     return (bounds.domainEnd - bounds.cutoff) / MS_PER_DAY;
 }
 
-// Numeric x axis for the age view: domain [0, axisMax] with ticks on
-// calendar boundaries (whole years / quarters), chosen by decayAxisMax.
-function ageAxisSpec(axisMax) {
+// Reversed-calendar x axis: domain [0, axisMax] in days before today
+// (0 = "now" on the left), with ticks on calendar boundaries labelled
+// by the date each offset maps back to. ``nowMs`` is the shared right
+// edge (today), so an offset of A days reads as nowMs − A.
+function ageAxisSpec(axisMax, nowMs) {
     const unit = AGE_AXIS_UNITS.find((u) => axisMax >= u.minDays);
     // Aim for ~5 intervals, then round up to the nearest calendar-nice
     // step so a slightly-too-small target never produces a busy axis.
@@ -168,12 +190,7 @@ function ageAxisSpec(axisMax) {
         if (value > axisMax + 0.5) break;
         xTicks.push({
             timestamp: value,
-            label:
-                value === 0
-                    ? t("network.decay.axis.tickZero")
-                    : t(`network.decay.axis.${unit.labelKey}`, {
-                          n: Math.round(value / unit.days),
-                      }),
+            label: tickDateFormatter.format(new Date(nowMs - value * MS_PER_DAY)),
         });
     }
     return { linearDomain: true, domainStart: 0, domainEnd: axisMax, xTicks };
@@ -284,39 +301,62 @@ function mountCoverageChart(network, sources, bounds, state) {
 
 // ---- Operator concentration over time ---------------------------
 
-// The top-operator breakdown (KIT only): stacked bars per snapshot,
-// segmented into that snapshot's actual top five so the height is the
-// honest per-period CR5 (see operators-chart.js). KIT only because it
-// is the live crawl. Without KIT there is nothing to plot and the slot
-// stays empty (decay + cross-check still render).
-function mountConcentrationChart(network, bounds) {
+// The top-operator breakdown: stacked bars per snapshot, segmented
+// into that snapshot's actual top five so the height is the honest
+// per-period CR5 (see operators-chart.js). A stack is single-source by
+// nature (three overlaid stacks are unreadable), so instead of forcing
+// one crawl it carries a header source switch — every crawl scores its
+// own top_ases, and the BitMEX roster makes its hosting-heavy vantage
+// visible rather than hiding it. ``state.source`` persists the pick
+// across range re-mounts; ``rerender`` re-runs the trends on a switch.
+function mountConcentrationChart(network, bounds, state, rerender) {
     const parent = document.querySelector("[data-network-concentration]");
     if (!parent) return;
-    if (!network.sources.kit?.snapshots?.length) {
+    const sources = SOURCE_ORDER.filter(
+        (s) => network.sources[s]?.snapshots?.length,
+    );
+    if (sources.length === 0) {
         parent.replaceChildren();
         return;
     }
+    if (!sources.includes(state.source)) state.source = sources[0];
+
+    // One switch instance, cached on state, so a range re-mount re-uses
+    // it (the card keeps its header, the pill keeps its transition).
+    const toggle =
+        sources.length > 1
+            ? ensureToggle(state, () =>
+                  createModeSwitch({
+                      options: sources.map((s) => ({
+                          value: s,
+                          label: sourceLabel(s),
+                      })),
+                      value: state.source,
+                      onChange: (next) => {
+                          state.source = next;
+                          rerender();
+                      },
+                      ariaLabel: t("network.concentration.sourceSwitchAria"),
+                  }),
+              )
+            : null;
+    if (toggle) toggle.setValue(state.source);
+
     mountOperatorsChart(parent, {
-        snapshots: network.sources.kit.snapshots,
+        snapshots: network.sources[state.source].snapshots,
         bounds,
+        headerExtra: toggle,
     });
 }
 
 // ---- shared helpers ---------------------------------------------
 
-// Series descriptors for the trend charts, with the Bitnodes legend
-// entry suffixed "(archive)" so the frozen line is marked right where
-// the reader picks it out. Tooltips and notes keep the plain label.
+// Series descriptors for the trend charts. Every source uses its plain
+// label: KIT and Bitnodes are both ongoing crawls (the Bitnodes line
+// stitches the b10c archive to the bitnod.es / BitMEX continuation), so
+// neither is marked as a frozen archive.
 function legendSeries(sources) {
-    return sources.map((source) => {
-        const series = sourceSeries(source);
-        if (source !== "kit") {
-            series.label = t("network.source.archiveLegend", {
-                source: series.label,
-            });
-        }
-        return series;
-    });
+    return sources.map(sourceSeries);
 }
 
 function snapshotTitle(timeline, slot) {
@@ -331,11 +371,6 @@ function sourceRows(sources, timeline, slot, format) {
         const value = timeline.valueAt(source, slot);
         return [sourceLabel(source), value == null ? "\u2014" : format(value)];
     });
-}
-
-function ageDays(referenceTs, slotMs) {
-    const days = (referenceTs - slotMs / 1000) / SECONDS_PER_DAY;
-    return Math.max(0, Math.round(days));
 }
 
 // drift_pct and coverage arrive as plain percent numbers (3.8 ->

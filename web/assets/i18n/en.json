@@ -34,7 +34,9 @@
         "asmapDataLabel": "bitcoin-core/asmap-data",
         "asmapDataDesc": "ASmap builds",
         "bitnodesLabel": "asmap/sample-data",
-        "bitnodesDesc": "Bitnodes node snapshots",
+        "bitnodesDesc": "bitnodes.io archive",
+        "bitmexLabel": "bitnod.es",
+        "bitmexDesc": "BitMEX node crawls",
         "bgpToolsLabel": "bgp.tools",
         "bgpToolsDesc": "ASN labels",
         "repoLinkLabel": "Source on GitHub",
@@ -277,15 +279,16 @@
         },
         "source": {
             "kit": "KIT",
-            "bitnodes": "Bitnodes",
-            "archiveLegend": "{source} (archive)"
+            "bitnodes": "bitnodes.io",
+            "bitmex": "bitnod.es"
         },
         "overview": {
             "sectionTitle": "Network",
             "sectionLede": "This tab tests each ASmap build against the real Bitcoin nodes that crawlers observe on the network, so you can see how well a build actually groups the peers a node meets in practice.",
             "empty": "No observed node snapshots in network.json.",
-            "sourceMeta": "Snapshot metrics from the {source} crawl, {date}.",
-            "sourceCompare": "{sources} is shown alongside as a frozen archive (its crawler no longer runs).",
+            "clearnetNote": "The cards count only clearnet (IPv4/IPv6) reachable nodes — Tor, I2P, and CJDNS peers have no IP for ASmap to resolve to an autonomous system, so they are left out.",
+            "snapshotMeta": "{source} crawl, latest snapshot {date} - scored against ASmap build {build}",
+            "sourceSwitchAria": "Card snapshot source",
             "familySplit": "IPv4 {ipv4}, IPv6 {ipv6}",
             "nodes": {
                 "label": "Reachable nodes",
@@ -360,24 +363,22 @@
             "sectionLede": "These trends follow how the map performs against the observed network over time, with each independent crawler drawn as its own line so they confirm one another. Click a legend entry to isolate one."
         },
         "decay": {
-            "title": "Map decay for today's nodes",
-            "lede": "This shows how outdated an older build would be for today's nodes: the share it would place with a different operator than the newest build does. The newest build is the yardstick, so it sits at zero — this is map-versus-map drift, not a check against live routing (the attribution agreement below covers that). The older a build gets, the more it drifts, which shows how often shipping a fresh map is worth it.",
-            "infoAria": "About the decay curve",
-            "ariaLabel": "Share of today's observed nodes that each older build resolves to a different autonomous system than the newest build. One line per crawler.",
+            "title": "Map staleness for today's nodes",
+            "ledeTruth": "How wrong an aging map is for the nodes a crawler sees today, checked against reality (the crawler's own whois): the share it files under a different operator than the node really sits in. Time runs from today on the left into the past on the right, so each line starts at its crawler's freshest snapshot and climbs as the map ages. Even the newest point sits above zero — the attribution gap against live routing — so where a line crosses your tolerance is how often a fresh map is worth shipping. Only crawlers that ship their own whois carry that ground truth, so bitnod.es is greyed out here; switch to \u201cNewest map\u201d to compare it too.",
+            "ledeMap": "How much an aging map reshuffles the nodes a crawler sees today versus that crawler's own freshest map: the share it moves to a different operator. Time runs from today on the left into the past on the right, and each line's freshest map is its own zero, so it starts at zero and climbs with age — isolating how much aging alone changes the buckets. Switch to \u201cReality\u201d to measure against live routing instead.",
+            "infoAria": "About the staleness curve",
+            "ariaLabel": "Share of each crawler's most recent observed nodes that an older build resolves to a different autonomous system, against the picked reference. The axis runs from today on the left into the past on the right. One line per crawler.",
             "tooltipTitle": "{date} build, {days} days old",
-            "axis": {
-                "age": "Age",
-                "date": "Date",
-                "ariaLabel": "Decay chart x-axis",
-                "tickZero": "0",
-                "tickYears": "{n}y",
-                "tickMonths": "{n}mo",
-                "tickDays": "{n}d"
+            "reference": {
+                "truth": "Reality",
+                "map": "Newest map",
+                "ariaLabel": "Staleness reference"
             },
+            "noWhois": "No whois on this crawler's snapshots, so there is no ground truth to measure against here.",
             "info": [
-                "The latest node set, held fixed, looked up in every published build. Each point is the share that the older build resolves to a different autonomous system than the newest build does.",
-                "The axis switch picks x. Map age answers the cadence question directly: a point at 400 days shows how wrong a 400 day old map already is, so the rise to the right is the cost of shipping stale maps. Build date lines the points up with the calendar.",
-                "Holding the node set fixed means map age is the only thing changing between points. A fresh crawl updates that set, but new points appear only when new builds ship.",
+                "Each crawler's most recent node set, held fixed and looked up in every build at or older than that snapshot, plotted from today on the left into the past on the right. Holding the node set fixed means map age is the only thing changing between points.",
+                "Reality: each build's disagreement with the crawler's own whois ASN. The newest point equals the attribution gap (100 minus the agreement shown below) and age only adds to it — the direct \u201cwhen do I need a fresher map?\u201d reading. Each crawler is anchored on its newest whois-bearing snapshot, so a frozen archive starts at its last annotated crawl; crawlers without whois are greyed out here.",
+                "Newest map: each build versus that crawler's own freshest map, which sits at zero. This isolates how much aging alone reshuffles the buckets and works for every crawler.",
                 "One line per crawler. Where they overlap, the map ages the same no matter who observed the network."
             ]
         },
@@ -402,15 +403,16 @@
                 "For each snapshot, the share of clearnet nodes the build in effect resolves to an autonomous system. The rest fall outside every prefix the map carries and use Bitcoin Core's default /16 and /32 groups.",
                 "The HHI chart asks how mapped nodes distribute; this asks how many get mapped at all. A falling line means the routing data behind ASmap is lagging where the nodes are.",
                 "Each snapshot is scored against the build in effect at its crawl time, so it reflects what a then current map actually delivered.",
-                "The dips are map staleness, not bad data. The deepest (KIT, August 2024) was crawled hours before a release, against a five month old build; every node it missed resolves again under the next one. Coverage sags as a map ages and snaps back at each release."
+                "The dips are map staleness, not bad data: coverage sags as a map ages and snaps back at each release. The deepest (KIT, August 2024) was crawled hours before a release against a five-month-old build, so every node it missed resolves under the next one."
             ]
         },
         "concentration": {
             "combinedLabel": "Top {count} combined",
-            "operatorsTitle": "Top 5 operators per snapshot (KIT data)",
+            "operatorsTitle": "Top 5 operators per snapshot",
+            "sourceSwitchAria": "Operator breakdown source",
             "operatorsLede": "Where those observed nodes actually sit, shown as the combined share of the network held by the five largest operators at each point in time. A shrinking stack means nodes are spreading across more operators, which is healthier, since no single operator comes close to surrounding a node.",
             "operatorsInfoAria": "About the top operator breakdown",
-            "operatorsAria": "Stacked bars, one per KIT snapshot, segmented into that snapshot's five largest operators by node share. The bar height is the combined top-5 share. Hover a bar for the operator names.",
+            "operatorsAria": "Stacked bars, one per snapshot of the selected crawler, segmented into that snapshot's five largest operators by node share. The bar height is the combined top-5 share. Hover a bar for the operator names.",
             "operatorsInfo": [
                 "One bar per snapshot, split into the five operators with the largest node share at that point, scored against the build in effect. Bar height is the combined top-5 share, so a shrinking bar means the top tier is losing its grip.",
                 "The top five are re-picked per snapshot, since a fixed five would understate the share when a new operator rises. Each operator keeps its colour across bars, so a colour appearing or vanishing is the tier reshuffling. Hover a bar for the names.",
@@ -523,7 +525,7 @@
                 "lead": "Direction.",
                 "text": "Up gained, down lost, a double arrow means space moved both ways. The counterpart can be a real autonomous system or the unmapped pool: up-unmapped gained space that had no ASN, down-unmapped lost space that no longer resolves."
             },
-            "Hover any row for the operator name, the raw counts moved, how much address space the operator holds on each side, and Touched. Touched is how much of the operator's own address space this change moved, written as a share of its footprint. It can read above 100% when one build stores the operator as a single block and the other splits it into many, so the two sides don't line up one to one."
+            "Hover any row for the operator name, the raw counts moved, how much address space the operator holds on each side, and Touched — how much of the operator's own footprint this change moved. It can read above 100% when one build stores the operator as a single block and the other splits it into many."
         ],
         "viewMode": {
             "compact": "Compact",

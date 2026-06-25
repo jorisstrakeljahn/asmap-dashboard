@@ -11,8 +11,13 @@ import { t } from "../../utils/i18n.js";
 
 // Render + reading order. KIT first because it is the more complete
 // crawl (full whois on every node) and is treated as the primary
-// source; Bitnodes rides along as the comparison line.
-export const SOURCE_ORDER = ["kit", "bitnodes"];
+// source; the two Bitnodes lines ride along as comparison lines. The
+// Bitnodes crawl split in two when the original bitnodes.io shut down:
+// "bitnodes" is the frozen b10c archive (through Apr 2026), "bitmex" is
+// the bitnod.es / BitMEX continuation. They are kept as separate series
+// because BitMEX's vantage point reaches a different population, so a
+// single spliced line would fake a concentration jump at the handover.
+export const SOURCE_ORDER = ["kit", "bitnodes", "bitmex"];
 
 const SOURCE_STYLE = {
     kit: {
@@ -24,6 +29,11 @@ const SOURCE_STYLE = {
         lineClass: "chart__line--bitnodes",
         dotClass: "chart__dot--bitnodes",
         swatchClass: "chart-legend__swatch--bitnodes",
+    },
+    bitmex: {
+        lineClass: "chart__line--bitmex",
+        dotClass: "chart__dot--bitmex",
+        swatchClass: "chart-legend__swatch--bitmex",
     },
 };
 

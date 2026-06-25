@@ -14,14 +14,17 @@
 // nodes each crawler reaches, so two raw-count lines invite a false
 // comparison.
 //
-// The decay chart overlays KIT and Bitnodes as toggleable lines: it
-// plots a normalised drift share, comparable across crawlers of
-// different size. KIT is the ongoing crawl; the Bitnodes snapshots are
-// a one-time b10c archive, frozen once it ends but kept as a second
-// line (two independent crawlers agreeing is the strongest credibility
-// signal) and labelled "archive" so no reader mistakes it for a live
-// feed. The operator breakdown is KIT-only — a breakdown for a frozen
-// crawler would clutter without adding a comparison.
+// The decay chart overlays KIT and the two Bitnodes crawls as
+// toggleable lines: it plots a normalised drift share, comparable
+// across crawlers of different size. The Bitnodes feed split when
+// bitnodes.io shut down — "bitnodes" is the frozen b10c archive,
+// "bitmex" is the bitnod.es / BitMEX continuation — and they stay
+// separate lines because BitMEX's vantage reaches a different
+// population (so a spliced line would fake a concentration step at the
+// handover). Several independent crawlers agreeing is the strongest
+// credibility signal. The operator breakdown is KIT-only: KIT carries
+// full whois on every node, so its per-AS roster is the trustworthy
+// one, and extra breakdowns would clutter without adding a comparison.
 //
 // The Trends section's 1Y/3Y/5Y/Max range picker (mirroring the Maps
 // History range) windows the trend charts' x-axis; the hero and
@@ -33,7 +36,7 @@
 import { formatDate } from "./format.js";
 import * as overview from "./components/network/overview.js";
 import { mountCrossCheckStat } from "./components/network/cross-check.js";
-import { SOURCE_ORDER, sourceLabel } from "./components/network/series-data.js";
+import { SOURCE_ORDER, sourceLabel, toMs } from "./components/network/series-data.js";
 import { collectTimestamps } from "./components/network/timelines.js";
 import { mountTrendCharts } from "./components/network/trend-charts.js";
 import { createModeSwitch } from "./components/mode-switch.js";
@@ -48,7 +51,7 @@ import { t } from "./utils/i18n.js";
 // Network is not the default tab, so it only writes its state once the
 // hash already carries the "#network" token (no empty-hash stamping).
 const TAB = "network";
-const DECAY_AXES = ["age", "date"];
+const DECAY_REFS = ["truth", "map"];
 const HHI_FAMILIES = ["all", "ipv4", "ipv6"];
 
 // Mount the tab. Returns true when a network section was present and
@@ -63,50 +66,73 @@ export function mount(payload) {
     if (presentSources.length === 0) return false;
 
     const primary = presentSources[0];
-    const primaryData = network.sources[primary];
-    const latest = primaryData.snapshots[primaryData.snapshots.length - 1];
+    const overviewSlot = document.querySelector("[data-network-overview]");
 
-    overview.mount(document.querySelector("[data-network-overview]"), {
-        snapshot: latest,
-        decay: primaryData.decay,
-        source: primary,
-        latestUpdate: network.latest_update,
-    });
-
-    // One intro paragraph: the static section lede (what this tab does)
-    // plus the crawl provenance (which snapshot the cards read, any
-    // archived comparison source), joined rather than split into a
-    // separate meta line.
+    // The lede is static (what this tab does + the clearnet scope it
+    // measures), so it is set once. The per-crawl "as of" date is not
+    // in the lede; it rides on the card row via the snapshot caption so
+    // it tracks the source switch without rewriting the paragraph.
     const ledeSlot = document.querySelector("[data-network-lede]");
     if (ledeSlot) {
-        const provenance = t("network.overview.sourceMeta", {
-            source: sourceLabel(primary),
-            date: formatDate(latest.label),
-        });
-        const others = presentSources.filter((s) => s !== primary);
-        const source = others.length
-            ? `${provenance} ${t("network.overview.sourceCompare", {
-                  sources: others.map(sourceLabel).join(", "),
-              })}`
-            : provenance;
-        ledeSlot.textContent = `${t("network.overview.sectionLede")} ${source}`;
+        ledeSlot.textContent = `${t("network.overview.sectionLede")} ${t(
+            "network.overview.clearnetNote",
+        )}`;
     }
 
-    // A deep link can pin the Trends range plus the decay axis and HHI
-    // family so a shared finding opens on the same view.
+    // Re-render the hero cards for one source. Driven by the header
+    // source switch so every crawl's own snapshot numbers, "as of"
+    // date, and latest-update impact are one click apart. Each source
+    // carries its own latest_update (node-impact scored on its newest
+    // node set), so the impact card now follows the switch too.
+    const renderHero = (source) => {
+        const data = network.sources[source];
+        const latest = data.snapshots[data.snapshots.length - 1];
+        overview.mount(overviewSlot, {
+            snapshot: latest,
+            decay: data.decay,
+            latestUpdate: data.latest_update ?? null,
+            asOf: t("network.overview.snapshotMeta", {
+                source: sourceLabel(source),
+                date: formatDate(latest.label),
+                build: formatDate(new Date(toMs(latest.build.timestamp))),
+            }),
+        });
+    };
+    renderHero(primary);
+
+    // Source switch above the cards: only meaningful with more than one
+    // crawler present, so it is omitted on single-source data.
+    const heroSourceSlot = document.querySelector("[data-network-overview-source]");
+    if (heroSourceSlot && presentSources.length > 1) {
+        heroSourceSlot.replaceChildren(
+            createModeSwitch({
+                options: presentSources.map((s) => ({
+                    value: s,
+                    label: sourceLabel(s),
+                })),
+                value: primary,
+                onChange: renderHero,
+                ariaLabel: t("network.overview.sourceSwitchAria"),
+            }),
+        );
+    }
+
+    // A deep link can pin the Trends range plus the decay reference and
+    // HHI family so a shared finding opens on the same view.
     const hash = readHashState(TAB);
     const requestedRange = hash.get("range");
-    const requestedAxis = hash.get("axis");
+    const requestedRef = hash.get("ref");
     const requestedFamily = hash.get("family");
 
     // Per-chart toggle state hoisted here so a range re-mount keeps
-    // hidden series — and, for decay / HHI, the active axis or family.
-    // The operator breakdown has no legend (its per-period cast
-    // changes), so no entry here.
+    // hidden series — and, for decay / HHI, the active reference or
+    // family. The operator breakdown has no legend (its per-period cast
+    // changes) but carries a source switch, so its picked crawl lives
+    // here too and survives a range re-mount.
     const states = {
         decay: {
             hidden: new Set(),
-            axis: DECAY_AXES.includes(requestedAxis) ? requestedAxis : "age",
+            ref: DECAY_REFS.includes(requestedRef) ? requestedRef : "truth",
         },
         hhi: {
             hidden: new Set(),
@@ -115,6 +141,7 @@ export function mount(payload) {
                 : "all",
         },
         coverage: { hidden: new Set() },
+        operators: { source: primary },
     };
     const allTimestamps = collectTimestamps(network, presentSources);
 
@@ -129,7 +156,7 @@ export function mount(payload) {
         // "#network".
         writeHashState(TAB, {
             range: range !== DEFAULT_RANGE ? range : null,
-            axis: states.decay.axis !== "age" ? states.decay.axis : null,
+            ref: states.decay.ref !== "truth" ? states.decay.ref : null,
             family: states.hhi.family !== "all" ? states.hhi.family : null,
         });
         const bounds = rangeBounds(range, allTimestamps);
