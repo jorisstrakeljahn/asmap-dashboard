@@ -1,10 +1,15 @@
 // Chart legend. Pass ``onToggle`` for a clickable legend whose
 // buttons hide / show series; omit it for a static legend.
 // Entry shape: { key, label, swatchClass }.
+//
+// ``unavailable`` entries ({ ...entry, title }) render greyed and
+// non-interactive after the live ones: a crawler that has no data in
+// the current view (e.g. no whois for the reality anchor) stays listed
+// with a reason on hover instead of silently disappearing.
 
 import { t } from "../utils/i18n.js";
 
-export function createChartLegend({ entries, hidden, onToggle }) {
+export function createChartLegend({ entries, hidden, onToggle, unavailable = [] }) {
     const legend = document.createElement("div");
     legend.className = "chart-legend";
     const off = hidden ?? new Set();
@@ -15,7 +20,21 @@ export function createChartLegend({ entries, hidden, onToggle }) {
                 : staticItem(entry),
         );
     }
+    for (const entry of unavailable) {
+        legend.append(unavailableItem(entry));
+    }
     return legend;
+}
+
+// A greyed, non-clickable entry for a series with no data in this view.
+// Reuses the ``--off`` dimming the toggle uses for a hidden line; the
+// title surfaces why it carries no line.
+function unavailableItem(entry) {
+    const item = document.createElement("span");
+    item.className = "chart-legend__item chart-legend__item--off";
+    if (entry.title) item.title = entry.title;
+    item.append(swatchNode(entry), labelNode(entry));
+    return item;
 }
 
 function staticItem(entry) {

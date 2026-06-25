@@ -59,6 +59,16 @@ export function mountTimeSeriesCard(parent, config) {
 
     let card = reused;
     if (card) {
+        // The header (and its mode switch) is kept so the pill keeps its
+        // transition, but a switch can change the lede copy — e.g. the
+        // decay chart's reality/newest-map blurbs — so refresh that text
+        // in place when it differs.
+        if (lede !== card.__lede) {
+            card.__lede = lede;
+            if (card.__header.__ledeEl) card.__header.__ledeEl.remove();
+            card.__header.__ledeEl = lede ? createChartLede(lede) : null;
+            if (card.__header.__ledeEl) card.__header.append(card.__header.__ledeEl);
+        }
         // Strip the previous legend + plot, keep the header. The
         // detached slot's width watcher is swept by the next
         // mountResponsiveChart call below.
@@ -73,6 +83,7 @@ export function mountTimeSeriesCard(parent, config) {
         card.__title = title;
         card.__subtitle = subtitle;
         card.__headerExtra = headerExtra;
+        card.__lede = lede;
         card.append(header);
         parent.replaceChildren(card);
     }
@@ -125,7 +136,13 @@ function buildHeader(title, subtitle, lede, headerExtra) {
     }
     header.append(row);
 
-    if (lede) header.append(createChartLede(lede));
+    if (lede) {
+        // Track the lede element so a reused card can swap its text when
+        // a header control (e.g. the decay reference toggle) changes the
+        // active copy without rebuilding the whole header.
+        header.__ledeEl = createChartLede(lede);
+        header.append(header.__ledeEl);
+    }
 
     return header;
 }
