@@ -1,9 +1,9 @@
-// Toolbar + footer controls for the Top Movers card. Builders
-// returning { elem, setValue } let the orchestrator reset them
-// uniformly on Clear.
+// Toolbar + footer controls for the Top Movers card. Builders returning
+// { elem, setValue } let the orchestrator reset them uniformly on Clear.
 
+import { html, nothing, render } from "../../vendor/lit-html.js";
 import { CROSS } from "../../utils/symbols.js";
-import { uniqueId } from "../../utils/dom.js";
+import { renderToElement, uniqueId } from "../../utils/dom.js";
 import { t } from "../../utils/i18n.js";
 import { createDropdown } from "../dropdown.js";
 import { createInfoTooltip } from "../info-tooltip.js";
@@ -39,15 +39,7 @@ export function viewModeSwitch(state, onChange, persist) {
 }
 
 export function pageSizeControl(state, onChange) {
-    const wrap = document.createElement("div");
-    wrap.className = "top-movers__page-size";
-
     const labelId = uniqueId("top-movers-page-size-label");
-    const text = document.createElement("span");
-    text.className = "muted";
-    text.id = labelId;
-    text.textContent = t("topMovers.pageSize.label");
-
     const dropdown = createDropdown({
         options: PAGE_SIZES.map((size) => ({
             value: String(size),
@@ -63,31 +55,36 @@ export function pageSizeControl(state, onChange) {
         },
     });
 
-    wrap.append(text, dropdown);
-    return wrap;
+    return renderToElement(html`
+        <div class="top-movers__page-size">
+            <span class="muted" id=${labelId}>${t("topMovers.pageSize.label")}</span>
+            ${dropdown}
+        </div>
+    `);
 }
 
-// Explicit pageIndex reset avoids a one-frame flash on the
-// old page before clampPageIndex() catches up in render().
+// Explicit pageIndex reset avoids a one-frame flash on the old page before
+// clampPageIndex() catches up in render().
 export function buildFilterInput(state, onChange) {
-    const elem = document.createElement("div");
-    elem.className = "top-movers__filter-field";
-
-    const input = document.createElement("input");
-    input.type = "search";
-    input.name = "top-movers-filter";
-    input.autocomplete = "off";
-    input.className = "top-movers__filter-input";
-    input.placeholder = t("topMovers.filter.placeholder");
-    input.value = state.filterText;
-    input.setAttribute("aria-label", t("topMovers.filter.ariaLabel"));
-    input.addEventListener("input", () => {
-        state.filterText = input.value;
-        state.pageIndex = 0;
-        onChange();
-    });
-
-    elem.append(input);
+    const elem = renderToElement(html`
+        <div class="top-movers__filter-field">
+            <input
+                type="search"
+                name="top-movers-filter"
+                autocomplete="off"
+                class="top-movers__filter-input"
+                placeholder=${t("topMovers.filter.placeholder")}
+                .value=${state.filterText}
+                aria-label=${t("topMovers.filter.ariaLabel")}
+                @input=${(event) => {
+                    state.filterText = event.target.value;
+                    state.pageIndex = 0;
+                    onChange();
+                }}
+            />
+        </div>
+    `);
+    const input = elem.querySelector(".top-movers__filter-input");
     return {
         elem,
         setValue(next) {
@@ -96,9 +93,8 @@ export function buildFilterInput(state, onChange) {
     };
 }
 
-// CSS pins a min-width on .top-movers__direction-dropdown to the
-// longest label ("Exchanged ↔") so the toolbar doesn't shift
-// when a shorter option is picked.
+// CSS pins a min-width on .top-movers__direction-dropdown to the longest label
+// ("Exchanged ↔") so the toolbar doesn't shift when a shorter option is picked.
 export function buildDirectionFilter(state, onChange) {
     const dropdown = createDropdown({
         options: DIRECTION_FILTER_VALUES.map((value) => ({
@@ -126,23 +122,17 @@ export function buildDirectionFilter(state, onChange) {
 // "✕ Clear" pill, only rendered while a filter is active.
 export function renderClearButton(slot, active, onClear) {
     if (!active) {
-        slot.replaceChildren();
+        render(nothing, slot);
         return;
     }
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "top-movers__clear";
-    button.setAttribute("aria-label", t("topMovers.filter.clearAria"));
-
-    const glyph = document.createElement("span");
-    glyph.className = "top-movers__clear-glyph";
-    glyph.setAttribute("aria-hidden", "true");
-    glyph.textContent = CROSS;
-
-    const text = document.createElement("span");
-    text.textContent = t("topMovers.filter.clear");
-
-    button.append(glyph, text);
-    button.addEventListener("click", onClear);
-    slot.replaceChildren(button);
+    render(
+        html`<button
+            type="button"
+            class="top-movers__clear"
+            aria-label=${t("topMovers.filter.clearAria")}
+            @click=${onClear}
+        ><span class="top-movers__clear-glyph" aria-hidden="true">${CROSS}</span
+            ><span>${t("topMovers.filter.clear")}</span></button>`,
+        slot,
+    );
 }
