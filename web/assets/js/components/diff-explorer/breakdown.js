@@ -1,8 +1,9 @@
-// Match banner, classification cells, stacked bar, and AS roster
-// delta. All four are family-scoped via the Diff Explorer master
-// toggle, so they speak the same v4 / v6 language. DIFF_CATEGORIES
-// keeps labels, colours, and bar segments in sync.
+// Match banner, classification cells, stacked bar, and AS roster delta. All
+// four are family-scoped via the Diff Explorer master toggle, so they speak the
+// same v4 / v6 language. DIFF_CATEGORIES keeps labels, colours, and bar
+// segments in sync.
 
+import { html, nothing, render } from "../../vendor/lit-html.js";
 import {
     FAMILY_IPV4,
     FAMILY_IPV6,
@@ -46,42 +47,35 @@ const UNIT_LABEL_KEY_BY_FAMILY = {
     [FAMILY_IPV6]: "diff.matchBanner.unit.ipv6",
 };
 
-// Match rate banner, one family at a time. Both families use the
-// NetGroup bucket vocabulary Bitcoin Core's CNetAddr::GetGroup()
-// uses with no asmap loaded: IPv4 /16 buckets, IPv6 /32 blocks.
-// That keeps the columns comparable even though one spans 2^32
-// and the other 2^128 of address space.
+// Match rate banner, one family at a time, in the NetGroup bucket vocabulary
+// Core's GetGroup() uses with no asmap (IPv4 /16 buckets, IPv6 /32 blocks),
+// which keeps the columns comparable across 2^32 vs 2^128 of address space.
 export function matchBanner(diff, family) {
     const view = matchBannerView(diff, family);
 
-    const wrap = document.createElement("div");
-    wrap.className = "match-banner";
-
-    // Variant caption: read from the diff payload so a future
-    // filled-vs-filled diff can't masquerade as source data. Rides
-    // as the block's third line, aligning with the node-impact block.
+    // Variant caption read from the payload so a future filled-vs-filled diff
+    // can't masquerade as source data.
     const variantLabel = VARIANT_LABEL_KEYS[diff.variant]
         ? t(VARIANT_LABEL_KEYS[diff.variant])
         : diff.variant || t("common.variants.unknown");
 
-    const block = familyBlock({
-        captionKey: CAPTION_KEY_BY_FAMILY[family],
-        view,
-        family,
-        variantLabel,
-    });
-
-    wrap.append(block);
-    return wrap;
+    return html`
+        <div class="match-banner">
+            ${familyBlock({
+                captionKey: CAPTION_KEY_BY_FAMILY[family],
+                view,
+                family,
+                variantLabel,
+            })}
+        </div>
+    `;
 }
 
-// Denominator is the union of both maps' coverage (every bucket
-// either map has an opinion about). A changed prefix is mapped on
-// at least one side, so changed buckets are a subset of the union
-// and the match percentage stays within [0, 100] — a single map's
-// bucket count would not guarantee that. matchBannerView returns
-// the same {changed, denominator, ratio, format} shape for both
-// families so familyBlock() never branches on family.
+// Denominator is the union of both maps' coverage; a changed prefix is mapped
+// on at least one side, so changed buckets are a subset of the union and the
+// percentage stays in [0, 100] (a single map's count wouldn't guarantee that).
+// matchBannerView returns the same shape for both families so familyBlock never
+// branches on family.
 const BANNER_FIELDS_BY_FAMILY = {
     [FAMILY_IPV4]: {
         changed: "ipv4_buckets_changed",
@@ -106,88 +100,71 @@ function matchBannerView(diff, family) {
 }
 
 function familyBlock({ captionKey, view, family, variantLabel }) {
-    const block = document.createElement("div");
-    block.className = `match-banner__family match-banner__family--${family}`;
-
-    const headline = document.createElement("span");
-    headline.className = "match-banner__headline";
-    headline.textContent = formatPercent(1 - view.ratio, 2);
-
-    const captionEl = document.createElement("span");
-    captionEl.className = "match-banner__caption";
-    captionEl.textContent = t(captionKey);
-
-    const detail = document.createElement("span");
-    detail.className = "match-banner__detail";
-    // Glue only the unit ("IPv4 /16 buckets") so "/16" never orphans
-    // from its noun, while the surrounding sentence keeps its normal
-    // wrap points. Gluing the whole string fuses every digit-adjacent
-    // space ("6,003 of 52,466 IPv4 /16 buckets") into one unbreakable
-    // run that sets a wide min-content floor and overflows a narrow card.
-    detail.textContent = t("diff.matchBanner.detail", {
+    // Glue only the unit ("IPv4 /16 buckets") so "/16" never orphans, while the
+    // sentence keeps its normal wrap points. Gluing the whole string would fuse
+    // every digit-adjacent space into one unbreakable run that overflows a
+    // narrow card.
+    const detail = t("diff.matchBanner.detail", {
         changed: view.format(view.changed),
         denominator: view.format(view.denominator),
         unit: glueUnits(t(UNIT_LABEL_KEY_BY_FAMILY[family])),
     });
 
-    const source = document.createElement("span");
-    source.className = "match-banner__source";
-    source.textContent = variantLabel;
-
-    block.append(headline, captionEl, detail, source);
-    return block;
+    return html`
+        <div class="match-banner__family match-banner__family--${family}">
+            <span class="match-banner__headline">${formatPercent(1 - view.ratio, 2)}</span>
+            <span class="match-banner__caption">${t(captionKey)}</span>
+            <span class="match-banner__detail">${detail}</span>
+            <span class="match-banner__source">${variantLabel}</span>
+        </div>
+    `;
 }
 
-// Classification cards are family-scoped so they speak the same
-// currency as the stacked bar and match banner. The caption shows
-// the family figure, not the combined v4 + v6 total.
+// Classification cards are family-scoped so they speak the same currency as the
+// stacked bar and match banner. The caption shows the family figure, not the
+// combined v4 + v6 total.
 export function classificationRow(diff, family) {
-    const row = document.createElement("div");
-    row.className = "classification-row";
-    for (const category of DIFF_CATEGORIES) {
-        row.append(classificationCell(category, diff, family));
-    }
-    return row;
+    return html`
+        <div class="classification-row">
+            ${DIFF_CATEGORIES.map((category) =>
+                classificationCell(category, diff, family),
+            )}
+        </div>
+    `;
 }
 
-function classificationCell(category, diff, family) {
-    const { field, labelKey, modifier } = category;
-    const value = familyValue(diff, field, family);
-    const node = document.createElement("div");
-    node.className = "classification-cell";
-
-    const valueEl = document.createElement("p");
-    valueEl.className = "classification-cell__value";
-    valueEl.textContent = formatNumber(value);
-
-    const labelEl = document.createElement("p");
-    labelEl.className =
-        `classification-cell__label classification-cell__label--${modifier}`;
-    labelEl.textContent = t(labelKey);
-
-    node.append(valueEl, labelEl);
-    return node;
+function classificationCell({ field, labelKey, modifier }, diff, family) {
+    return html`
+        <div class="classification-cell">
+            <p class="classification-cell__value">${formatNumber(
+                familyValue(diff, field, family),
+            )}</p>
+            <p
+                class="classification-cell__label classification-cell__label--${modifier}"
+            >${t(labelKey)}</p>
+        </div>
+    `;
 }
 
-// Per-family classification count. Falls back to zero for the
-// rare case where one family is untouched in a diff.
+// Per-family classification count. Falls back to zero for the rare case where
+// one family is untouched in a diff.
 function familyValue(diff, field, family) {
     const suffix = family === FAMILY_IPV6 ? "ipv6" : "ipv4";
     return diff[`${field}_${suffix}`] ?? 0;
 }
 
-// Stacked bar shares are over the family-scoped total, so the
-// percentages add up in the same currency as the cards above.
+// Stacked bar shares are over the family-scoped total, so the percentages add
+// up in the same currency as the cards above.
 export function stackedBar(diff, family) {
     const total = Math.max(familyTotalChanges(diff, family), 1);
-    const wrap = document.createElement("div");
-    wrap.className = "stacked-bar";
-    for (const { field, modifier } of DIFF_CATEGORIES) {
-        const value = familyValue(diff, field, family);
-        if (value === 0) continue;
-        wrap.append(stackedSegment(value / total, modifier));
-    }
-    return wrap;
+    return html`
+        <div class="stacked-bar">
+            ${DIFF_CATEGORIES.map(({ field, modifier }) => {
+                const value = familyValue(diff, field, family);
+                return value === 0 ? nothing : stackedSegment(value / total, modifier);
+            })}
+        </div>
+    `;
 }
 
 function familyTotalChanges(diff, family) {
@@ -198,40 +175,36 @@ function familyTotalChanges(diff, family) {
 }
 
 function stackedSegment(share, modifier) {
-    const fill = document.createElement("div");
-    fill.className = `stacked-bar__segment stacked-bar__segment--${modifier}`;
-    fill.style.flexGrow = String(share);
-    fill.textContent = formatPercent(share, 1);
-    return fill;
+    return html`<div
+        class="stacked-bar__segment stacked-bar__segment--${modifier}"
+        style="flex-grow: ${share}"
+    >${formatPercent(share, 1)}</div>`;
 }
 
-// "appeared" / "disappeared" are AS-roster terms, distinct from
-// the prefix terms "newly mapped" / "unmapped": a prefix mapped
-// to an existing AS doesn't change the roster. Returns null on
-// older payloads without as_total_*, so the card never shows a
-// fake "0 → 0 ASes".
+// "appeared"/"disappeared" are AS-roster terms, distinct from the prefix terms
+// "newly mapped"/"unmapped" (a prefix moving to an existing AS doesn't change
+// the roster). Returns null on older payloads without as_total_*, so the card
+// never shows a fake "0 → 0 ASes".
 export function rosterDeltaRow(diff) {
     if (diff.as_total_a === undefined || diff.as_total_b === undefined) {
         return null;
     }
-    // Its own divided section so it reads as a distinct map-level
-    // line, not a footnote on the stacked bar. Family-agnostic.
+    // Own divided section so it reads as a distinct map-level line, not a
+    // footnote on the stacked bar. Stays a real element so its info tooltip can
+    // clone the section's children for the mobile sheet header.
     const section = document.createElement("div");
     section.className = "as-roster-delta";
 
     const tip = createInfoTooltip({
         body: t("diff.rosterDeltaInfo"),
         ariaLabel: t("diff.rosterDeltaInfoAria"),
-        // The mobile sheet leads with this section's own roster line (AS
-        // totals, appeared / disappeared counts) so the reader keeps the
-        // context.
+        // Mobile sheet leads with this section's roster line (AS totals,
+        // appeared/disappeared) so the reader keeps the context.
         sheetHeader: () => cloneSheetContext(section),
     });
     tip.classList.add("as-roster-delta__info");
 
-    const text = document.createElement("p");
-    text.className = "as-roster-delta__text";
-    text.textContent = glueUnits(
+    const text = glueUnits(
         t("diff.rosterDelta", {
             a: formatNumber(diff.as_total_a),
             b: formatNumber(diff.as_total_b),
@@ -240,6 +213,6 @@ export function rosterDeltaRow(diff) {
         }),
     );
 
-    section.append(tip, text);
+    render(html`${tip}<p class="as-roster-delta__text">${text}</p>`, section);
     return section;
 }

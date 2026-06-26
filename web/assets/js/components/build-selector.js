@@ -1,13 +1,16 @@
 // Build picker dropdown. Options reversed so the newest build
 // sits at the top.
 
+import { nothing, render } from "../vendor/lit-html.js";
 import { formatDate } from "../format.js";
 import { t } from "../utils/i18n.js";
 import { createDropdown } from "./dropdown.js";
 
 export function mount(parent, maps, currentName, onChange) {
-    parent.replaceChildren();
-    if (!maps.length) return;
+    if (!maps.length) {
+        render(nothing, parent);
+        return;
+    }
 
     const options = [...maps].reverse().map((map) => ({
         value: map.name,
@@ -22,5 +25,5 @@ export function mount(parent, maps, currentName, onChange) {
     });
     dropdown.classList.add("build-selector");
 
-    parent.append(dropdown);
+    render(dropdown, parent);
 }

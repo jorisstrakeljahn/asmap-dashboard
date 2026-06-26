@@ -1,11 +1,10 @@
-// Diff Explorer orchestrator: Map A / Map B selectors plus the
-// rendered comparison. The IPv4 / IPv6 master toggle lives in the
-// section header (mounted by diff-tab.js); the orchestrator only
-// consumes the family value and re-renders when it changes.
-//
-// setFamily(family) lets the header toggle flip the active family
-// without remounting the tab. mount() is otherwise side-effect-only.
+// Diff Explorer orchestrator: Map A / Map B selectors plus the rendered
+// comparison. The IPv4/IPv6 master toggle lives in the section header (mounted
+// by diff-tab.js); this only consumes the family value and re-renders on
+// change. setFamily(family) flips it without remounting; mount() is otherwise
+// side-effect-only.
 
+import { html, render } from "../../vendor/lit-html.js";
 import { mutedNote } from "../../utils/dom.js";
 import { t } from "../../utils/i18n.js";
 import { readPermalink, writePermalink } from "./permalink.js";
@@ -14,22 +13,18 @@ import { renderResults } from "./results.js";
 
 export function mount(parent, payload, { family } = {}) {
     if (!payload.maps.length || !payload.diffs.length) {
-        parent.replaceChildren(mutedNote(t("diff.noDiffsYet")));
+        render(mutedNote(t("diff.noDiffsYet")), parent);
         return { setFamily: () => {} };
     }
 
-    // The pipeline only emits unfilled-vs-unfilled diffs, so builds
-    // without an unfilled variant are permanently un-diffable: hide
-    // them rather than disable. The disabled state is reserved for
-    // the conditional (A >= B) case that reacts to the other side.
+    // The pipeline only emits unfilled-vs-unfilled diffs, so builds without an
+    // unfilled variant are permanently un-diffable: hide them rather than
+    // disable (the disabled state is reserved for the conditional A >= B case).
     const diffableMaps = payload.maps.filter((m) => m.unfilled?.present);
     if (diffableMaps.length < 2) {
-        parent.replaceChildren(mutedNote(t("diff.needTwoUnfilled")));
+        render(mutedNote(t("diff.needTwoUnfilled")), parent);
         return { setFamily: () => {} };
     }
-
-    const root = document.createElement("div");
-    root.className = "diff-explorer";
 
     const results = document.createElement("div");
     results.className = "diff-explorer__results";
@@ -61,8 +56,10 @@ export function mount(parent, payload, { family } = {}) {
 
     const selectors = createSelectors(diffableMaps, refresh);
 
-    root.append(selectors.elem, results);
-    parent.replaceChildren(root);
+    render(
+        html`<div class="diff-explorer">${selectors.elem}${results}</div>`,
+        parent,
+    );
 
     const initial = resolveInitialSelection(diffableMaps);
     selectors.setSelection(initial.a, initial.b);
@@ -85,8 +82,8 @@ export function mount(parent, payload, { family } = {}) {
     };
 }
 
-// Honour a valid in-order URL hash; otherwise default to the
-// two most recent builds.
+// Honour a valid in-order URL hash; otherwise default to the two most recent
+// builds.
 function resolveInitialSelection(maps) {
     const fallback = {
         a: maps.at(-2).name,
