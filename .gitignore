@@ -13,7 +13,8 @@ dist/
 .ruff_cache/
 
 # Node + ESLint toolchain (only used by the lint-js CI job; the
-# dashboard ships zero JS dependencies and has no build step).
+# dashboard's one runtime dependency, lit-html, is vendored under
+# web/assets/js/vendor/, so node_modules is never needed at runtime).
 node_modules/
 
 # Generated dashboard payloads. metrics.json, diffs.json and

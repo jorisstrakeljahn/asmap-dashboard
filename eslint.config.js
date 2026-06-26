@@ -20,6 +20,9 @@ import js from "@eslint/js";
 import globals from "globals";
 
 export default [
+    // Vendored third-party bundles (e.g. lit-html) are checked in as-is
+    // and must not be reformatted or linted against our source rules.
+    { ignores: ["web/assets/js/vendor/**"] },
     js.configs.recommended,
     {
         languageOptions: {
