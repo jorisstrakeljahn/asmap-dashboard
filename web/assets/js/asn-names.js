@@ -3,6 +3,8 @@
 // data. Callers get null for unknown ASNs, so a missing or stale JSON
 // file degrades gracefully to bare "AS<num>" rendering.
 
+import { html, nothing } from "./vendor/lit-html.js";
+
 let names = {};
 
 export async function init(url) {
@@ -28,30 +30,18 @@ export function labelFor(asn) {
     return name ? `AS${asn} (${name})` : `AS${asn}`;
 }
 
-// Two-line cell: AS number above, operator name below in muted style.
-// Intentionally inline-flex (column) so a parent cell can place a
-// leading arrow on the same baseline without nested wrappers. Hiding
-// the name needs only one CSS rule (`.asn-cell__name { display: none }`)
-// — no rerender.
+// Two-line cell: AS number above, operator name below (muted). Inline-flex
+// column so a parent cell can place a leading arrow on the same baseline
+// without nested wrappers; hiding the name is one CSS rule, no rerender.
 export function asnCell(asn) {
-    const wrap = document.createElement("span");
-    wrap.className = "asn-cell";
-
-    if (asn === 0 || asn === undefined || asn === null) return wrap;
-
-    const num = document.createElement("span");
-    num.className = "asn-cell__num";
-    num.textContent = `AS${asn}`;
-    wrap.append(num);
-
-    const name = nameFor(asn);
-    if (name) {
-        const nameEl = document.createElement("span");
-        nameEl.className = "asn-cell__name";
-        nameEl.textContent = name;
-        nameEl.title = name;
-        wrap.append(nameEl);
+    if (asn === 0 || asn === undefined || asn === null) {
+        return html`<span class="asn-cell"></span>`;
     }
-
-    return wrap;
+    const name = nameFor(asn);
+    return html`<span class="asn-cell"
+        ><span class="asn-cell__num">AS${asn}</span
+        >${name
+            ? html`<span class="asn-cell__name" title=${name}>${name}</span>`
+            : nothing}</span
+    >`;
 }
