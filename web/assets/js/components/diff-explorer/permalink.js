@@ -1,7 +1,7 @@
-// Sharable Map A / Map B permalink: ``#diff?a=YYYY-MM-DD&b=YYYY-MM-DD``.
-// Dates rather than internal names so the URL stays readable when pasted
-// into a PR comment. The generic per-tab hash machinery lives in
-// utils/hash-state.js; this is the diff tab's thin adapter over it.
+// Sharable Map A / Map B permalink: ``#diff?a=YYYY-MM-DD&b=YYYY-MM-DD``. Dates
+// rather than internal names so the URL stays readable when pasted into a PR
+// comment. The generic per-tab hash machinery lives in utils/hash-state.js;
+// this is the diff tab's thin adapter over it.
 
 import { readHashState, writeHashState } from "../../utils/hash-state.js";
 

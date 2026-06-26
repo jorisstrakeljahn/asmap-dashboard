@@ -1,218 +1,166 @@
 // Loading skeleton for the Diff Explorer.
 //
-// Mirrors the real layout (selectors + results card + Top Movers
-// table) so the swap to loaded content is layout-free, and keeps
-// every static label real — only data-derived values (percentages,
-// counts, dropdown values, table cells) are shimmer bars. So the
-// loading state reads as "the page you are about to see", with
-// localisation already in place at first paint.
-//
-// diffs.json is fetched lazily on first Diff-tab open (see app.js);
-// this fills the gap. Same column classes as the live table
-// (top-movers/columns.js) so widths align.
+// Mirrors the real layout (selectors + results card + Top Movers table) so the
+// swap to loaded content is layout-free, and keeps every static label real -
+// only data-derived values are shimmer bars. diffs.json loads lazily on first
+// Diff-tab open (see app.js); this fills the gap. Same column classes as the
+// live table (top-movers/columns.js) so widths align.
 
+import { html } from "../../vendor/lit-html.js";
 import { ARROW } from "../../utils/symbols.js";
+import { renderToElement } from "../../utils/dom.js";
 import { t } from "../../utils/i18n.js";
 import { FAMILY_IPV6 } from "../../format.js";
 
 const SKELETON_ROW_COUNT = 8;
 
-// One shimmer bar. ``extra`` is the size modifier(s) from skeleton.css
-// (e.g. "skeleton__bar--lg"). Always paired with `.skeleton` for the
-// moving gradient.
-function bar(extra = "") {
-    const span = document.createElement("span");
-    span.className = `skeleton skeleton__bar ${extra}`.trim();
-    return span;
-}
+// One shimmer bar; ``extra`` adds size modifier(s) from skeleton.css.
+const bar = (extra = "") =>
+    html`<span class=${`skeleton skeleton__bar ${extra}`.trim()}></span>`;
 
-function el(tag, className) {
-    const node = document.createElement(tag);
-    if (className) node.className = className;
-    return node;
-}
-
-/**
- * Build the Diff Explorer loading skeleton.
- * @param {object} [opts]
- * @param {string} [opts.family] - active address family, so the share
- *   column header and match caption match what will load.
- * @returns {HTMLElement}
- */
+// Returns the skeleton root element so the caller can set aria-hidden and
+// drop it into the diff slot (see diff-tab.js).
 export function createDiffSkeleton({ family } = {}) {
     const isV6 = family === FAMILY_IPV6;
-    const root = el("div", "diff-explorer diff-explorer--skeleton");
-    root.append(selectorsSkeleton(), resultsSkeleton(isV6));
-    return root;
+    return renderToElement(html`
+        <div class="diff-explorer diff-explorer--skeleton">
+            ${selectorsSkeleton()} ${resultsSkeleton(isV6)}
+        </div>
+    `);
 }
 
-function selectorsSkeleton() {
-    const selectors = el("div", "diff-selectors");
-    const row = el("div", "diff-selectors__row");
+const selectorsSkeleton = () => html`
+    <div class="diff-selectors">
+        <div class="diff-selectors__row">
+            ${selectorField(t("diff.selectors.mapA"))}
+            <span class="diff-selectors__arrow" aria-hidden="true">${ARROW.RIGHT}</span>
+            ${selectorField(t("diff.selectors.mapB"))}
+        </div>
+    </div>
+`;
 
-    const arrow = el("span", "diff-selectors__arrow");
-    arrow.setAttribute("aria-hidden", "true");
-    arrow.textContent = ARROW.RIGHT;
+const selectorField = (labelText) => html`
+    <div class="diff-selectors__field">
+        <span class="diff-selectors__label">${labelText}</span>
+        ${bar("skeleton__control")}
+    </div>
+`;
 
-    row.append(
-        selectorField(t("diff.selectors.mapA")),
-        arrow,
-        selectorField(t("diff.selectors.mapB")),
-    );
-    selectors.append(row);
-    return selectors;
-}
+const resultsSkeleton = (isV6) => html`
+    <div class="diff-explorer__results">
+        ${matchCardSkeleton(isV6)} ${topMoversSkeleton(isV6)}
+    </div>
+`;
 
-function selectorField(labelText) {
-    const field = el("div", "diff-selectors__field");
-    const label = el("span", "diff-selectors__label");
-    label.textContent = labelText;
-    field.append(label, bar("skeleton__control"));
-    return field;
-}
+const matchCardSkeleton = (isV6) => html`
+    <article class="card diff-results">
+        ${matchBannerSkeleton(isV6)} ${classificationSkeleton()}
+        <div class="stacked-bar skeleton"></div>
+    </article>
+`;
 
-function resultsSkeleton(isV6) {
-    const results = el("div", "diff-explorer__results");
-    results.append(matchCardSkeleton(isV6), topMoversSkeleton(isV6));
-    return results;
-}
+const matchBannerSkeleton = (isV6) => html`
+    <div class="match-banner">
+        <div class="match-banner__family">
+            <div class="match-banner__headline">${bar("skeleton__bar--headline")}</div>
+            <div class="match-banner__caption">
+                ${t(isV6 ? "diff.matchBanner.ipv6Caption" : "diff.matchBanner.ipv4Caption")}
+            </div>
+            <div class="match-banner__detail">${bar("skeleton__bar--lg")}</div>
+            <div class="match-banner__source">${bar("skeleton__bar--md")}</div>
+        </div>
+    </div>
+`;
 
-function matchCardSkeleton(isV6) {
-    const card = el("article", "card diff-results");
-    card.append(matchBannerSkeleton(isV6), classificationSkeleton(), stackedBarSkeleton());
-    return card;
-}
+const CLASSIFICATION_CELLS = [
+    ["diff.categories.reassigned", "classification-cell__label--reassigned"],
+    ["diff.categories.newlyMapped", "classification-cell__label--new"],
+    ["diff.categories.unmapped", "classification-cell__label--unmapped"],
+];
 
-function matchBannerSkeleton(isV6) {
-    const banner = el("div", "match-banner");
-    const grid = el("div", "match-banner__family");
+const classificationSkeleton = () => html`
+    <div class="classification-row">
+        ${CLASSIFICATION_CELLS.map(
+            ([labelKey, labelClass]) => html`
+                <div class="classification-cell">
+                    <div class="classification-cell__value">
+                        ${bar("skeleton__bar--value")}
+                    </div>
+                    <div class="classification-cell__label ${labelClass}">
+                        ${t(labelKey)}
+                    </div>
+                </div>
+            `,
+        )}
+    </div>
+`;
 
-    const headline = el("div", "match-banner__headline");
-    headline.append(bar("skeleton__bar--headline"));
+const topMoversSkeleton = (isV6) => html`
+    <article class="card top-movers">
+        <header class="top-movers__header">
+            <span class="card__label uppercase-label">${t("topMovers.title")}</span>
+            <div class="top-movers__header-controls">
+                ${bar("skeleton__pill skeleton__pill--wide")}
+            </div>
+        </header>
+        <div class="top-movers__toolbar">
+            <div class="top-movers__toolbar-fields">
+                ${bar("skeleton__input")} ${bar("skeleton__pill skeleton__pill--wide")}
+            </div>
+        </div>
+        <div class="top-movers__table">${topMoversTableSkeleton(isV6)}</div>
+        <footer class="top-movers__footer">
+            ${bar("skeleton__bar--md")} ${bar("skeleton__pill skeleton__pill--wide")}
+        </footer>
+    </article>
+`;
 
-    const caption = el("div", "match-banner__caption");
-    caption.textContent = t(
-        isV6 ? "diff.matchBanner.ipv6Caption" : "diff.matchBanner.ipv4Caption",
-    );
+const topMoversTableSkeleton = (isV6) => html`
+    <table class="top-movers__grid">
+        ${topMoversHead(isV6)} ${topMoversBody()}
+    </table>
+`;
 
-    const detail = el("div", "match-banner__detail");
-    detail.append(bar("skeleton__bar--lg"));
+const headColumns = (isV6) => [
+    ["top-movers__rank", null],
+    ["top-movers__asn", "topMovers.columns.as"],
+    [
+        "top-movers__num",
+        isV6 ? "topMovers.shareDenominator.ipv6" : "topMovers.shareDenominator.ipv4",
+    ],
+    ["top-movers__direction", "topMovers.columns.direction"],
+];
 
-    const source = el("div", "match-banner__source");
-    source.append(bar("skeleton__bar--md"));
+// Rank header stays blank like the live table; the share column names the
+// active family so it matches the header that mounts in its place.
+const topMoversHead = (isV6) => html`
+    <thead>
+        <tr>
+            ${headColumns(isV6).map(
+                ([className, labelKey]) =>
+                    html`<th class=${className}>${labelKey ? t(labelKey) : ""}</th>`,
+            )}
+        </tr>
+    </thead>
+`;
 
-    grid.append(headline, caption, detail, source);
-    banner.append(grid);
-    return banner;
-}
+const topMoversBody = () => html`
+    <tbody>
+        ${Array.from({ length: SKELETON_ROW_COUNT }, () => topMoversRow())}
+    </tbody>
+`;
 
-function classificationSkeleton() {
-    const row = el("div", "classification-row");
-    const cells = [
-        ["diff.categories.reassigned", "classification-cell__label--reassigned"],
-        ["diff.categories.newlyMapped", "classification-cell__label--new"],
-        ["diff.categories.unmapped", "classification-cell__label--unmapped"],
-    ];
-    for (const [labelKey, labelClass] of cells) {
-        const cell = el("div", "classification-cell");
-        const value = el("div", "classification-cell__value");
-        value.append(bar("skeleton__bar--value"));
-        const label = el("div", `classification-cell__label ${labelClass}`);
-        label.textContent = t(labelKey);
-        cell.append(value, label);
-        row.append(cell);
-    }
-    return row;
-}
-
-// The empty track already reads as a placeholder; the shimmer makes it
-// match the other bars while it waits.
-function stackedBarSkeleton() {
-    return el("div", "stacked-bar skeleton");
-}
-
-function topMoversSkeleton(isV6) {
-    const card = el("article", "card top-movers");
-
-    const header = el("header", "top-movers__header");
-    const title = el("span", "card__label uppercase-label");
-    title.textContent = t("topMovers.title");
-    const controls = el("div", "top-movers__header-controls");
-    controls.append(bar("skeleton__pill skeleton__pill--wide"));
-    header.append(title, controls);
-
-    const toolbar = el("div", "top-movers__toolbar");
-    const fields = el("div", "top-movers__toolbar-fields");
-    fields.append(bar("skeleton__input"), bar("skeleton__pill skeleton__pill--wide"));
-    toolbar.append(fields);
-
-    const tableWrap = el("div", "top-movers__table");
-    tableWrap.append(topMoversTableSkeleton(isV6));
-
-    const footer = el("footer", "top-movers__footer");
-    footer.append(bar("skeleton__bar--md"), bar("skeleton__pill skeleton__pill--wide"));
-
-    card.append(header, toolbar, tableWrap, footer);
-    return card;
-}
-
-function topMoversTableSkeleton(isV6) {
-    const table = el("table", "top-movers__grid");
-    table.append(topMoversHead(isV6), topMoversBody());
-    return table;
-}
-
-// Real column headers (rank is intentionally blank, like the live
-// table). The share column names the active family so it matches the
-// header that mounts in its place.
-function topMoversHead(isV6) {
-    const thead = el("thead");
-    const tr = el("tr");
-    const columns = [
-        ["top-movers__rank", null],
-        ["top-movers__asn", "topMovers.columns.as"],
-        [
-            "top-movers__num",
-            isV6 ? "topMovers.shareDenominator.ipv6" : "topMovers.shareDenominator.ipv4",
-        ],
-        ["top-movers__direction", "topMovers.columns.direction"],
-    ];
-    for (const [className, labelKey] of columns) {
-        const th = el("th", className);
-        if (labelKey) th.textContent = t(labelKey);
-        tr.append(th);
-    }
-    thead.append(tr);
-    return thead;
-}
-
-function topMoversBody() {
-    const tbody = el("tbody");
-    for (let i = 0; i < SKELETON_ROW_COUNT; i++) {
-        tbody.append(topMoversRow());
-    }
-    return tbody;
-}
-
-function topMoversRow() {
-    const tr = el("tr");
-
-    const rank = el("td", "top-movers__rank");
-    rank.append(bar("skeleton__bar--xs"));
-
-    // AS identity: number line + thinner operator-name line, matching
-    // the detailed (default) view's two-line asn-cell.
-    const asn = el("td", "top-movers__asn");
-    const cell = el("span", "asn-cell");
-    cell.append(bar("skeleton__bar--sm"), bar("skeleton__bar--name"));
-    asn.append(cell);
-
-    const num = el("td", "top-movers__num");
-    num.append(bar("skeleton__bar--sm"));
-
-    const direction = el("td", "top-movers__direction");
-    direction.append(bar("skeleton__bar--lg"));
-
-    tr.append(rank, asn, num, direction);
-    return tr;
-}
+// AS identity is a number line plus a thinner operator-name line, matching
+// the detailed view's two-line asn-cell.
+const topMoversRow = () => html`
+    <tr>
+        <td class="top-movers__rank">${bar("skeleton__bar--xs")}</td>
+        <td class="top-movers__asn">
+            <span class="asn-cell">
+                ${bar("skeleton__bar--sm")} ${bar("skeleton__bar--name")}
+            </span>
+        </td>
+        <td class="top-movers__num">${bar("skeleton__bar--sm")}</td>
+        <td class="top-movers__direction">${bar("skeleton__bar--lg")}</td>
+    </tr>
+`;

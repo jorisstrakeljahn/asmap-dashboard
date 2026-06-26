@@ -1,8 +1,9 @@
-// Composes match banner + classification breakdown + stacked
-// bar + roster delta + Top Movers table for a (fromName, toName)
-// pair. metrics.json stores every diff once with from < to; the
-// selectors guarantee the same ordering, so the lookup is direct.
+// Composes match banner + classification breakdown + stacked bar + roster delta
+// + Top Movers table for a (fromName, toName) pair. metrics.json stores every
+// diff once with from < to; the selectors guarantee the same ordering, so the
+// lookup is direct.
 
+import { html, render } from "../../vendor/lit-html.js";
 import { t } from "../../utils/i18n.js";
 import { findDirectionalDiff } from "../../utils/diffs.js";
 import { cloneSheetContext, createInfoTooltip } from "../info-tooltip.js";
@@ -24,62 +25,52 @@ export function renderResults(
     { pairImpact = null } = {},
 ) {
     if (fromName === toName) {
-        parent.replaceChildren(samePairMessage());
+        render(notice(t("diff.results.samePair")), parent);
         return;
     }
     const diff = findDirectionalDiff(diffs, fromName, toName);
     if (!diff) {
-        parent.replaceChildren(unavailableMessage());
+        render(notice(t("diff.results.unavailable")), parent);
         return;
     }
+
+    // The card stays a real element so the corner explainer can clone its
+    // headline breakdown for the mobile sheet; lit fills the children.
     const card = document.createElement("article");
     card.className = "card diff-results";
     const explainer = createInfoTooltip({
         body: t("diff.results.info"),
         ariaLabel: t("diff.results.infoAria"),
-        // The mobile sheet leads with the headline breakdown this text
-        // describes (match banner, classification, stacked bar). The
-        // roster-delta line and node-impact banner carry their own "i", so
-        // they are excluded here.
+        // Mobile sheet leads with the headline breakdown this text describes.
+        // The roster-delta line and node-impact banner carry their own "i", so
+        // they're excluded here.
         sheetHeader: () =>
             cloneSheetContext(card, { exclude: [".as-roster-delta", ".node-impact"] }),
     });
     explainer.classList.add("info-tooltip--card-corner");
-    card.append(
-        explainer,
-        matchBanner(diff, family),
-        classificationRow(diff, family),
-        stackedBar(diff, family),
+    // rosterDeltaRow closes the map-level picture right after the prefix
+    // breakdown; nodeImpactBanner sits last - what the diff means for live
+    // peers. Both yield nothing when their data is absent.
+    render(
+        html`
+            ${explainer}
+            ${matchBanner(diff, family)}
+            ${classificationRow(diff, family)}
+            ${stackedBar(diff, family)}
+            ${rosterDeltaRow(diff)}
+            ${nodeImpactBanner(pairImpact, fromName, toName, family)}
+        `,
+        card,
     );
-    // AS roster delta closes the map-level picture, right after the
-    // prefix breakdown it belongs with.
-    const roster = rosterDeltaRow(diff);
-    if (roster) card.append(roster);
-    // Optional "real node impact" line (only when network.json shipped
-    // it). Sits last: it answers the downstream question — what the
-    // diff means for live peers — that the breakdown above cannot.
-    const impact = nodeImpactBanner(pairImpact, fromName, toName, family);
-    if (impact) card.append(impact);
 
     const topMoversSlot = document.createElement("div");
     topMoversTable.mount(topMoversSlot, diff, { family });
 
-    parent.replaceChildren(card, topMoversSlot);
+    render(html`${card}${topMoversSlot}`, parent);
 }
 
-// Local helper instead of mutedNote() so the dashed-border
-// notice scaffold stays consistent with the rest of the card.
+// Local helper instead of mutedNote() so the dashed-border notice scaffold
+// stays consistent with the rest of the card.
 function notice(text) {
-    const node = document.createElement("p");
-    node.className = "diff-explorer__notice muted";
-    node.textContent = text;
-    return node;
-}
-
-function samePairMessage() {
-    return notice(t("diff.results.samePair"));
-}
-
-function unavailableMessage() {
-    return notice(t("diff.results.unavailable"));
+    return html`<p class="diff-explorer__notice muted">${text}</p>`;
 }
