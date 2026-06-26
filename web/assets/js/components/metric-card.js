@@ -3,65 +3,55 @@
 // card with a corner info tooltip, uppercase label, metric number,
 // unit line, and delta lines. Keeps the two heroes identical.
 
+import { html, nothing, render } from "../vendor/lit-html.js";
 import { glueUnits } from "../format.js";
 import { cloneSheetContext, createInfoTooltip } from "./info-tooltip.js";
 
-// ``badge`` is an optional element appended after the label. The Maps
-// tab uses it for the "filled fallback" marker; the Network tab passes
-// none.
-export function createCard(label, { info, infoAria, badge } = {}) {
+// `body` is the card's content as a template. The card stays a real element so
+// its info tooltip can clone the content for the mobile sheet; lit fills the
+// children. `badge` is an optional template after the label (Maps uses it for
+// the "filled fallback" marker; Network passes none).
+export function createCard(label, body, { info, infoAria, badge } = {}) {
     const card = document.createElement("article");
     card.className = "card";
+
+    let tip = nothing;
     if (info) {
-        const tip = createInfoTooltip({
+        const tooltip = createInfoTooltip({
             body: info,
             ariaLabel: infoAria,
-            // The mobile sheet leads with a clone of this card's content
-            // (title, number, description) so the reader keeps the context
-            // the desktop popover gets from sitting next to the card.
+            // Mobile sheet leads with a clone of this card's content so the
+            // reader keeps the context the desktop popover gets from sitting
+            // next to the card.
             sheetHeader: () => cloneSheetContext(card),
         });
-        tip.classList.add("info-tooltip--card-corner");
-        card.append(tip);
+        tooltip.classList.add("info-tooltip--card-corner");
+        tip = tooltip;
     }
-    const title = document.createElement("span");
-    title.className = "card__label uppercase-label";
-    title.textContent = label.toUpperCase();
-    card.append(title);
-    if (badge) card.append(badge);
+
+    render(
+        html`
+            ${tip}
+            <span class="card__label uppercase-label">${label.toUpperCase()}</span>
+            ${badge ?? nothing}
+            ${body}
+        `,
+        card,
+    );
     return card;
 }
 
-export function metricNumber(text) {
-    const node = document.createElement("p");
-    node.className = "card__metric";
-    node.textContent = text;
-    return node;
-}
+export const metricNumber = (text) => html`<p class="card__metric">${text}</p>`;
 
-export function metricUnit(text) {
-    const node = document.createElement("p");
-    node.className = "card__unit";
-    node.textContent = text;
-    return node;
-}
+export const metricUnit = (text) => html`<p class="card__unit">${text}</p>`;
 
-export function deltaLine(text) {
-    const node = document.createElement("p");
-    node.className = "card__delta";
-    // Glue numbers to their units so a narrow card never orphans a
-    // word ("0\nunmapped") on its own line.
-    node.textContent = glueUnits(text);
-    return node;
-}
+// Glue numbers to their units so a narrow card never orphans a word
+// ("0\nunmapped") on its own line.
+export const deltaLine = (text) =>
+    html`<p class="card__delta">${glueUnits(text)}</p>`;
 
-// "vs previous" / "vs <date>" comparison line. Like a delta line but
-// pinned to the card's bottom edge (.card__meta) so it aligns across a
-// row of cards. Use it for the comparison/date line, not for figures that
-// belong with the description.
-export function metaLine(text) {
-    const node = document.createElement("p");
-    node.className = "card__meta";
-    node.textContent = glueUnits(text);
-    return node;
-}
+// "vs previous" / "vs <date>" line, pinned to the card's bottom (.card__meta)
+// so it aligns across a row of cards. Use it for the comparison/date line, not
+// figures that belong with the description.
+export const metaLine = (text) =>
+    html`<p class="card__meta">${glueUnits(text)}</p>`;
