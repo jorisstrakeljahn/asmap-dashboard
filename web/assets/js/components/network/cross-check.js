@@ -4,6 +4,7 @@
 // with an ASN); the note widens it to the min/max band every scored
 // source stays inside, so it reads as a cross-check, not one number.
 
+import { html, nothing, render } from "../../vendor/lit-html.js";
 import { t } from "../../utils/i18n.js";
 import { sourceLabel, toMs } from "./series-data.js";
 
@@ -24,8 +25,10 @@ export function mountCrossCheckStat(network, sources, primary) {
             rows.push({ source, label: sn.label, ts: toMs(sn.timestamp), cc: sn.cross_check });
         }
     }
+    // lit owns the slot, so the empty case clears it the same way the card path
+    // fills it - one writer per node.
     if (rows.length === 0) {
-        slot.replaceChildren();
+        render(nothing, slot);
         return;
     }
     rows.sort((a, b) => b.ts - a.ts);
@@ -33,27 +36,26 @@ export function mountCrossCheckStat(network, sources, primary) {
     const primaryRows = rows.filter((r) => r.source === primary);
     const latest = primaryRows[0] ?? rows[0];
     const values = rows.map((r) => r.cc.agreement_pct);
-    const pct = `${Math.round(latest.cc.agreement_pct)}%`;
 
-    const card = document.createElement("article");
-    card.className = "card network-quality";
-
-    const label = document.createElement("span");
-    label.className = "card__label uppercase-label";
-    label.textContent = t("network.crosscheck.label").toUpperCase();
-
-    const metric = document.createElement("p");
-    metric.className = "card__metric";
-    metric.textContent = t("network.crosscheck.metric", { pct });
-
-    const note = document.createElement("p");
-    note.className = "card__delta network-quality__note";
-    note.textContent = t("network.crosscheck.note", {
+    // Pre-format so each string is the exact text content of its element.
+    const labelText = t("network.crosscheck.label").toUpperCase();
+    const metricText = t("network.crosscheck.metric", {
+        pct: `${Math.round(latest.cc.agreement_pct)}%`,
+    });
+    const noteText = t("network.crosscheck.note", {
         source: sourceLabel(primary),
         min: `${Math.round(Math.min(...values))}%`,
         max: `${Math.round(Math.max(...values))}%`,
     });
 
-    card.append(label, metric, note);
-    slot.replaceChildren(card);
+    render(
+        html`
+            <article class="card network-quality">
+                <span class="card__label uppercase-label">${labelText}</span>
+                <p class="card__metric">${metricText}</p>
+                <p class="card__delta network-quality__note">${noteText}</p>
+            </article>
+        `,
+        slot,
+    );
 }
