@@ -1,7 +1,6 @@
-// Substring + direction filtering for the Top Movers rows. The
-// substring matcher accepts "16509", "AS16509", or operator-name
-// fragments; direction reuses directionRank() from sort.js so
-// filter and sort never disagree.
+// Substring + direction filtering for the Top Movers rows. The substring
+// matcher accepts "16509", "AS16509", or operator-name fragments; direction
+// reuses directionRank() from sort.js so filter and sort never disagree.
 
 import { nameFor } from "../../asn-names.js";
 import { directionRank } from "./sort.js";

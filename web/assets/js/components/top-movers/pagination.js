@@ -1,16 +1,16 @@
-// Pagination window picker + button rendering for the Top
-// Movers footer. paginationWindow is pure for ease of testing.
+// Pagination window picker + button rendering for the Top Movers footer.
+// paginationWindow is pure for ease of testing.
 
+import { html, nothing } from "../../vendor/lit-html.js";
 import { ELLIPSIS } from "../../utils/symbols.js";
 import { t } from "../../utils/i18n.js";
 
-// Below this many pages we render every index; above it we elide
-// to first + last + a window around the active page.
+// Below this many pages we render every index; above it we elide to first +
+// last + a window around the active page.
 const PAGINATION_FULL_THRESHOLD = 7;
 
-// Filtering can shrink the matrix below the active page; snap
-// back to the last in-range page so the body never lands on an
-// empty slice.
+// Filtering can shrink the matrix below the active page; snap back to the last
+// in-range page so the body never lands on an empty slice.
 export function clampPageIndex(state, filteredCount) {
     if (filteredCount === 0) {
         state.pageIndex = 0;
@@ -31,8 +31,8 @@ export function paginationWindow(active, total) {
     for (let p = active - 1; p <= active + 1; p++) {
         if (p > 0 && p < total - 1) pages.add(p);
     }
-    // Near the edges, expand inward so the active page never
-    // hides inside a two-button block like "1 2 … 10".
+    // Near the edges, expand inward so the active page never hides inside a
+    // two-button block like "1 2 ... 10".
     if (active <= 2) [1, 2].forEach((p) => pages.add(p));
     if (active >= total - 3) {
         [total - 3, total - 2].forEach((p) => pages.add(p));
@@ -53,36 +53,31 @@ export function renderPagination(filteredMovers, state, onChange) {
     const totalPages = Math.ceil(filteredMovers.length / state.pageSize);
     if (totalPages <= 1) return [];
 
-    return paginationWindow(state.pageIndex, totalPages).map((entry) => {
-        if (entry === "ellipsis") return ellipsisToken();
-        return pageButton(entry, state, onChange);
-    });
+    return paginationWindow(state.pageIndex, totalPages).map((entry) =>
+        entry === "ellipsis"
+            ? ellipsisToken()
+            : pageButton(entry, state, onChange),
+    );
 }
 
 function ellipsisToken() {
-    const span = document.createElement("span");
-    span.className = "top-movers__page-ellipsis";
-    span.textContent = ELLIPSIS;
-    span.setAttribute("aria-hidden", "true");
-    return span;
+    return html`<span
+        class="top-movers__page-ellipsis"
+        aria-hidden="true"
+        >${ELLIPSIS}</span
+    >`;
 }
 
 function pageButton(index, state, onChange) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "top-movers__page";
-    if (index === state.pageIndex) {
-        button.classList.add("is-active");
-        button.setAttribute("aria-current", "page");
-    }
-    button.textContent = String(index + 1);
-    button.setAttribute(
-        "aria-label",
-        t("topMovers.pagination.pageAria", { n: index + 1 }),
-    );
-    button.addEventListener("click", () => {
-        state.pageIndex = index;
-        onChange();
-    });
-    return button;
+    const isActive = index === state.pageIndex;
+    return html`<button
+        type="button"
+        class="top-movers__page ${isActive ? "is-active" : ""}"
+        aria-current=${isActive ? "page" : nothing}
+        aria-label=${t("topMovers.pagination.pageAria", { n: index + 1 })}
+        @click=${() => {
+            state.pageIndex = index;
+            onChange();
+        }}
+    >${index + 1}</button>`;
 }

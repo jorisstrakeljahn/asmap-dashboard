@@ -1,5 +1,9 @@
-// Row builders for the Top Movers table body.
+// Row builders for the Top Movers table body. Rendered with vendored lit-html:
+// each template mirrors its markup so the <tr>/<td> structure reads
+// top-to-bottom. index.js routes both the populated and empty states through
+// here so lit stays the single writer of the persistent <tbody>.
 
+import { html, render } from "../../vendor/lit-html.js";
 import { ARROW, EM_DASH, TIMES } from "../../utils/symbols.js";
 import { asnCell, labelFor } from "../../asn-names.js";
 import {
@@ -9,52 +13,59 @@ import {
     formatPercent,
 } from "../../format.js";
 import { t } from "../../utils/i18n.js";
+import { mutedNote } from "../../utils/dom.js";
 import { touchedRatio } from "./sort.js";
 import { accessorsFor } from "./units.js";
 
-// ``unitTotalChanges`` is the diff-level total in the active
-// currency — the denominator for the Share column. Row values
-// come through the unit accessor table so cell, sort field, and
-// header always read the same currency.
-//
-// Each row carries a native title attribute with the longer story
-// (raw counts, AS footprint per side, Touched ratio). Touched has
-// no column of its own because Share answers the more common
-// question; the hover text keeps it discoverable.
-export function tableBody(rows, unitTotalChanges, startIndex, unit) {
+// The grid has four columns (rank, AS, share, direction); the empty-state
+// note spans all of them.
+const COLUMN_COUNT = 4;
+
+// unitTotalChanges is the diff-level total in the active currency - the Share
+// denominator. Row values come through the unit accessor table so cell, sort
+// field and header always read the same currency. Each row carries a native
+// title with the longer story (raw counts, footprint per side, Touched ratio);
+// Touched has no column because Share answers the more common question.
+export function renderTableBody(tbody, rows, unitTotalChanges, startIndex, unit) {
     const accessors = accessorsFor(unit);
-    const tbody = document.createElement("tbody");
-    rows.forEach((row, i) => {
-        const changes = accessors.rowChanges(row);
-        const shareOfAll = formatPercent(
-            changes / Math.max(unitTotalChanges, 1),
-            1,
-        );
-        const tr = document.createElement("tr");
-        tr.title = rowDetailTooltip(row, unit, changes);
-        tr.append(
-            cell(startIndex + i + 1, "top-movers__rank"),
-            cell(asnCell(row.asn), "top-movers__asn"),
-            cell(shareOfAll, "top-movers__num"),
-            directionCell(row, unit),
-        );
-        tbody.append(tr);
-    });
-    return tbody;
+    render(
+        rows.map((row, i) => {
+            const changes = accessors.rowChanges(row);
+            const shareOfAll = formatPercent(
+                changes / Math.max(unitTotalChanges, 1),
+                1,
+            );
+            return html`
+                <tr title=${rowDetailTooltip(row, unit, changes)}>
+                    <td class="top-movers__rank">${startIndex + i + 1}</td>
+                    <td class="top-movers__asn">${asnCell(row.asn)}</td>
+                    <td class="top-movers__num">${shareOfAll}</td>
+                    ${directionCell(row, unit)}
+                </tr>
+            `;
+        }),
+        tbody,
+    );
 }
 
-// Accepts either a string (textContent) or a Node (appended).
-function cell(content, className) {
-    const td = document.createElement("td");
-    if (className) td.className = className;
-    if (content instanceof Node) td.append(content);
-    else td.textContent = String(content);
-    return td;
+// Empty-state body: one full-width row so the <thead> stays put and the markup
+// stays valid. Same lit render() as the populated body, so the <tbody> never
+// has two writers.
+export function renderEmptyBody(tbody) {
+    render(
+        html`
+            <tr>
+                <td class="top-movers__empty" colspan=${COLUMN_COUNT}>
+                    ${mutedNote(t("topMovers.noMatches"))}
+                </td>
+            </tr>
+        `,
+        tbody,
+    );
 }
 
-// Row hover text: keeps the cells short by parking the deeper
-// story (raw counts per side, Touched ratio, AS name) in the
-// native browser tooltip.
+// Row hover text: keeps the cells short by parking the deeper story (raw
+// counts per side, Touched ratio, AS name) in the native browser tooltip.
 function rowDetailTooltip(row, unit, changes) {
     const accessors = accessorsFor(unit);
     const family = accessors.family;
@@ -90,54 +101,49 @@ function formatTouchedRatio(ratio) {
     return `${ratio.toFixed(decimals)}${TIMES}`;
 }
 
-// Renders the direction column for one row.
-//
-// Inactive rows (no gain/loss in the active currency) are pruned
-// in index.js; the em-dash branch is a defensive fallback. The
-// two live branches: an unmapped-sentinel counterpart (ASN 0,
-// labelled "unmapped") vs. a real counterpart AS, with the arrow
-// following gained / lost either way.
-//
-// Kept in lockstep with ``directionRank`` in sort.js — same
-// gained / lost / counterpart triplet — so filter and cell agree.
+// Direction column for one row. Inactive rows are pruned in index.js; the
+// em-dash branch is a defensive fallback. Two live branches: an unmapped
+// sentinel counterpart (ASN 0) vs a real AS, the arrow following gained/lost
+// either way. Kept in lockstep with directionRank in sort.js so filter and cell
+// agree.
 function directionCell(row, unit) {
     const accessors = accessorsFor(unit);
     const gained = accessors.rowGained(row);
     const lost = accessors.rowLost(row);
     const counterpart = accessors.rowPrimaryCounterpart(row);
-    const td = cell("", "top-movers__direction");
 
     if (gained === 0 && lost === 0) {
-        td.textContent = EM_DASH;
-        td.classList.add("top-movers__direction--inactive");
-        return td;
+        return html`
+            <td class="top-movers__direction top-movers__direction--inactive">
+                ${EM_DASH}
+            </td>
+        `;
     }
 
     const flow = describeFlow(gained, lost, counterpart);
-    const inner = document.createElement("span");
-    inner.className = "top-movers__direction-inner";
-    inner.append(
-        arrowGlyph(flow.arrow, flow.tooltip),
-        counterpart ? asnCell(counterpart) : unmappedLabel(),
-    );
-    td.append(inner);
-    return td;
+    // Arrow span on one line so its text content is exactly the glyph; the flex
+    // container ignores inter-item whitespace, so spacing comes from its gap.
+    return html`
+        <td class="top-movers__direction">
+            <span class="top-movers__direction-inner">
+                <span class="top-movers__arrow" title=${flow.tooltip}>${flow.arrow}</span>
+                ${counterpart ? asnCell(counterpart) : unmappedLabel()}
+            </span>
+        </td>
+    `;
 }
 
 function unmappedLabel() {
-    const wrap = document.createElement("span");
-    wrap.className = "asn-cell";
-    const num = document.createElement("span");
-    num.className = "asn-cell__num";
-    num.textContent = t("topMovers.direction.unmappedLabel");
-    wrap.append(num);
-    return wrap;
+    return html`
+        <span class="asn-cell">
+            <span class="asn-cell__num">${t("topMovers.direction.unmappedLabel")}</span>
+        </span>
+    `;
 }
 
-// Picks arrow + tooltip from the (gained, lost, counterpart)
-// triplet. The tooltip key varies on counterpart presence so
-// "gained from AS{n}" and "newly mapped" stay distinct rather
-// than one generic message.
+// Arrow + tooltip from the (gained, lost, counterpart) triplet. The tooltip key
+// varies on counterpart presence so "gained from AS{n}" and "newly mapped" stay
+// distinct.
 function describeFlow(gained, lost, counterpart) {
     if (gained > 0 && lost > 0) {
         return {
@@ -161,12 +167,4 @@ function describeFlow(gained, lost, counterpart) {
             ? t("topMovers.direction.tooltip.lost", { counterpart })
             : t("topMovers.direction.tooltip.unmapped"),
     };
-}
-
-function arrowGlyph(glyph, tooltip) {
-    const el = document.createElement("span");
-    el.className = "top-movers__arrow";
-    el.textContent = glyph;
-    el.title = tooltip;
-    return el;
 }
