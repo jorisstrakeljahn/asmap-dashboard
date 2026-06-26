@@ -1,26 +1,34 @@
-// Tiny DOM helpers shared across components. Kept small on
-// purpose: anything past a one-liner belongs in its component.
+// Tiny shared DOM helpers; anything past a one-liner belongs in its component.
 
-// XML namespace required by createElementNS for <svg> children.
-// Lives here, not in symbols.js, because it's a DOM API constant
-// rather than a rendered glyph.
+import { render } from "../vendor/lit-html.js";
+
+// In utils, not symbols.js: a DOM API constant for createElementNS, not a glyph.
 export const SVG_NS = "http://www.w3.org/2000/svg";
 
 let idCounter = 0;
 
-// Page-wide unique id for ARIA wiring (aria-labelledby,
-// aria-controls, aria-activedescendant). The ``prefix`` is just
-// for human readability when inspecting the DOM in devtools.
+// Page-wide unique id for ARIA wiring; prefix is only for devtools readability.
 export function uniqueId(prefix = "id") {
     idCounter += 1;
     return `${prefix}-${idCounter}`;
 }
 
-// Shared empty-state placeholder so muted styling stays consistent
-// and a future markup tweak lives in one place.
+// Shared empty-state placeholder. Returns a DOM node, not a lit template, so
+// both layers can consume it - `render(node, ...)` and `replaceChildren(node)`.
 export function mutedNote(text) {
     const note = document.createElement("p");
     note.className = "muted";
     note.textContent = text;
     return note;
+}
+
+// Render a single-root lit template once and hand back the real element. Many
+// widgets are built declaratively with lit, then owned imperatively from there
+// (append / replaceChildren), so a throwaway holder is the one bridge between
+// the two layers. The template must have exactly one element root - only the
+// first element child is returned; lit's reactivity is dropped with the holder.
+export function renderToElement(template) {
+    const holder = document.createElement("div");
+    render(template, holder);
+    return holder.firstElementChild;
 }
