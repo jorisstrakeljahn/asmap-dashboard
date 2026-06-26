@@ -4,25 +4,19 @@
 // Shared by the popover and the mobile sheet so both render identical
 // markup from the same i18n payload.
 
+import { html, nothing, render } from "../vendor/lit-html.js";
+
 export function renderParagraphs(container, input) {
-    container.replaceChildren();
-    if (!input) return;
-    const paragraphs = Array.isArray(input) ? input : [input];
-    for (const paragraph of paragraphs) {
-        const p = document.createElement("p");
-        p.className = "rich-paragraph";
-        if (typeof paragraph === "string") {
-            p.textContent = paragraph;
-        } else if (paragraph && typeof paragraph === "object") {
-            const { lead, text } = paragraph;
-            if (lead) {
-                const strong = document.createElement("strong");
-                strong.className = "rich-paragraph__lead";
-                strong.textContent = lead;
-                p.append(strong, " ");
-            }
-            if (text) p.append(text);
-        }
-        container.append(p);
+    const paragraphs = input ? (Array.isArray(input) ? input : [input]) : [];
+    render(html`${paragraphs.map(paragraph)}`, container);
+}
+
+function paragraph(entry) {
+    if (typeof entry === "string") {
+        return html`<p class="rich-paragraph">${entry}</p>`;
     }
+    const { lead, text } = entry ?? {};
+    return html`<p class="rich-paragraph">${lead
+        ? html`<strong class="rich-paragraph__lead">${lead}</strong> `
+        : nothing}${text ?? nothing}</p>`;
 }
