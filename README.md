@@ -13,12 +13,12 @@ See [`docs/architecture.md`](docs/architecture.md) for the architecture overview
 The data layer is split into three files along size and reproducibility lines:
 
 - `metrics.json` (~110 KB): per-build profiles plus the all-pairs diff *summary* (every pair's aggregate fields, no top-mover roster). Loaded first; drives the overview, every drift chart, and the Diff Explorer's match banner.
-- `diffs.json` (~4 MB): the per-pair top-mover rosters keyed by `"<from>|<to>"` — ~99 % of the diff bytes, read only by the Top Movers table. The frontend fetches it lazily the first time the Diff Explorer tab is opened, so the first paint never downloads or parses it.
+- `diffs.json` (~4 MB): the per-pair top-mover rosters keyed by `"<from>|<to>"` - ~99 % of the diff bytes, read only by the Top Movers table. The frontend fetches it lazily the first time the Diff Explorer tab is opened, so the first paint never downloads or parses it.
 - `network.json` (optional): observed-node metrics derived from KIT crawler dossiers (and the archived Bitnodes snapshots). When the file is absent the Network tab stays hidden. Alongside the per-snapshot series it carries node-impact aggregates: `latest_update` (how many observed nodes change AS between the two most recent builds) and `pair_impact` (the same count for every diffable build pair, so the Diff Explorer can show a per-pair banner). `pair_impact` scales with the pair count, so the file grows with the build history; only aggregate counts are emitted, never node addresses.
 
 `metrics.json`, `diffs.json`, and `asn-names.json` are generated artefacts and are not tracked in git. The Pages workflow rebuilds them from scratch on every deploy and a daily cron picks up new asmap-data builds. `network.json` is the one exception: the KIT dossiers behind it are not public yet, so the small aggregate file is committed and deployed as-is until the raw data can be published.
 
-Because the raw snapshots are private, CI cannot regenerate or verify `network.json` — the `schema_version` guard catches a shape mismatch but not stale *values*. So after any change to the network pipeline (`asmap_dashboard/network/`), regenerate `network.json` locally from the snapshot directories (see below) and commit the result in the same change, otherwise the committed aggregate silently drifts from the code that is supposed to produce it. The output is byte-stable, so a no-op regeneration produces no diff.
+Because the raw snapshots are private, CI cannot regenerate or verify `network.json`: the `schema_version` guard catches a shape mismatch, but not stale *values*. So after any change to the network pipeline (`asmap_dashboard/network/`), regenerate `network.json` locally (see below) and commit it in the same change, or the committed aggregate silently drifts from the code that produces it. The output is byte-stable, so a no-op regeneration produces no diff.
 
 Every payload carries a `schema_version` that the frontend checks before rendering, so a stale cached `app.js` paired with a freshly deployed payload (GitHub Pages caches assets for ~10 minutes) produces an explicit "please reload" message instead of silently wrong numbers.
 
@@ -61,7 +61,9 @@ python -m asmap_dashboard refresh-asn-names \
 
 The first command builds `metrics.json` (maps + diff summary) plus `diffs.json` next to it (the top-mover rosters; override with `--diffs-out`). The second pulls operator labels (`AS7018 (AT&T Services, Inc.)`) from [bgp.tools/asns.csv](https://bgp.tools/asns.csv) and filters them down to the ASNs the payloads actually reference. Missing payload files are skipped with a warning. The ASN-names step is non-fatal: if bgp.tools is unreachable the dashboard falls back to bare `AS<num>` labels. The same two commands run on every Pages deploy and daily via cron.
 
-To regenerate the network section (requires the non-public KIT dossiers and/or the archived Bitnodes snapshots locally), add the snapshot directories. `network.json` is written next to `--out`. The Bitnodes directory may mix the b10c JSON crawls and the bitnod.es (BitMEX) CSV exports in the same tree — the loader dispatches on file extension and recurses into subfolders, so dropping the CSVs into a subdirectory (e.g. `snapshots/bitnodes/bitmex/`) is enough. Each CSV is a cumulative "last seen" dump, so only the rows seen within ~2 days of the file's newest `export_date` are kept, recovering a point-in-time set comparable to one JSON crawl:
+To regenerate the network section, add the snapshot directories (this needs the non-public KIT dossiers and/or the archived Bitnodes snapshots locally). `network.json` is written next to `--out`.
+
+The Bitnodes directory can mix b10c JSON crawls and bitnod.es (BitMEX) CSV exports: the loader dispatches on file extension and recurses into subfolders, so dropping the CSVs into a subdirectory (e.g. `snapshots/bitnodes/bitmex/`) is enough. Each CSV is a cumulative "last seen" dump, so only rows within ~2 days of the file's newest `export_date` are kept, recovering a point-in-time set comparable to one JSON crawl:
 
 ```
 python -m asmap_dashboard metrics --data-dir asmap-data \
@@ -101,9 +103,12 @@ python -m ruff check
 python -m ruff format --check
 ```
 
-JavaScript (static `web/` assets, Node is only needed for the linter, not for running the dashboard):
+JavaScript (static `web/` assets; Node is only needed for the lint and test tooling, not for running the dashboard):
 
 ```
 npm ci
 npm run lint
+npm test
 ```
+
+`npm test` runs Node's built-in test runner over the pure frontend logic (see [`web/tests/`](web/tests/README.md)); no extra dependencies, no jsdom.
