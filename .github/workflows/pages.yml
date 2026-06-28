@@ -33,7 +33,9 @@ jobs:
   # Gate the deploy on the same fast checks the tests workflow runs.
   # Duplicating them here (rather than chaining via workflow_run) keeps
   # the cron and manual-dispatch paths gated too, because the gate runs
-  # in the same workflow run as the deploy.
+  # in the same workflow run as the deploy. JS tests are included because
+  # the deploy ships the web/ logic - a broken pure function would
+  # otherwise reach production on a cron run with no PR to catch it.
   checks:
     runs-on: ubuntu-latest
     steps:
@@ -49,6 +51,15 @@ jobs:
       - run: python -m ruff check
 
       - run: python -m pytest tests
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm test
 
   build-and-deploy:
     needs: checks
