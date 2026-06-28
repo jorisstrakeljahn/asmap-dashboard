@@ -1,14 +1,15 @@
 // Build picker dropdown. Options reversed so the newest build
 // sits at the top.
 
-import { nothing, render } from "../vendor/lit-html.js";
+import { nothing } from "../vendor/lit-html.js";
 import { formatDate } from "../format.js";
+import { renderInto } from "../utils/dom.js";
 import { t } from "../utils/i18n.js";
 import { createDropdown } from "./dropdown.js";
 
 export function mount(parent, maps, currentName, onChange) {
     if (!maps.length) {
-        render(nothing, parent);
+        renderInto(nothing, parent);
         return;
     }
 
@@ -25,5 +26,5 @@ export function mount(parent, maps, currentName, onChange) {
     });
     dropdown.classList.add("build-selector");
 
-    render(dropdown, parent);
+    renderInto(dropdown, parent);
 }

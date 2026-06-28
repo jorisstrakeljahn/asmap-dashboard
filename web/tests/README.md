@@ -5,8 +5,9 @@ npm test          # node --test web/tests/*.test.js
 ```
 
 These cover the **pure logic** of the dashboard's JS - range resolution, the
-Top Movers sort/classification, diff lookups, bar geometry, variant selection -
-plus a drift guard that the vendored lit-html matches the `package.json` pin.
+Top Movers sort/classification, diff lookups, bar geometry, variant selection,
+the lit clear-once container claim - plus a drift guard that the vendored
+lit-html matches the `package.json` pin.
 
 Deliberately tiny and dependency-free:
 

@@ -4,8 +4,8 @@
 // change. setFamily(family) flips it without remounting; mount() is otherwise
 // side-effect-only.
 
-import { html, render } from "../../vendor/lit-html.js";
-import { mutedNote } from "../../utils/dom.js";
+import { html } from "../../vendor/lit-html.js";
+import { mutedNote, renderInto } from "../../utils/dom.js";
 import { t } from "../../utils/i18n.js";
 import { readPermalink, writePermalink } from "./permalink.js";
 import { createSelectors } from "./selectors.js";
@@ -13,7 +13,7 @@ import { renderResults } from "./results.js";
 
 export function mount(parent, payload, { family } = {}) {
     if (!payload.maps.length || !payload.diffs.length) {
-        render(mutedNote(t("diff.noDiffsYet")), parent);
+        renderInto(mutedNote(t("diff.noDiffsYet")), parent);
         return { setFamily: () => {} };
     }
 
@@ -22,7 +22,7 @@ export function mount(parent, payload, { family } = {}) {
     // disable (the disabled state is reserved for the conditional A >= B case).
     const diffableMaps = payload.maps.filter((m) => m.unfilled?.present);
     if (diffableMaps.length < 2) {
-        render(mutedNote(t("diff.needTwoUnfilled")), parent);
+        renderInto(mutedNote(t("diff.needTwoUnfilled")), parent);
         return { setFamily: () => {} };
     }
 
@@ -56,7 +56,7 @@ export function mount(parent, payload, { family } = {}) {
 
     const selectors = createSelectors(diffableMaps, refresh);
 
-    render(
+    renderInto(
         html`<div class="diff-explorer">${selectors.elem}${results}</div>`,
         parent,
     );

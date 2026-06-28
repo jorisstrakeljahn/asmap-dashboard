@@ -6,8 +6,8 @@
 // The tab's data (top-mover rosters) lives in lazy-loaded diffs.json,
 // so it paints in two beats: mountLoading() drops a layout-matching
 // skeleton on first open, then mount() swaps in the real explorer once
-// diffs.json resolves (fetch orchestration in app.js). The swap is a
-// plain replaceChildren, like every other tab.
+// diffs.json resolves (fetch orchestration in app.js). The swap clears
+// the skeleton via the renderInto() bridge the explorer mounts through.
 
 import * as diffExplorer from "./components/diff-explorer.js";
 import { createDiffSkeleton } from "./components/diff-explorer/skeleton.js";
@@ -47,8 +47,9 @@ export function mountLoading() {
 export function mount(payload) {
     let family = loadFamily();
 
-    // diffExplorer.mount() does replaceChildren on the slot, so this
-    // swaps the skeleton out for the live explorer in one step.
+    // diffExplorer.mount() renders into the slot via renderInto(), which
+    // clears the loading skeleton the first time lit takes the slot over, so
+    // this swaps the skeleton out for the live explorer in one step.
     const explorer = diffExplorer.mount(
         document.querySelector("[data-diff]"),
         payload,

@@ -3,7 +3,7 @@
 // fall back to filled (see utils/map-variants.js), surfacing a
 // "filled fallback" badge when the fallback fires.
 
-import { html, nothing, render } from "../vendor/lit-html.js";
+import { html, nothing } from "../vendor/lit-html.js";
 import {
     formatDate,
     formatNumber,
@@ -15,7 +15,7 @@ import {
     DRIFT_IPV6_COVERAGE,
     pairDriftRatio,
 } from "../utils/diffs.js";
-import { mutedNote } from "../utils/dom.js";
+import { mutedNote, renderInto } from "../utils/dom.js";
 import { t } from "../utils/i18n.js";
 import {
     pickPreferUnfilled,
@@ -34,17 +34,17 @@ import {
 // The drift card spells that date out on its delta line.
 export function mount(parent, { current, previous, diffs }) {
     if (!current) {
-        render(mutedNote(t("overview.noPublishedMaps")), parent);
+        renderInto(mutedNote(t("overview.noPublishedMaps")), parent);
         return;
     }
     const currentPick = pickPreferUnfilled(current);
     if (!currentPick) {
-        render(mutedNote(t("overview.noVariantData", { name: current.name })), parent);
+        renderInto(mutedNote(t("overview.noVariantData", { name: current.name })), parent);
         return;
     }
 
     const previousPick = pickPreferUnfilled(previous);
-    render(
+    renderInto(
         html`
             <div class="card-row">
                 ${entriesCountCard(currentPick, previousPick)}

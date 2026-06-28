@@ -1,13 +1,10 @@
-.skeleton-grid--network-hero {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-}
-
-.skeleton-grid--network-hero .skeleton--card {
-    grid-column: span 2;
-}
-
-.skeleton-grid--network-hero .skeleton--card:nth-child(-n + 2) {
-    grid-column: span 3;
+/* Mirror the real hero grid below: paired cards, two per row, so the loading
+   skeleton lands on the same layout the rendered cards take (it used to show
+   two wide cards over three narrow ones, which then reflowed on data). Scoped
+   under [data-network-overview] so it beats the base .skeleton-grid 900px rule
+   without depending on stylesheet order. */
+[data-network-overview] .skeleton-grid--network-hero {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 [data-network-overview] .card-row {
@@ -20,6 +17,7 @@
 }
 
 @media (max-width: 640px) {
+    [data-network-overview] .skeleton-grid--network-hero,
     [data-network-overview] .card-row {
         grid-template-columns: 1fr;
     }
