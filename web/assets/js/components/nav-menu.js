@@ -3,7 +3,7 @@
 // display:none so listeners never fire.
 //
 // Nav links stay plain `<a href="#...">` driving tabs.js via the
-// hash router — this module owns only the panel's open/closed state
+// hash router - this module owns only the panel's open/closed state
 // (and, on a phone, where the theme switch lives), not tab selection.
 
 export function initNavMenu() {

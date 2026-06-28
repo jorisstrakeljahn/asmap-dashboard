@@ -81,7 +81,7 @@ function renderLastRefreshed(lastModified) {
     line.hidden = false;
 }
 
-// "2026-05-12 14:01 UTC" — ISO-style so it sorts naturally and
+// "2026-05-12 14:01 UTC" - ISO-style so it sorts naturally and
 // reads the same in every locale.
 function formatUtcStamp(date) {
     const pad = (n) => String(n).padStart(2, "0");

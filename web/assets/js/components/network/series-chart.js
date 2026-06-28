@@ -1,15 +1,10 @@
-// Generic multi-series time-series card for the Network tab.
-//
-// Decay, AS concentration, NetGroup diversity, bucketing, and the
-// ASN cross-check all plot one line per series over a shared timeline,
-// differing only in value accessor, y formatter, and tooltip copy.
-// This module hosts the card chrome (header + lede + legend)
-// and delegates the plot to the shared buildLineChart scaffold; each
-// chart shrinks to a config object.
-//
-// Series are toggleable: clicking a legend entry hides its line and
-// rescales the y domain to what stays visible, so a reader can isolate
-// one source without the other compressing the axis.
+// Generic multi-series time-series card for the Network tab. Decay, HHI,
+// diversity, bucketing and the ASN cross-check all plot one line per series
+// over a shared timeline, differing only in value accessor, y formatter and
+// tooltip copy. This hosts the card chrome and delegates the plot to
+// buildLineChart, so each chart shrinks to a config object. Series are
+// toggleable: hiding one rescales the y domain to what stays visible, so a
+// reader can isolate a source without the other compressing the axis.
 
 import { mountTimeSeriesCard } from "../../charts/chart-card.js";
 import { buildTooltipBody } from "../../charts/chart-tooltip.js";
@@ -18,8 +13,8 @@ import { mutedNote } from "../../utils/dom.js";
 import { t } from "../../utils/i18n.js";
 import { createChartLegend } from "../chart-legend.js";
 
-// Fraction of the data range left as breathing room above and below
-// the plotted lines so the extreme dots never sit on the card edge.
+// Fraction of the data range left as breathing room above and below the plotted
+// lines so the extreme dots never sit on the card edge.
 const Y_PADDING_FRACTION = 0.1;
 
 export function mountSeriesChart(parent, config) {
@@ -33,25 +28,25 @@ export function mountSeriesChart(parent, config) {
         valueAt,
         yFormat,
         yFloorZero = false,
-        // Hard ceiling for the y domain. A share-of-total series like
-        // coverage can never exceed 100, so padding the domain past it
-        // would draw a misleading "102%" gridline.
+        // Hard ceiling for the y domain. A share-of-total series like coverage
+        // can never exceed 100, so padding the domain past it would draw a
+        // misleading "102%" gridline.
         yCeil = null,
         emptyMessage,
         tooltipTitleAt,
         tooltipRowsAt,
         domainStart = null,
         domainEnd = null,
-        // Optional element rendered in the card header next to the
-        // title (e.g. a per-chart mode switch). Built by the caller
-        // so this module stays agnostic of what the control does.
+        // Optional element rendered in the card header next to the title (e.g.
+        // a per-chart mode switch). Built by the caller so this module stays
+        // agnostic of what the control does.
         headerExtra = null,
-        // Series with no line in this view, listed greyed in the legend
-        // with a reason on hover instead of vanishing. Shape:
+        // Series with no line in this view, listed greyed in the legend with a
+        // reason on hover instead of vanishing. Shape:
         // { key, label, swatchClass, title }.
         unavailableSeries = [],
-        // Pass-through to buildLineChart: a non-calendar x axis
-        // (numeric domain + caller-supplied ticks). See line-chart.js.
+        // Pass-through to buildLineChart: a non-calendar x axis (numeric domain
+        // + caller-supplied ticks). See line-chart.js.
         linearDomain = false,
         xTicks = null,
         state = { hidden: new Set() },
@@ -64,8 +59,8 @@ export function mountSeriesChart(parent, config) {
         return;
     }
 
-    // ctrl is the mountTimeSeriesCard handle; the legend toggle closure
-    // below calls it on click, by which point it is assigned.
+    // ctrl is the mountTimeSeriesCard handle; the legend toggle closure below
+    // calls it on click, by which point it is assigned.
     let ctrl;
     const legend = createChartLegend({
         entries: series.map((s) => ({
@@ -148,11 +143,10 @@ function drawPlot(spec, width, height, layout) {
     );
 }
 
-// y domain from the visible series only, padded so the extreme dots
-// stay off the card border. A flat series (range 0) falls back to
-// +/- one unit so the single line sits centred instead of clipped.
-// ``yCeil`` clamps the padded top: a percentage-of-total series
-// stops exactly at 100 instead of inventing headroom above it.
+// y domain from the visible series only, padded so the extreme dots stay off
+// the border. A flat series (range 0) falls back to +/- one unit so the line
+// sits centred. yCeil clamps the padded top: a share-of-total series stops at
+// 100 instead of inventing headroom.
 function yBounds(spec, visibleSeries) {
     let min = null;
     let max = null;

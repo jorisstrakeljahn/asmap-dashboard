@@ -1,6 +1,6 @@
 // The Network tab's Trends section: four range-windowed charts over the
-// snapshot/decay series — the decay curve, the operator breakdown, the
-// HHI concentration trend, and the ASmap coverage trend. Extracted from
+// snapshot/decay series - the decay curve, the operator breakdown, the HHI
+// concentration trend, and the ASmap coverage trend. Extracted from
 // network-tab.js so the tab module stays orchestration-only.
 
 import { formatDate } from "../../format.js";
@@ -22,20 +22,18 @@ import {
     dayUnionTimeline,
 } from "./timelines.js";
 
-// Create a header mode-switch once and cache it on the chart's
-// persistent ``state`` bag. mountSeriesChart rebuilds the card on every
-// re-render; recreating the switch each time would snap its pill to the
-// new position with no transition. Reusing the instance lets it be
-// re-parented mid-slide, so the highlight animates on click.
+// Create the header mode-switch once and cache it on the chart's persistent
+// state. mountSeriesChart rebuilds the card each re-render; a fresh switch
+// would snap its pill to the new spot with no transition, so reusing the
+// instance (re-parented mid-slide) keeps the highlight animating on click.
 function ensureToggle(state, factory) {
     if (!state.toggle) state.toggle = factory();
     return state.toggle;
 }
 
-// Render all four trend charts for the current range bounds. ``states``
-// carries the per-chart toggle state (hidden series, decay axis, HHI
-// family); ``rerender`` re-runs this whole pass when a chart's own
-// toggle changes.
+// Render all four trend charts for the current range bounds. ``states`` carries
+// the per-chart toggle state (hidden series, decay axis, HHI family);
+// ``rerender`` re-runs this whole pass when a chart's own toggle changes.
 export function mountTrendCharts(network, sources, bounds, states, rerender) {
     mountDecayChart(network, sources, bounds, states.decay, rerender);
     mountConcentrationChart(network, bounds, states.operators, rerender);
@@ -45,43 +43,35 @@ export function mountTrendCharts(network, sources, bounds, states, rerender) {
 
 // ---- Decay: how stale an older map is for a crawler's nodes ------
 
-// A reversed calendar axis — today on the left, the past on the right —
-// so every line climbs as its map ages. Each crawler's line starts at
-// the date of its own freshest snapshot (a frozen archive starts months
-// back) and runs only over builds at or older than that, so it never
-// scores a crawl against maps from its future. A header toggle picks
-// what "stale" is measured against:
+// A reversed calendar axis - today on the left, the past on the right - so
+// every line climbs as its map ages. Each crawler's line starts at its own
+// freshest snapshot and runs only over builds at or older than that, so it
+// never scores a crawl against maps from its future. A header toggle picks the
+// reference:
+//   - "truth" (default): vs the crawler's own whois ASN. The freshest point is
+//     the live attribution gap, rising into the past - the direct "when do I
+//     need a fresher map?" reading. Only whois-bearing crawlers can be scored;
+//     the rest are greyed in the legend.
+//   - "map": vs the crawler's own freshest map (yardstick at 0), isolating how
+//     much aging alone reshuffles the bucketing. Defined for every crawler.
 //
-//   - "truth" (default): vs reality. Each build's disagreement with the
-//     crawler's own whois ASN. The freshest point is the attribution
-//     gap (the map is already that wrong vs live routing), rising into
-//     the past — the direct "when do I need a fresher map?" reading.
-//     Only crawlers whose anchor snapshot ships whois can be scored, so
-//     the rest are greyed out of the legend.
-//   - "map": vs that crawler's own freshest map. Its newest map is the
-//     yardstick and sits at 0, isolating how much aging alone reshuffles
-//     the bucketing. Defined for every crawler.
-//
-// The axis is laid out in days before today — 0 on the left is "now",
-// the same right-edge the other Trends charts anchor to, just mirrored
-// into the past — and labelled with the calendar date each offset maps
-// back to. The freshest map is a couple of months old, so every line
-// starts a short way in from the left edge. The 1Y/3Y/5Y/Max picker
-// windows by that span (the "now" terms cancel in domainEnd − cutoff),
-// exactly like the calendar charts, so it never shrinks on a pause.
+// The axis is days before today (0 = "now" on the left, mirroring the other
+// charts' right edge), labelled by the date each offset maps back to. The
+// 1Y/3Y/5Y/Max picker windows by age span (the "now" terms cancel in
+// domainEnd − cutoff), like the calendar charts, so it never shrinks on a pause.
 function mountDecayChart(network, sources, bounds, state, rerender) {
-    // The shared "now" edge: rangeBounds pins domainEnd to today, so the
-    // decay axis mirrors the other charts off the same instant.
+    // The shared "now" edge: rangeBounds pins domainEnd to today, so the decay
+    // axis mirrors the other charts off the same instant.
     const nowMs = bounds.domainEnd;
     const truthMode = (state.ref ?? "truth") === "truth";
-    // Each mode reads its own curve: "map" is anchored on every
-    // crawler's newest snapshot; "truth" only exists for crawlers that
-    // ship whois, anchored on their newest whois-bearing snapshot.
+    // Each mode reads its own curve: "map" is anchored on every crawler's
+    // newest snapshot; "truth" only exists for crawlers that ship whois,
+    // anchored on their newest whois-bearing snapshot.
     const key = truthMode ? "decay_truth" : "decay";
 
     const usable = sources.filter((s) => network.sources[s][key]?.points?.length);
-    // Crawlers with no reality curve (no whois): kept in the legend,
-    // greyed with a reason, so they read as "no data here", not a bug.
+    // Crawlers with no reality curve (no whois): kept in the legend, greyed
+    // with a reason, so they read as "no data here", not a bug.
     const missing = truthMode
         ? sources.filter((s) => !network.sources[s].decay_truth)
         : [];
@@ -89,8 +79,8 @@ function mountDecayChart(network, sources, bounds, state, rerender) {
     const entries = usable.map((source) => ({
         source,
         points: network.sources[source][key].points.map((p) => ({
-            // Days before today: today is the left edge, and each build
-            // sits its real age in from there.
+            // Days before today: today is the left edge, and each build sits
+            // its real age in from there.
             ts: (nowMs - toMs(p.build_timestamp)) / MS_PER_DAY,
             value: p.drift_pct,
         })),
@@ -144,43 +134,42 @@ function mountDecayChart(network, sources, bounds, state, rerender) {
 }
 
 // Compact month + year for the reversed-calendar ticks ("Jun 2026"); a
-// day-precise label would crowd a multi-year axis, and the tooltip keeps
-// the exact build date anyway.
+// day-precise label would crowd a multi-year axis, and the tooltip keeps the
+// exact build date anyway.
 const tickDateFormatter = new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "short",
     timeZone: "UTC",
 });
 
-// Calendar step sizes for the age axis, largest first. The axis is laid
-// out in age days but ticks are labelled with the date they map back to,
-// so the spacing must land on calendar-nice ages: whole years past two
-// years, quarters past a quarter, weeks/months below. The tooltip keeps
-// the exact day count and date, so no precision is lost.
+// Calendar step sizes for the age axis, largest first. The axis is in age days
+// but ticks are labelled with the date they map back to, so spacing must land
+// on calendar-nice ages: years past two years, quarters past a quarter,
+// weeks/months below. The tooltip keeps the exact day and date.
 const AGE_AXIS_UNITS = [
     { minDays: 2 * 365, days: 365, steps: [1, 2, 5, 10] },
     { minDays: 91, days: 30, steps: [1, 2, 3, 6] },
     { minDays: 0, days: 1, steps: [7, 14, 30, 60, 90] },
 ];
 
-// The age the x axis spans. A bounded range pins the axis to the full
-// window width (365 / 1095 / 1825 days), so it reads "1y"/"3y"/"5y"
-// even when a publishing pause leaves the data short of the edge. "max"
-// (cutoff −Infinity) spans the real data extent.
+// The age the x axis spans. A bounded range pins the axis to the full window
+// width (365 / 1095 / 1825 days), so it reads "1y"/"3y"/"5y" even when a
+// publishing pause leaves the data short of the edge. "max" (cutoff −Infinity)
+// spans the real data extent.
 function decayAxisMax(ages, bounds) {
     const dataMax = ages.length ? ages[ages.length - 1] : 1;
     if (bounds.cutoff === -Infinity) return Math.max(1, dataMax);
     return (bounds.domainEnd - bounds.cutoff) / MS_PER_DAY;
 }
 
-// Reversed-calendar x axis: domain [0, axisMax] in days before today
-// (0 = "now" on the left), with ticks on calendar boundaries labelled
-// by the date each offset maps back to. ``nowMs`` is the shared right
-// edge (today), so an offset of A days reads as nowMs − A.
+// Reversed-calendar x axis: domain [0, axisMax] in days before today (0 = "now"
+// on the left), with ticks on calendar boundaries labelled by the date each
+// offset maps back to. ``nowMs`` is the shared right edge (today), so an offset
+// of A days reads as nowMs − A.
 function ageAxisSpec(axisMax, nowMs) {
     const unit = AGE_AXIS_UNITS.find((u) => axisMax >= u.minDays);
-    // Aim for ~5 intervals, then round up to the nearest calendar-nice
-    // step so a slightly-too-small target never produces a busy axis.
+    // Aim for ~5 intervals, then round up to the nearest calendar-nice step so
+    // a slightly-too-small target never produces a busy axis.
     const target = axisMax / unit.days / 5;
     const step = unit.steps.find((s) => s >= target) ?? unit.steps.at(-1);
     const stepDays = step * unit.days;
@@ -198,23 +187,14 @@ function ageAxisSpec(axisMax, nowMs) {
 
 // ---- AS concentration (HHI) over time ---------------------------
 
-// The headline concentration trend: the same HHI the hero card shows,
-// scored against the build in effect at each snapshot. Unlike the
-// per-operator breakdown below (KIT only), HHI is a single normalised
-// number comparable across crawlers, so this overlays every source —
-// two independent crawls tracing the same decline is the credibility
-// signal. The y-axis auto-scales (no zero floor): HHI lives in a narrow
-// band, so flooring at zero would flatten the trend.
-//
-// Points are bucketed by calendar day: KIT and Bitnodes snapshots
-// matched to the same map land hours apart and would otherwise sit on
-// adjacent slots with separate hovers. One slot per day puts both in a
-// single tooltip; the few-hour shift is invisible at ~monthly spacing,
-// and genuinely different days still stay apart.
-//
-// A family toggle (All / IPv4 / IPv6) sits in the header: Core treats
-// the families as independent dimensions, and the ~80/20 split means the
-// combined index is IPv4-dominated, so IPv6 would otherwise be invisible.
+// The headline concentration trend: the same HHI the hero card shows, scored
+// against the build in effect at each snapshot. HHI is a single normalised
+// number comparable across crawlers, so this overlays every source - two
+// independent crawls tracing the same decline is the credibility signal. No
+// zero floor: HHI lives in a narrow band, so flooring would flatten the trend.
+// Points bucket by calendar day so same-map snapshots hours apart share one
+// slot and one tooltip. The header family toggle (All/IPv4/IPv6) exists because
+// the ~80/20 split makes the combined index IPv4-dominated, hiding IPv6.
 function mountHhiChart(network, sources, bounds, state, rerender) {
     const slot = document.querySelector("[data-network-hhi]");
     if (!slot) return;
@@ -262,10 +242,10 @@ function mountHhiChart(network, sources, bounds, state, rerender) {
 
 // ---- ASmap coverage of observed nodes over time ------------------
 
-// The "does the map fit the real network?" series: the share of each
-// snapshot's clearnet nodes the build in effect resolves to a real AS.
-// A sinking line means kartograf's input data is falling behind the
-// network — independent of the HHI distribution above.
+// The "does the map fit the real network?" series: the share of each snapshot's
+// clearnet nodes the build in effect resolves to a real AS. A sinking line
+// means kartograf's input data is falling behind the network - independent of
+// the HHI distribution above.
 function mountCoverageChart(network, sources, bounds, state) {
     const slot = document.querySelector("[data-network-coverage]");
     if (!slot) return;
@@ -288,8 +268,8 @@ function mountCoverageChart(network, sources, bounds, state) {
         series: legendSeries(sources),
         valueAt: timeline.valueAt,
         yFormat: formatPercentNumber,
-        // Coverage is a share of the snapshot's nodes: 100% is a hard
-        // ceiling, so the axis must not pad past it.
+        // Coverage is a share of the snapshot's nodes: 100% is a hard ceiling,
+        // so the axis must not pad past it.
         yCeil: 100,
         domainStart: bounds.domainStart,
         domainEnd: bounds.domainEnd,
@@ -301,14 +281,13 @@ function mountCoverageChart(network, sources, bounds, state) {
 
 // ---- Operator concentration over time ---------------------------
 
-// The top-operator breakdown: stacked bars per snapshot, segmented
-// into that snapshot's actual top five so the height is the honest
-// per-period CR5 (see operators-chart.js). A stack is single-source by
-// nature (three overlaid stacks are unreadable), so instead of forcing
-// one crawl it carries a header source switch — every crawl scores its
-// own top_ases, and the BitMEX roster makes its hosting-heavy vantage
-// visible rather than hiding it. ``state.source`` persists the pick
-// across range re-mounts; ``rerender`` re-runs the trends on a switch.
+// The top-operator breakdown: stacked bars per snapshot, segmented into that
+// snapshot's actual top five so the height is the honest per-period CR5 (see
+// operators-chart.js). A stack is single-source by nature, so instead of
+// forcing one crawl it carries a header source switch - every crawl scores its
+// own top_ases, and the BitMEX roster makes its hosting-heavy vantage visible.
+// state.source persists the pick across range re-mounts; rerender re-runs on a
+// switch.
 function mountConcentrationChart(network, bounds, state, rerender) {
     const parent = document.querySelector("[data-network-concentration]");
     if (!parent) return;
@@ -321,8 +300,8 @@ function mountConcentrationChart(network, bounds, state, rerender) {
     }
     if (!sources.includes(state.source)) state.source = sources[0];
 
-    // One switch instance, cached on state, so a range re-mount re-uses
-    // it (the card keeps its header, the pill keeps its transition).
+    // One switch instance, cached on state, so a range re-mount re-uses it (the
+    // card keeps its header, the pill keeps its transition).
     const toggle =
         sources.length > 1
             ? ensureToggle(state, () =>
@@ -351,10 +330,10 @@ function mountConcentrationChart(network, bounds, state, rerender) {
 
 // ---- shared helpers ---------------------------------------------
 
-// Series descriptors for the trend charts. Every source uses its plain
-// label: KIT and Bitnodes are both ongoing crawls (the Bitnodes line
-// stitches the b10c archive to the bitnod.es / BitMEX continuation), so
-// neither is marked as a frozen archive.
+// Series descriptors for the trend charts. Every source uses its plain label:
+// KIT and Bitnodes are both ongoing crawls (the Bitnodes line stitches the b10c
+// archive to the bitnod.es / BitMEX continuation), so neither is marked as a
+// frozen archive.
 function legendSeries(sources) {
     return sources.map(sourceSeries);
 }
@@ -363,9 +342,9 @@ function snapshotTitle(timeline, slot) {
     return formatDate(new Date(timeline.timestamps[slot]));
 }
 
-// One row per source, always in the same order. A source with no
-// value at this slot shows an em dash instead of dropping its row,
-// so the readout's height stays constant while scrubbing.
+// One row per source, always in the same order. A source with no value at this
+// slot shows an em dash instead of dropping its row, so the readout's height
+// stays constant while scrubbing.
 function sourceRows(sources, timeline, slot, format) {
     return sources.map((source) => {
         const value = timeline.valueAt(source, slot);
@@ -373,9 +352,9 @@ function sourceRows(sources, timeline, slot, format) {
     });
 }
 
-// drift_pct and coverage arrive as plain percent numbers (3.8 ->
-// "3.8%"), unlike format.js formatPercent which expects a 0..1 ratio.
-// One decimal keeps movement legible without implying false precision.
+// drift_pct and coverage arrive as plain percent numbers (3.8 -> "3.8%"),
+// unlike format.js formatPercent which expects a 0..1 ratio. One decimal keeps
+// movement legible without implying false precision.
 function formatPercentNumber(value) {
     return `${value.toFixed(1)}%`;
 }

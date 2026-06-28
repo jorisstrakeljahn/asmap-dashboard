@@ -1,14 +1,12 @@
-// Shared stacked time-series bar chart. Sister scaffold to
-// line-chart.js: same axes, hover plumbing, and gap handling, but
-// every slot renders as a vertical bar split into segments instead
-// of a curve. Kept separate because the rendering passes differ
-// enough (a rectangle per (series, slot) vs a path) that branching
-// inside line-chart.js would obscure both paths.
+// Shared stacked time-series bar chart. Sister scaffold to line-chart.js: same
+// axes, hover plumbing, and gap handling, but every slot renders as a vertical
+// bar split into segments instead of a curve. Kept separate because the
+// rendering passes differ enough (a rectangle per (series, slot) vs a path)
+// that branching inside line-chart.js would obscure both paths.
 //
-// Stack order follows the SERIES order: first series at the bottom,
-// last on top. The total stack height per slot is the sum of its
-// visible-series values, so a "total = bar height" reading needs no
-// separate series.
+// Stack order follows the SERIES order: first series at the bottom, last on
+// top. The total stack height per slot is the sum of its visible-series values,
+// so a "total = bar height" reading needs no separate series.
 
 import { linearScale, niceTicks, svg } from "./svg.js";
 import {
@@ -34,35 +32,16 @@ import {
 } from "./chart-interaction.js";
 import { BAR_CORNER_RADIUS, pickBarWidth } from "./bar-geometry.js";
 
-// Only the outer corners of the *whole stack* round (in drawStacks
-// via BAR_CORNER_RADIUS). Middle segments stay square so the eye
-// reads the stack as one bar with several colours, not stacked pills.
+// Only the outer corners of the *whole stack* round (in drawStacks via
+// BAR_CORNER_RADIUS). Middle segments stay square so the eye reads the stack
+// as one bar with several colours, not stacked pills.
 
-// Render a stacked time-series bar chart and return its hover shell.
-//
-//   - ``timestamps``: one millisecond timestamp per x-axis slot,
-//     in chronological order. ``timestamps.length`` defines the
-//     slot count for every other parameter.
-//   - ``visibleSeries``: the series the caller has decided should
-//     be drawn. Each entry needs at least ``key`` and
-//     ``barClass``. Bottom-to-top stack order follows the array
-//     order. Hidden series are absent here; the caller is free
-//     to keep them inside ``tooltipBodyAt``.
-//   - ``valueAt(seriesKey, slotIndex)``: y value for that (series,
-//     slot) pair, or ``null`` for a gap. A slot where every visible
-//     series returns null renders as no bar, so a build with no
-//     comparable diff is visibly empty.
-//   - ``yMin`` / ``yMax``: the y domain. ``yMin`` is typically 0 for
-//     share / ratio data; niceTicks extends ``yMax`` to a
-//     tick-friendly upper bound.
-//   - ``yFormat`` / ``yTitle``: y tick formatter and gutter label.
-//   - ``ariaLabel``: aria-label on the SVG root.
-//   - ``tooltipBodyAt(slotIndex)``: rendered tooltip body for the
-//     slot under the cursor. Same shape as the line-chart scaffold
-//     so components can share builders.
-//   - ``options.domainStart`` / ``options.domainEnd``: optional
-//     calendar overrides for resolveTimeDomain so the chart can span
-//     beyond the data (range picker windows).
+// Render a stacked time-series bar chart and return its hover shell. Same
+// contract as buildLineChart (timestamps, visibleSeries, valueAt, yMin/yMax,
+// yFormat/yTitle, ariaLabel, tooltipBodyAt, options.domainStart/End), with two
+// differences: each series needs a barClass, and the array order is the
+// bottom-to-top stack order. A slot where every visible series is null renders
+// no bar, so a diff-less build is visibly empty.
 export function buildStackedBarChart(spec, width, height, layout, options = {}) {
     const geometry = computeGeometry(spec, width, height, layout, options);
     const root = createChartSvg(width, height, spec.ariaLabel);
@@ -72,8 +51,7 @@ export function buildStackedBarChart(spec, width, height, layout, options = {}) 
     return attachHover(root, geometry, spec, groups, width);
 }
 
-// Single computation of plot bounds, axis ticks, scales and the
-// per-slot bar geometry. Shared between every sub-pass.
+// Plot bounds, ticks, scales and per-slot bar geometry in one place.
 function computeGeometry(spec, width, height, layout, options) {
     const plot = plotBounds(width, height, layout);
     const yTicks = niceTicks(spec.yMin, spec.yMax);
@@ -120,20 +98,12 @@ function drawAxes(root, geometry, spec, width) {
     renderTimeAxis(root, ticks, xScale, plot.bottom);
 }
 
-// One <g> per slot holding that slot's visible-series paths.
-// Returning the groups lets the hover layer flip an active class on
-// the whole stack at once, matching the map-delta chart's single-bar
-// affordance.
-//
-// The stack walks bottom-to-top in spec.visibleSeries order. Heights
-// come from the linear yScale: ``yScale(0) - yScale(value)`` is the
-// pixel span of ``value`` units, subtracted from the running cursor
-// to find each segment's top (SVG y grows downward).
-//
-// Two passes per slot: the first collects surviving segments so we
-// know which sits on the baseline and which is on top; the second
-// draws each as a path, rounding only the stack's outer corners
-// (never between segments). A lone segment rounds both sides.
+// One <g> per slot holding that slot's segments; returning the groups lets the
+// hover layer flip an active class on the whole stack at once. Stack walks
+// bottom-to-top in spec.visibleSeries order; heights come from yScale (SVG y
+// grows downward, so each segment's top subtracts from a running cursor). Two
+// passes: collect surviving segments to know baseline vs top, then draw each,
+// rounding only the stack's outer corners (a lone segment rounds both sides).
 function drawStacks(root, geometry, spec) {
     const { yScale, xAt, barWidth, slotCount } = geometry;
     const baselineY = yScale(spec.yMin);
@@ -168,10 +138,9 @@ function drawStacks(root, geometry, spec) {
     return groups;
 }
 
-// First pass: walk the visible series for one slot, drop the ones
-// that contribute nothing, and emit { series, top, height } in
-// baseline-to-top order. Heights are floored at 1 px so a sliver
-// still paints rather than vanishing.
+// First pass: walk the visible series for one slot, drop the ones that
+// contribute nothing, and emit { series, top, height } in baseline-to-top
+// order. Heights are floored at 1 px so a sliver still paints.
 function collectSegments(spec, geometry, baselineY, slotIndex) {
     const { yScale } = geometry;
     const segments = [];
@@ -187,13 +156,10 @@ function collectSegments(spec, geometry, baselineY, slotIndex) {
     return segments;
 }
 
-// Build an SVG ``d`` string for a rectangle whose four corners can
-// independently round or stay square. SVG ``rect rx=…`` only allows
-// a uniform radius, so a stack rounding just its outer corners must
-// use a path. Walks clockwise from the top-left, emitting an arc
-// only where the radius is > 0; square corners reuse H / V. Radii
-// are clamped to half the smaller dimension so a short slot can't
-// get a corner that inverts the geometry.
+// SVG `d` for a rectangle whose four corners round independently. `rect rx` is
+// uniform-only, so a stack rounding just its outer corners needs a path. Walks
+// clockwise from top-left, arcing only where radius > 0; radii clamp to half
+// the smaller side so a short slot can't invert the geometry.
 function roundedRectPath(x, y, w, h, radii) {
     const maxR = Math.min(w / 2, h / 2);
     const tl = Math.min(radii.tl, maxR);
@@ -212,19 +178,17 @@ function roundedRectPath(x, y, w, h, radii) {
     return parts.join(" ");
 }
 
-// Hover: an invisible full-height capture strip per slot catches the
-// cursor anywhere in the column, not just inside a drawn segment,
-// keeping the tooltip stable when a stack is small or a series is
-// hidden. The matching ``group`` flips an active class so the
-// segments fade to the chart-bar--active accent tone.
+// Hover: an invisible full-height capture strip per slot catches the cursor
+// anywhere in the column, not just inside a drawn segment, keeping the tooltip
+// stable when a stack is small or a series is hidden. The matching ``group``
+// flips an active class so the segments fade to the chart-bar--active tone.
 function attachHover(root, geometry, spec, groups, width) {
     const { plot, xAt, barWidth, slotCount } = geometry;
     const { shell, tip, readout } = createChartShell(root);
     const ctrl = createReadout(shell, tip, readout, width);
 
     // Only columns that drew a stack are selectable; a null group (no
-    // comparable diff) is skipped so the cursor snaps to the nearest
-    // real bar.
+    // comparable diff) is skipped so the cursor snaps to the nearest real bar.
     const selectable = groups.flatMap((group, i) => (group ? [i] : []));
 
     let activeGroup = null;
@@ -235,8 +199,8 @@ function attachHover(root, geometry, spec, groups, width) {
         }
     };
 
-    // Shared by the mouse capture and touch path so a tap highlights
-    // the same stack and tooltip a hover would.
+    // Shared by the mouse capture and touch path so a tap highlights the same
+    // stack and tooltip a hover would.
     const showSlot = (slotIndex, clientX, clientY) => {
         clearActive();
         const group = groups[slotIndex];
@@ -247,10 +211,9 @@ function attachHover(root, geometry, spec, groups, width) {
         ctrl.present(() => spec.tooltipBodyAt(slotIndex), clientX, clientY);
     };
 
-    // On touch the readout strip stays populated with the latest
-    // column at rest, so the reserved space never collapses and
-    // updates never shift the chart. The active-stack highlight only
-    // appears while a slot is engaged.
+    // On touch the readout strip stays populated with the latest column at
+    // rest, so the reserved space never collapses and updates never shift the
+    // chart. The active-stack highlight only appears while a slot is engaged.
     const idleIdx = lastSlotWithStack(groups);
     const hide = () => {
         clearActive();
@@ -265,8 +228,8 @@ function attachHover(root, geometry, spec, groups, width) {
     }
 
     for (let i = 0; i < slotCount; i++) {
-        // No stack here: leave the column without a capture strip so
-        // it can't be hovered.
+        // No stack here: leave the column without a capture strip so it can't
+        // be hovered.
         if (!groups[i]) continue;
         const slotIndex = i;
         const capture = svg("rect", {
@@ -290,9 +253,9 @@ function attachHover(root, geometry, spec, groups, width) {
     }
     shell.addEventListener("mouseleave", hide);
 
-    // Touch maps to the nearest column by x: the capture strips are
-    // narrow, so resolving against every slot is more forgiving than
-    // requiring a finger to land inside one strip.
+    // Touch maps to the nearest column by x: the capture strips are narrow, so
+    // resolving against every slot is more forgiving than requiring a finger
+    // to land inside one strip.
     attachTouchInspect(shell, {
         resolve: (clientX, clientY) => {
             const pt = clientToSvg(root, clientX, clientY);
@@ -312,9 +275,9 @@ function attachHover(root, geometry, spec, groups, width) {
     return shell;
 }
 
-// Last slot that rendered a stack (a null group is a build with no
-// comparable diff), so the docked readout's idle state lands on the
-// most recent real column. Returns -1 when nothing is drawn.
+// Last slot that rendered a stack (a null group is a build with no comparable
+// diff), so the docked readout's idle state lands on the most recent real
+// column. Returns -1 when nothing is drawn.
 function lastSlotWithStack(groups) {
     for (let i = groups.length - 1; i >= 0; i--) {
         if (groups[i]) return i;

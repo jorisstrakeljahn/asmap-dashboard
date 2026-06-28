@@ -1,33 +1,27 @@
-// Shared chrome for header-bearing chart cards: the card shell, an
-// optional header (title + lede + an optional caller control), an
-// optional legend, and a plot slot that delegates the responsive
-// SVG to mountResponsiveChart. Shared by the Network series charts,
-// the top-operator breakdown, and the Maps drift chart.
+// Shared chrome for header-bearing chart cards: card shell, optional header
+// (title + lede + optional control), optional legend, and a plot slot that
+// delegates the responsive SVG to mountResponsiveChart. Used by the Network
+// series charts, the top-operator breakdown, and the Maps drift chart.
 //
-// Reuse: when the same chart re-renders into the same slot, the
-// existing card is kept and only its legend + plot are swapped, so a
-// header control (a mode switch) is never re-parented — that would
-// reset its in-flight pill transition. The identity check on
-// ``headerExtra`` scopes reuse to the same chart + control (charts
+// On re-render into the same slot the card is kept and only legend + plot swap,
+// so a header control (a mode switch) is never re-parented - that would reset
+// its in-flight pill transition. headerExtra identity scopes the reuse (charts
 // without one compare null === null and reuse too).
 
 import { mountResponsiveChart } from "./chart-base.js";
 import { createChartLede } from "../components/chart-lede.js";
 
-// Mount (or re-render into) a header-bearing chart card under
-// ``parent`` and return the mountResponsiveChart handle so a clickable
-// legend can call ``ctrl.rerender()`` after a toggle.
+// Mount (or re-render into) a header-bearing chart card under `parent`, and
+// return the mountResponsiveChart handle so a clickable legend can rerender().
 //
-//   title:       card label text (rendered upper-cased)
-//   subtitle:    secondary label beside the title (e.g. active unit),
-//                optional; changing it rebuilds the header
-//   lede:        short summary shown below the header, always
-//                visible, optional
-//   headerExtra: Element placed beside the headline (e.g. a mode
-//                switch), optional; its identity gates card reuse
-//   legend:      pre-built legend Element placed above the plot, optional
+//   title:       card label (rendered upper-cased)
+//   subtitle:    secondary label beside the title; changing it rebuilds header
+//   lede:        always-visible summary below the header, optional
+//   headerExtra: Element beside the headline (e.g. a mode switch); its identity
+//                gates card reuse
+//   legend:      pre-built legend Element above the plot, optional
 //   drawPlot:    ({ width, height, layout }) -> Element, the plot body
-//   cardClass:   extra class(es) for the outer <article>, optional
+//   cardClass:   extra class(es) for the <article>, optional
 //   layout:      mountResponsiveChart layout overrides, optional
 export function mountTimeSeriesCard(parent, config) {
     if (!parent) return undefined;
@@ -42,11 +36,9 @@ export function mountTimeSeriesCard(parent, config) {
         layout = {},
     } = config;
 
-    // Reuse the card in this slot only when its header content is
-    // unchanged: same title, subtitle, and the very same headerExtra
-    // element. This keeps a header control from being re-parented
-    // (which would reset its pill transition). A changed subtitle must
-    // rebuild so the header reflects it.
+    // Reuse only when header content is unchanged (same title, subtitle, and
+    // the very same headerExtra element), so a header control isn't re-parented
+    // (which resets its pill transition). A changed subtitle rebuilds.
     const existing = parent.firstElementChild;
     const reused =
         existing &&
@@ -60,18 +52,17 @@ export function mountTimeSeriesCard(parent, config) {
     let card = reused;
     if (card) {
         // The header (and its mode switch) is kept so the pill keeps its
-        // transition, but a switch can change the lede copy — e.g. the
-        // decay chart's reality/newest-map blurbs — so refresh that text
-        // in place when it differs.
+        // transition, but a switch can change the lede copy - e.g. the decay
+        // chart's reality/newest-map blurbs - so refresh that text in place
+        // when it differs.
         if (lede !== card.__lede) {
             card.__lede = lede;
             if (card.__header.__ledeEl) card.__header.__ledeEl.remove();
             card.__header.__ledeEl = lede ? createChartLede(lede) : null;
             if (card.__header.__ledeEl) card.__header.append(card.__header.__ledeEl);
         }
-        // Strip the previous legend + plot, keep the header. The
-        // detached slot's width watcher is swept by the next
-        // mountResponsiveChart call below.
+        // Strip the previous legend + plot, keep the header. The detached
+        // slot's width watcher is swept by the next mountResponsiveChart call.
         while (card.lastElementChild && card.lastElementChild !== card.__header) {
             card.lastElementChild.remove();
         }
@@ -102,10 +93,9 @@ export function mountTimeSeriesCard(parent, config) {
 }
 
 function buildHeader(title, subtitle, lede, headerExtra) {
-    // Two bands: a top row with the title (and any control floated right),
-    // then the lede on its own full-width line below — it runs under the
-    // control too, so the explanation fills the width instead of being
-    // boxed into a narrow column beside the switch.
+    //Two bands: title row (control floated right), then the lede on its own
+    // full-width line below - it runs under the control too, so the explanation
+    // fills the width instead of being boxed beside the switch.
     const header = document.createElement("div");
     header.className = "chart-card__header";
 
@@ -117,8 +107,8 @@ function buildHeader(title, subtitle, lede, headerExtra) {
     label.textContent = (title ?? "").toUpperCase();
 
     if (subtitle) {
-        // Group label and subtitle so they stay together when the
-        // header wraps; the subtitle reads as a smaller note.
+        // Group label and subtitle so they stay together when the header
+        // wraps; the subtitle reads as a smaller note.
         const group = document.createElement("div");
         group.className = "chart-card__title";
         const sub = document.createElement("span");
@@ -137,9 +127,9 @@ function buildHeader(title, subtitle, lede, headerExtra) {
     header.append(row);
 
     if (lede) {
-        // Track the lede element so a reused card can swap its text when
-        // a header control (e.g. the decay reference toggle) changes the
-        // active copy without rebuilding the whole header.
+        // Track the lede element so a reused card can swap its text when a
+        // header control (e.g. the decay reference toggle) changes the active
+        // copy without rebuilding the whole header.
         header.__ledeEl = createChartLede(lede);
         header.append(header.__ledeEl);
     }

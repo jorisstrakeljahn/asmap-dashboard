@@ -5,7 +5,7 @@
 // published) the tab is never mounted and app.js hides its nav entry.
 //
 // Layout, top to bottom: a snapshot hero (up to six cards, paired by
-// theme — see overview.js), four range-windowed trend charts (decay
+// theme - see overview.js), four range-windowed trend charts (decay
 // curve, top-5 operator breakdown, HHI concentration, ASmap coverage),
 // then the ASN-attribution agreement as a data-quality stat that keeps
 // the headline KPI but exposes the per-snapshot counts behind a
@@ -17,8 +17,8 @@
 // The decay chart overlays KIT and the two Bitnodes crawls as
 // toggleable lines: it plots a normalised drift share, comparable
 // across crawlers of different size. The Bitnodes feed split when
-// bitnodes.io shut down — "bitnodes" is the frozen b10c archive,
-// "bitmex" is the bitnod.es / BitMEX continuation — and they stay
+// bitnodes.io shut down - "bitnodes" is the frozen b10c archive,
+// "bitmex" is the bitnod.es / BitMEX continuation - and they stay
 // separate lines because BitMEX's vantage reaches a different
 // population (so a spliced line would fake a concentration step at the
 // handover). Several independent crawlers agreeing is the strongest
@@ -125,7 +125,7 @@ export function mount(payload) {
     const requestedFamily = hash.get("family");
 
     // Per-chart toggle state hoisted here so a range re-mount keeps
-    // hidden series — and, for decay / HHI, the active reference or
+    // hidden series - and, for decay / HHI, the active reference or
     // family. The operator breakdown has no legend (its per-period cast
     // changes) but carries a source switch, so its picked crawl lives
     // here too and survives a range re-mount.

@@ -27,7 +27,7 @@ import { t, tPlural } from "./utils/i18n.js";
 
 // Drift unit picker order. IPv4 first as the headline view (Bitcoin
 // Core peer diversity weighs IPv4 reachability most directly). A raw
-// entries view is deliberately omitted: it weights a /8 like a /48 —
+// entries view is deliberately omitted: it weights a /8 like a /48 -
 // the exact failure mode the coverage views avoid.
 const DRIFT_UNIT_VALUES = [
     DRIFT_IPV4_COVERAGE,

@@ -41,8 +41,8 @@ export function formatCompactCount(value) {
 //
 // IPv6 totals routinely reach 10e33 (a single /32 covers 2^96), which
 // overflows the cell and JS Number precision past 2^53. We quantise
-// to /32 blocks — the exact granularity of Bitcoin Core GetGroup()'s
-// IPv6 NetGroup bucket — so one block here equals one peer-diversity
+// to /32 blocks - the exact granularity of Bitcoin Core GetGroup()'s
+// IPv6 NetGroup bucket - so one block here equals one peer-diversity
 // bucket there.
 //
 // BigInt is mandatory since the input regularly exceeds 2^53.
@@ -55,17 +55,17 @@ const IPV6_NETGROUP_BITS = 96n;
 
 export function formatIpv4Addresses(value) {
     const numeric = Number(value);
-    if (!Number.isFinite(numeric)) return "—";
+    if (!Number.isFinite(numeric)) return "-";
     return numberFormatter.format(numeric);
 }
 
 export function formatIpv6Blocks(value) {
-    if (value == null) return "—";
+    if (value == null) return "-";
     let big;
     try {
         big = BigInt(value);
     } catch {
-        return "—";
+        return "-";
     }
     const blocks = Number(big >> IPV6_NETGROUP_BITS);
     // The shift floors to whole /32 blocks, so an AS that moved only a

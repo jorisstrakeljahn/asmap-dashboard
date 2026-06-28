@@ -1,10 +1,10 @@
 // Light / Dark theme control mounted in the site header.
 //
 // The widget is the dashboard's segmented mode-switch (same
-// sliding-pill control as the other toggles), icon-only — sun and
-// moon — with the text label kept in the accessibility tree.
+// sliding-pill control as the other toggles), icon-only - sun and
+// moon - with the text label kept in the accessibility tree.
 //
-// State model — two explicit themes, system preference as the
+// State model - two explicit themes, system preference as the
 // first-visit default:
 //   - Stored *preference* is "light" | "dark", or null when the
 //     visitor has never toggled. Persisted in localStorage.
@@ -132,7 +132,7 @@ export function initThemeSwitch() {
 
 // Refresh the visible labels + group name from the i18n dictionary
 // once loaded (the control mounts earlier to apply the theme without
-// delay). Safe with strings missing — t() falls back to the key.
+// delay). Safe with strings missing - t() falls back to the key.
 export function localizeThemeSwitch(control) {
     if (!control) return;
     control.setAttribute("aria-label", t("header.theme.ariaLabel"));

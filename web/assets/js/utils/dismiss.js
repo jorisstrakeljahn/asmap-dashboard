@@ -1,15 +1,8 @@
-// Outside-dismiss wiring shared by the popover components (dropdown
-// combobox, info tooltip). While open, a pointer press or scroll
-// outside ``root`` closes it and a resize re-runs reposition. Only
-// the four shared listeners live here; the component owns its own
-// state, keyboard model, and placement maths.
-//
-// Returns { attach, detach } for open / close. The handler ref is
-// stable so removeEventListener always matches.
-//
-//   - ``root``: scopes "inside"; targets outside count as dismiss.
-//   - ``onDismiss``: called on an outside press or scroll.
-//   - ``reposition``: called on resize to re-place the popover.
+// Outside-dismiss wiring shared by the popover components (dropdown, info
+// tooltip): while open, a pointer press or scroll outside `root` calls
+// onDismiss and a resize calls reposition. Just the four shared listeners -
+// the component keeps its own state, keyboard model and placement. The handler
+// ref is stable so removeEventListener always matches.
 export function createOutsideDismiss({ root, onDismiss, reposition }) {
     const onOutside = (ev) => {
         if (!root.contains(ev.target)) onDismiss();
