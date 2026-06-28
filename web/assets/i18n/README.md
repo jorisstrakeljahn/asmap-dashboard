@@ -1,9 +1,9 @@
 # Dashboard copy
 
-Every user-facing string lives in this folder as plain JSON. Edit a value, save, reload — no JavaScript involved.
+Every user-facing string lives in this folder as plain JSON. Edit a value, save, reload - no JavaScript involved.
 
 `en.json` is the only locale today. Future languages (`de.json`,
-`es.json`, …) drop in next to it.
+`es.json`, ...) drop in next to it.
 
 ## File anatomy
 
@@ -14,12 +14,12 @@ Every user-facing string lives in this folder as plain JSON. Edit a value, save,
         "name": "English",
         "version": "1"
     },
-    "header": { … },
-    "overview": { … },
-    "history": { … },
-    "diff": { … },
-    "topMovers": { … },
-    "common": { … }
+    "header": { ... },
+    "overview": { ... },
+    "history": { ... },
+    "diff": { ... },
+    "topMovers": { ... },
+    "common": { ... }
 }
 ```
 
@@ -29,7 +29,7 @@ Every user-facing string lives in this folder as plain JSON. Edit a value, save,
 | Namespace     | What it covers                                                |
 | ------------- | ------------------------------------------------------------- |
 | `header`      | Logo, top-bar navigation (Maps / Diff Explorer)               |
-| `footer`      | Source-data link, GitHub link, "Last update …"                |
+| `footer`      | Source-data link, GitHub link, "Last update ..."                |
 | `loadError`   | Banner shown when `metrics.json` fails to load                |
 | `tabs`        | ARIA labels around the tab strip                              |
 | `infoTooltip` | Fallback ARIA label on every "i" icon                         |
@@ -78,7 +78,7 @@ The deep explainers (the "i" popovers on the Overview cards, the Top Movers card
         "info": [
             "Each entry maps an IP prefix to the autonomous system that announces it.",
             "Read from the unfilled (source data) variant when published, falling back to the filled variant otherwise.",
-            "The vs-previous delta is only shown when both sides come from the same encoding. …",
+            "The vs-previous delta is only shown when both sides come from the same encoding. ...",
             "On-disk file size rides along inside the entries-chart tooltip."
         ]
     }

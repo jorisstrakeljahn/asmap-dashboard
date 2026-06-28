@@ -77,7 +77,7 @@
     /* One typeface, no web-font dependency: the platform UI font.
        system-ui leads so every OS uses its native face; the rest are
        fallbacks for older engines. Numbers use tabular-nums where they
-       need to align — same font, not a separate mono family. */
+       need to align - same font, not a separate mono family. */
     --font-sans:
         system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
         Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -103,7 +103,7 @@
        bump above: interactive controls and chart chrome stay dense so
        only the reading text grows. Retune controls in one place here. */
     --font-size-control: 14px; /* switches, buttons, inputs, legend, tooltips */
-    --font-size-chart-axis: 12px; /* SVG tick + gutter labels, tooltip footnote */
+    --font-size-chart-axis: 12px; /* SVG ticks, gutter labels, tooltip note */
 
     --font-weight-regular: 400;
     --font-weight-medium: 500;
@@ -125,7 +125,7 @@
     /* Negative tracking for large display text. UI fonts are drawn
        loose at large sizes; pulling glyphs ~1-2% closer makes them
        read as display type, not blown-up body copy. Body text keeps
-       default spacing — tightening small text hurts legibility. */
+       default spacing - tightening small text hurts legibility. */
     --letter-tight: -0.01em;
     --letter-tighter: -0.02em;
 

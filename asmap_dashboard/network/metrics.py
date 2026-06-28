@@ -292,7 +292,7 @@ def _map_target(node: _PreparedNode, reference_asn: int) -> int | None:
     """Map-versus-map target: the newest build's own lookup of the node,
     or ``None`` for nodes the newest build does not map (nothing to
     drift against). Drift here is divergence from the freshest map, so
-    the newest build sits at 0 — the pure aging signal, defined for
+    the newest build sits at 0 - the pure aging signal, defined for
     every crawler."""
     return reference_asn or None
 
@@ -316,8 +316,8 @@ def _drift_curve(
     """Drift of a fixed node set across ``builds`` against a per-node target.
 
     ``target(node, reference_asn)`` returns the AS each node should resolve
-    to — the freshest map (``_map_target``) or crawler whois
-    (``_truth_target``) — or ``None`` to drop it; ``reference_asn`` is the
+    to - the freshest map (``_map_target``) or crawler whois
+    (``_truth_target``) - or ``None`` to drop it; ``reference_asn`` is the
     lookup under ``target_reference`` (the in-effect build), restricting to
     nodes it maps so the freshest point reads as the attribution gap, not a
     coverage artefact. Per build, drift is the share of kept nodes resolving

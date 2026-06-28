@@ -31,7 +31,7 @@ class LoadedMap:
 
       ``entries_count``            minimal-overlapping trie size.
       ``ipv{4,6}_address_space``   addresses mapped to a non-zero ASN,
-                                   per family — the headline drift
+                                   per family - the headline drift
                                    denominator (weights a /8 over many
                                    tiny IPv6 allocations).
       ``ipv{4,6}_address_ranges``  the same coverage as sorted disjoint

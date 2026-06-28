@@ -274,7 +274,7 @@ def test_refresh_raises_when_no_payload_exists_and_never_fetches(tmp_path):
 
     Writing here would overwrite a previously good asn-names.json with an
     empty subset and silently degrade every label to a bare AS<num>, so
-    the all-missing case must raise rather than write — and must not even
+    the all-missing case must raise rather than write - and must not even
     hit bgp.tools.
     """
     out_path = tmp_path / "asn-names.json"
