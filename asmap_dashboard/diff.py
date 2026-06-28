@@ -63,7 +63,7 @@ def diff_loaded_maps(
     the headline drift number, split per family because Core treats v4/v6
     as independent diversity dimensions. The two can diverge by an order
     of magnitude. IPv6 coverage exceeds 2**53, so JSON consumers round it
-    to ~1e-16 relative error — harmless, since everything is quantised to
+    to ~1e-16 relative error - harmless, since everything is quantised to
     /32 blocks before display; exact integer round-tripping is not
     promised.
 
@@ -92,7 +92,7 @@ def diff_loaded_maps(
         ipv4_buckets_changed / ipv4_bucket_space_union,
         ipv6_blocks_changed / ipv6_block_space_union:
                                        changed vs total /16 (IPv4) and
-                                       /32 (IPv6) NetGroup buckets — the
+                                       /32 (IPv6) NetGroup buckets - the
                                        match banner's numerator/denominator.
         {reassigned,newly_mapped,unmapped}_ipv{4,6}_addresses:
                                        coverage-weighted change counts.
@@ -277,7 +277,7 @@ class _PerAsActivity:
 
     def ranked_asns(self, limit: int) -> list[int]:
         """Union of the top ``limit`` ASes per rendered currency (IPv4
-        coverage then IPv6 — the only two the table sorts by, so an
+        coverage then IPv6 - the only two the table sorts by, so an
         entry-only AS never arrives as an unsortable row). IPv4 first wins
         ties, matching the table's default view.
         """

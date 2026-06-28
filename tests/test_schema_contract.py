@@ -5,7 +5,7 @@ exists only as a hand-mirrored convention: a version constant duplicated
 in both languages, and field names typed out literally on each side. The
 frontend's accessors mask missing fields with ``?? 0``, so a renamed
 Python field without a matching JS edit renders silent zeros instead of
-crashing — a failure the project has already hit once. These tests turn
+crashing - a failure the project has already hit once. These tests turn
 that convention into something CI enforces: they fail on any drift
 between the two sides, which is the whole point. On a legitimate schema
 change, update the JS accessors, bump both version constants, and the

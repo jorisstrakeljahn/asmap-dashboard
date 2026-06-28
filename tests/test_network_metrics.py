@@ -88,8 +88,8 @@ def test_snapshot_metrics_counts_mapping_hhi_and_bucketing():
 def test_snapshot_metrics_splits_families_by_effective_family():
     """IPv4 and IPv6 nodes land in their own family slices.
 
-    The 6to4 node (2002::/16 wrapping 1.1.9.9) counts as IPv4 — the
-    effective family after the linked-IPv4 unwrap — exactly like
+    The 6to4 node (2002::/16 wrapping 1.1.9.9) counts as IPv4 - the
+    effective family after the linked-IPv4 unwrap - exactly like
     Core's GetGroup() buckets it.
     """
     nodes = [
@@ -159,7 +159,7 @@ def test_snapshot_metrics_unwraps_tunneled_ipv4_like_core():
     """A 6to4 peer scores as its embedded IPv4 on both bucket scales.
 
     The 6to4 address embeds 1.1.9.9 (2002:0101:0909::), which BUILD2
-    maps to AS200 — exactly what Core's GetMappedAS() would resolve.
+    maps to AS200 - exactly what Core's GetMappedAS() would resolve.
     Its default bucket is the embedded IPv4's /16, shared with the
     native 1.1.1.1 node, so neither vocabulary treats the tunnel
     wrapper as a separate location.

@@ -286,7 +286,7 @@
             "sectionTitle": "Network",
             "sectionLede": "This tab tests each ASmap build against the real Bitcoin nodes that crawlers observe on the network, so you can see how well a build actually groups the peers a node meets in practice.",
             "empty": "No observed node snapshots in network.json.",
-            "clearnetNote": "The cards count only clearnet (IPv4/IPv6) reachable nodes — Tor, I2P, and CJDNS peers have no IP for ASmap to resolve to an autonomous system, so they are left out.",
+            "clearnetNote": "The cards count only clearnet (IPv4/IPv6) reachable nodes - Tor, I2P, and CJDNS peers have no IP for ASmap to resolve to an autonomous system, so they are left out.",
             "snapshotMeta": "{source} crawl, latest snapshot {date} - scored against ASmap build {build}",
             "sourceSwitchAria": "Card snapshot source",
             "familySplit": "IPv4 {ipv4}, IPv6 {ipv6}",
@@ -364,8 +364,8 @@
         },
         "decay": {
             "title": "Map staleness for today's nodes",
-            "ledeTruth": "How wrong an aging map is for the nodes a crawler sees today, checked against reality (the crawler's own whois): the share it files under a different operator than the node really sits in. Time runs from today on the left into the past on the right, so each line starts at its crawler's freshest snapshot and climbs as the map ages. Even the newest point sits above zero — the attribution gap against live routing — so where a line crosses your tolerance is how often a fresh map is worth shipping. Only crawlers that ship their own whois carry that ground truth, so bitnod.es is greyed out here; switch to \u201cNewest map\u201d to compare it too.",
-            "ledeMap": "How much an aging map reshuffles the nodes a crawler sees today versus that crawler's own freshest map: the share it moves to a different operator. Time runs from today on the left into the past on the right, and each line's freshest map is its own zero, so it starts at zero and climbs with age — isolating how much aging alone changes the buckets. Switch to \u201cReality\u201d to measure against live routing instead.",
+            "ledeTruth": "How wrong an aging map is for the nodes a crawler sees today, checked against reality (the crawler's own whois): the share it files under a different operator than the node really sits in. Time runs from today on the left into the past on the right, so each line starts at its crawler's freshest snapshot and climbs as the map ages. Even the newest point sits above zero - the attribution gap against live routing - so where a line crosses your tolerance is how often a fresh map is worth shipping. Only crawlers that ship their own whois carry that ground truth, so bitnod.es is greyed out here; switch to \u201cNewest map\u201d to compare it too.",
+            "ledeMap": "How much an aging map reshuffles the nodes a crawler sees today versus that crawler's own freshest map: the share it moves to a different operator. Time runs from today on the left into the past on the right, and each line's freshest map is its own zero, so it starts at zero and climbs with age - isolating how much aging alone changes the buckets. Switch to \u201cReality\u201d to measure against live routing instead.",
             "infoAria": "About the staleness curve",
             "ariaLabel": "Share of each crawler's most recent observed nodes that an older build resolves to a different autonomous system, against the picked reference. The axis runs from today on the left into the past on the right. One line per crawler.",
             "tooltipTitle": "{date} build, {days} days old",
@@ -377,7 +377,7 @@
             "noWhois": "No whois on this crawler's snapshots, so there is no ground truth to measure against here.",
             "info": [
                 "Each crawler's most recent node set, held fixed and looked up in every build at or older than that snapshot, plotted from today on the left into the past on the right. Holding the node set fixed means map age is the only thing changing between points.",
-                "Reality: each build's disagreement with the crawler's own whois ASN. The newest point equals the attribution gap (100 minus the agreement shown below) and age only adds to it — the direct \u201cwhen do I need a fresher map?\u201d reading. Each crawler is anchored on its newest whois-bearing snapshot, so a frozen archive starts at its last annotated crawl; crawlers without whois are greyed out here.",
+                "Reality: each build's disagreement with the crawler's own whois ASN. The newest point equals the attribution gap (100 minus the agreement shown below) and age only adds to it - the direct \u201cwhen do I need a fresher map?\u201d reading. Each crawler is anchored on its newest whois-bearing snapshot, so a frozen archive starts at its last annotated crawl; crawlers without whois are greyed out here.",
                 "Newest map: each build versus that crawler's own freshest map, which sits at zero. This isolates how much aging alone reshuffles the buckets and works for every crawler.",
                 "One line per crawler. Where they overlap, the map ages the same no matter who observed the network."
             ]
@@ -422,7 +422,7 @@
         "crosscheck": {
             "label": "ASN attribution agreement",
             "metric": "~{pct}",
-            "note": "Share of nodes where the {source} crawl's own ASN tag matches the ASmap lookup for the same IP — a data-quality cross-check, not a network-health metric. A few percent always differ where whois and routing disagree, so a steady reading (both crawlers stay within a {min} to {max} band) is evidence the data behind every chart is sound."
+            "note": "Share of nodes where the {source} crawl's own ASN tag matches the ASmap lookup for the same IP - a data-quality cross-check, not a network-health metric. A few percent always differ where whois and routing disagree, so a steady reading (both crawlers stay within a {min} to {max} band) is evidence the data behind every chart is sound."
         }
     },
 
@@ -525,7 +525,7 @@
                 "lead": "Direction.",
                 "text": "Up gained, down lost, a double arrow means space moved both ways. The counterpart can be a real autonomous system or the unmapped pool: up-unmapped gained space that had no ASN, down-unmapped lost space that no longer resolves."
             },
-            "Hover any row for the operator name, the raw counts moved, how much address space the operator holds on each side, and Touched — how much of the operator's own footprint this change moved. It can read above 100% when one build stores the operator as a single block and the other splits it into many."
+            "Hover any row for the operator name, the raw counts moved, how much address space the operator holds on each side, and Touched - how much of the operator's own footprint this change moved. It can read above 100% when one build stores the operator as a single block and the other splits it into many."
         ],
         "viewMode": {
             "compact": "Compact",

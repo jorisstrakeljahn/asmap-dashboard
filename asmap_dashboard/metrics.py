@@ -5,7 +5,7 @@ asmap-data layout (``<year>/<timestamp>_asmap[_unfilled].dat``) so the
 release date comes from the filename, not git history. Each build can
 publish two variants: ``unfilled`` (the canonical upstream pipeline
 output) and ``filled`` (the same data with adjacent same-AS prefixes
-merged — the form Bitcoin Core embeds). A build with only one variant
+merged - the form Bitcoin Core embeds). A build with only one variant
 surfaces the other as ``present: false``.
 
 Each .dat is parsed once and reused by both the analyze and all-pairs

@@ -84,7 +84,7 @@
         background var(--motion-base) var(--motion-ease);
 }
 
-/* hover: hover only — on touch the :hover state sticks after a tap and
+/* hover: hover only - on touch the :hover state sticks after a tap and
    leaves a lingering box around the burger. */
 @media (hover: hover) {
     .site-header__burger:hover {

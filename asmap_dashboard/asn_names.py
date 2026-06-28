@@ -125,7 +125,7 @@ def refresh(
         wanted |= extract_asns(json.loads(path.read_text()))
     # An empty ``wanted`` from present-but-empty payloads is fine. But if
     # *no* payload existed (a CI typo), writing would overwrite a good
-    # asn-names.json with an empty subset — refuse before fetching.
+    # asn-names.json with an empty subset - refuse before fetching.
     if found == 0:
         raise FileNotFoundError(
             "none of the payload files exist: "

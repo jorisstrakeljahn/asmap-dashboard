@@ -33,7 +33,7 @@ HENET_NETWORK = ipaddress.IPv6Network("2001:470::/32")
 
 # IPv6 ranges that embed an IPv4 address, in CNetAddr terms:
 # IsRFC6052 / IsRFC6145 / IsRFC3964 / IsRFC4380. The v4-mapped
-# range (::ffff:0:0/96, RFC 4291) needs no constant of its own —
+# range (::ffff:0:0/96, RFC 4291) needs no constant of its own -
 # Python's ipaddress exposes it via IPv6Address.ipv4_mapped.
 RFC6052_NETWORK = ipaddress.IPv6Network("64:ff9b::/96")
 RFC6145_NETWORK = ipaddress.IPv6Network("::ffff:0:0:0/96")

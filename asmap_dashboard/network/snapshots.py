@@ -4,7 +4,7 @@ A *snapshot* is one crawler's view of the reachable network at a point in
 time: ``(ip, port)`` peers, optionally annotated with the ASN/country the
 crawler resolved. The metrics only consume the normalised ``Snapshot``
 produced here, so adding a source is one ``load_*`` function plus a
-``_LOADERS`` entry — the metric layer never learns a source's on-disk
+``_LOADERS`` entry - the metric layer never learns a source's on-disk
 quirks. The per-shape parsing details live in each ``load_*`` below.
 
 Sources today: KIT dossiers (hourly JSON, full whois on every node),

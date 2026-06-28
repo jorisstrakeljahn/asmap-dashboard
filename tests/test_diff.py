@@ -371,7 +371,7 @@ def test_coverage_includes_union_address_space_denominators(tmp_path):
     """ipv{4,6}_address_space_union carry the union totals for frontend ratios.
 
     The 1.0.0.0/8 and 2001::/16 are mapped by both maps and must
-    count once, not twice — the union is a coverage merge, not a
+    count once, not twice - the union is a coverage merge, not a
     sum of the two maps' totals.
     """
     a = write_asmap(
@@ -400,7 +400,7 @@ def test_ipv4_buckets_changed_counts_each_sixteen_once(tmp_path):
     """A /20 reassignment touches exactly one /16 NetGroup bucket.
 
     Two reassignments inside the same /16 should still collapse
-    to one bucket — the banner reads "buckets carrying at least
+    to one bucket - the banner reads "buckets carrying at least
     one change", not "changes weighted by buckets".
     """
     a = write_asmap(
@@ -733,7 +733,7 @@ def test_top_movers_primary_counterpart_is_address_weighted(tmp_path):
       - 1 IPv4 /8 to AS300 (1 entry, 2^24 = 16M v4 addr)
 
     AS200 receives far more entries, but AS300 receives ~6500x the
-    address space — the rendered counterpart must be AS300.
+    address space - the rendered counterpart must be AS300.
     """
     a_entries = [(ipaddress.IPv4Network(f"10.{i}.0.0/24"), 100) for i in range(10)]
     a_entries.append((ipaddress.IPv4Network("64.0.0.0/8"), 100))
