@@ -7,7 +7,7 @@
 // break. Points stay index-aligned with the sorted map list so
 // nearestIndex() can index both.
 //
-// One drift unit per render (IPv4 or IPv6 coverage — see DRIFT_*
+// One drift unit per render (IPv4 or IPv6 coverage - see DRIFT_*
 // in utils/diffs.js). The unit only selects which pipeline fields
 // the ratios read from; the point shape is constant, so the
 // renderer never branches on unit.
@@ -22,7 +22,7 @@ import { unfilledProfile } from "../utils/map-variants.js";
 
 // Per-unit field map: which pipeline fields carry the category
 // counts and the shared denominator (the union of both maps'
-// mapped space — the same quantity driftViews() divides by, so
+// mapped space - the same quantity driftViews() divides by, so
 // chart and cards can't disagree on a ratio). Centralised so a
 // new unit needs one entry, not edits across consumers.
 const UNIT_FIELDS = {

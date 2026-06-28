@@ -2,7 +2,7 @@
 //
 // Why hash and not History API: hashes work over file:// loads (so
 // contributors can open index.html without a server), survive reloads
-// for deep links, and need no server-side rewriting — the right
+// for deep links, and need no server-side rewriting - the right
 // trade-off for a static, GitHub-Pages-style dashboard.
 //
 // Intentionally tiny: no UI, no framework, only toggles the

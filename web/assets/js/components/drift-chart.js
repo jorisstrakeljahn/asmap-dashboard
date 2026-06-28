@@ -6,7 +6,7 @@
 //     stacked bar per release, whose height equals "drift vs
 //     previous" on the overview.
 //
-// One drift unit per render (IPv4 or IPv6 coverage — see DRIFT_*
+// One drift unit per render (IPv4 or IPv6 coverage - see DRIFT_*
 // in utils/diffs.js). The unit selects which pipeline fields the
 // points read and shows in the card header; tooltips append a
 // unit-aware suffix to each Total row so an IPv6 reading can't be

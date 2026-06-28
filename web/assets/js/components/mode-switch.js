@@ -51,7 +51,7 @@ export function createModeSwitch({
         btn.dataset.value = opt.value;
         btn.dataset.idx = String(idx);
         if (opt.icon) {
-            // Icon is decorative — the adjacent label (visible, or
+            // Icon is decorative - the adjacent label (visible, or
             // hidden-but-present via CSS) carries the accessible name,
             // which setLabel() can refresh after i18n strings arrive.
             const icon = document.createElement("span");
@@ -73,7 +73,7 @@ export function createModeSwitch({
 
     // Move the pill under the active button. ``animate`` true tweens
     // via CSS (a real mode change); false snaps instantly by
-    // suspending the transition across a forced reflow — used for
+    // suspending the transition across a forced reflow - used for
     // first layout, tab reveal, and viewport / font reflows. The
     // pill's left:0 shares the track's padding edge with offsetLeft,
     // so offsetLeft is the exact translateX with no 1px border fudge.
@@ -146,7 +146,7 @@ export function createModeSwitch({
 
     // Snap the pill once the row has geometry. The rAF covers the
     // common case (mounted into a visible parent) before first paint;
-    // the ResizeObserver covers later size changes — a hidden tab
+    // the ResizeObserver covers later size changes - a hidden tab
     // revealing, viewport / font reflows.
     requestAnimationFrame(() => place(false));
     new ResizeObserver(() => place(false)).observe(root);

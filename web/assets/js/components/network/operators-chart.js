@@ -1,17 +1,17 @@
-// Top-operator breakdown for one crawler (picked via the header
-// source switch) as stacked vertical bars: one bar per snapshot,
-// segmented into that snapshot's actual top five operators by node
-// share, so the stack height is the true CR5 of that period.
+// Top-operator breakdown for one crawler (picked via the header source switch)
+// as stacked vertical bars: one bar per snapshot, segmented into that
+// snapshot's actual top five operators by node share, so the stack height is
+// the true CR5 of that period.
 //
-// Why bars, not a fixed-set line chart: summing the same five
-// window-wide top operators every period understates the combined
-// top-5 when a riser enters the tier. Re-electing the top five per
-// period keeps the height an honest CR5. (Review feedback, fjahr.)
+// Why bars, not a fixed-set line chart: summing the same five window-wide top
+// operators every period understates the combined top-5 when a riser enters the
+// tier. Re-electing the top five per period keeps the height an honest CR5.
+// (Review feedback, fjahr.)
 //
-// No static legend — the cast changes per bar. Identity lives in the
-// hover tooltip, one colour-dotted row per segment. Each operator
-// keeps one stable colour across bars (by aggregate share), so the
-// eye can follow it through reshuffles.
+// No static legend - the cast changes per bar. Identity lives in the hover
+// tooltip, one colour-dotted row per segment. Each operator keeps one stable
+// colour across bars (by aggregate share), so the eye can follow it through
+// reshuffles.
 
 import { mountTimeSeriesCard } from "../../charts/chart-card.js";
 import { buildTooltipBody } from "../../charts/chart-tooltip.js";
@@ -25,9 +25,9 @@ import { t } from "../../utils/i18n.js";
 // concentration cut (CR5) and keeps a stack legible.
 const OPERATOR_LIMIT = 5;
 
-// Palette colour slots (tokens.css --color-series-1..10). The union
-// of per-period top-5 operators runs to ~10 on current data; beyond
-// that the colours cycle and the tooltip dot keeps rows unambiguous.
+// Palette colour slots (tokens.css --color-series-1..10). The union of
+// per-period top-5 operators runs to ~10 on current data; beyond that the
+// colours cycle and the tooltip dot keeps rows unambiguous.
 const COLOR_SLOTS = 10;
 
 export function mountOperatorsChart(parent, { snapshots, bounds, headerExtra = null }) {
@@ -49,10 +49,10 @@ export function mountOperatorsChart(parent, { snapshots, bounds, headerExtra = n
     });
 }
 
-// One row per snapshot inside the picked range: the snapshot's own
-// top five (top_ases is sorted by node count in the pipeline) plus
-// their combined share. Shares arrive as 0..1 ratios and are kept
-// that way here; the draw pass scales to percent.
+// One row per snapshot inside the picked range: the snapshot's own top five
+// (top_ases is sorted by node count in the pipeline) plus their combined share.
+// Shares arrive as 0..1 ratios and are kept that way here; the draw pass scales
+// to percent.
 function buildRows(snapshots, cutoff) {
     const rows = [];
     for (const sn of snapshots) {
@@ -70,9 +70,9 @@ function buildRows(snapshots, cutoff) {
     return rows;
 }
 
-// asn -> colour slot, assigned by aggregate share across the visible
-// rows so the biggest operators get the most prominent slots and each
-// keeps its colour on every bar.
+// asn -> colour slot, assigned by aggregate share across the visible rows so
+// the biggest operators get the most prominent slots and each keeps its colour
+// on every bar.
 function assignColors(rows) {
     const totals = new Map();
     for (const row of rows) {
@@ -89,10 +89,10 @@ function assignColors(rows) {
 }
 
 function drawPlot(rows, palette, bounds, width, height, layout) {
-    // The scaffold wants a fixed series list. Series = the union of
-    // every bar's top five, stacked in palette order so a segment
-    // never jumps inside the stack; a bar omits operators not in its
-    // own top five. Largest aggregate sits at the baseline.
+    // The scaffold wants a fixed series list. Series = the union of every bar's
+    // top five, stacked in palette order so a segment never jumps inside the
+    // stack; a bar omits operators not in its own top five. Largest aggregate
+    // sits at the baseline.
     const series = [...palette.entries()].map(([asn, slot]) => ({
         key: `as-${asn}`,
         asn,
@@ -128,9 +128,9 @@ function drawPlot(rows, palette, bounds, width, height, layout) {
     );
 }
 
-// Tooltip: the bar's top five in rank order (largest first, reverse
-// of the visual stack), each with its segment's colour dot, then the
-// combined CR5 the stack height shows.
+// Tooltip: the bar's top five in rank order (largest first, reverse of the
+// visual stack), each with its segment's colour dot, then the combined CR5 the
+// stack height shows.
 function tooltipBody(row, palette) {
     const rows = row.top.map((entry) => [
         operatorLabel(entry.asn),
@@ -144,8 +144,8 @@ function tooltipBody(row, palette) {
     return buildTooltipBody({ title: formatDate(row.label), rows });
 }
 
-// Operator name when known, bare AS number otherwise. Names keep
-// the tooltip self-explanatory in the absence of a legend.
+// Operator name when known, bare AS number otherwise. Names keep the tooltip
+// self-explanatory in the absence of a legend.
 function operatorLabel(asn) {
     return nameFor(asn) ?? `AS${asn}`;
 }

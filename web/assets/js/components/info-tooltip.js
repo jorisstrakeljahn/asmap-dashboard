@@ -48,8 +48,8 @@ export function createInfoTooltip({ text, body, ariaLabel, sheetHeader } = {}) {
 
     // Two-stage open / close model:
     //
-    //   open   — panel is currently visible (hover or click)
-    //   sticky — committed via click; mouseleave does not auto-close
+    //   open   - panel is currently visible (hover or click)
+    //   sticky - committed via click; mouseleave does not auto-close
     //
     // The "click toggles open" pattern fights hover-preview (a
     // click on an already-hovered icon would close it again), so
@@ -307,7 +307,7 @@ export function createInfoTooltip({ text, body, ariaLabel, sheetHeader } = {}) {
 // stripped (a dead "i" only confuses) and ids dropped (the sheet copy
 // must not duplicate an id still live in the card). Read at open time, so
 // it tracks the current build. Callers pass the element whose numbers
-// frame the explanation — a card, or a smaller wrap like the node-impact
+// frame the explanation - a card, or a smaller wrap like the node-impact
 // banner.
 //
 // ``exclude`` lists selectors to leave out, used where a card hosts
@@ -382,7 +382,7 @@ function buildIcon() {
 // One node for the whole page (only one tooltip opens at a time), built
 // lazily on the first touch open. The open tooltip registers an
 // ``onRequestClose`` so any dismissal (scrim, swipe, Escape, pointer-type
-// change) routes back through its setOpen(false) — the one close path
+// change) routes back through its setOpen(false) - the one close path
 // that also restores focus.
 let infoSheet = null;
 
@@ -533,7 +533,7 @@ function createInfoSheet() {
     }
 
     backdrop.addEventListener("click", (ev) => {
-        // Scrim tap only — a click that bubbled up from the sheet body
+        // Scrim tap only - a click that bubbled up from the sheet body
         // keeps it open.
         if (ev.target === backdrop) requestClose();
     });

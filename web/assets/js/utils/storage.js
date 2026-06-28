@@ -1,6 +1,5 @@
-// Safe localStorage wrappers. Access throws in Safari private
-// mode and when storage is disabled; every helper here collapses
-// the failure path to the supplied fallback.
+// Safe localStorage wrappers. Access throws in Safari private mode and when
+// storage is disabled; every helper collapses the failure to the fallback.
 
 export function readFlag(key, fallback) {
     try {
@@ -21,10 +20,9 @@ export function writeFlag(key, value) {
     }
 }
 
-// String setting with a whitelist guard. Returns ``fallback`` if
-// storage is unavailable, the key is unset, or the value isn't
-// allowed — the last case keeps a stale value from a removed
-// picker option from leaking into the UI.
+// String setting with a whitelist guard. Returns ``fallback`` if storage is
+// unavailable, the key is unset, or the value isn't allowed - the last case
+// keeps a stale value from a removed picker option from leaking into the UI.
 export function readSetting(key, allowed, fallback) {
     try {
         const raw = localStorage.getItem(key);

@@ -5,7 +5,7 @@
 // Separate from drift on purpose: drift measures how much address
 // space changed, this measures how many distinct operators the map
 // can tell apart under the asmap GetGroup() rule. The signals are
-// independent — a diff that only reassigns prefixes between existing
+// independent - a diff that only reassigns prefixes between existing
 // operators leaves this line flat; one new operator moves it by one.
 
 import { mountResponsiveChart } from "../charts/chart-base.js";

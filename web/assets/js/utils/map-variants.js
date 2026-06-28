@@ -1,6 +1,6 @@
-// Variant selection rules. ``unfilled`` is the canonical source
-// of truth (filled can be derived from it, not vice versa), so
-// surfaces default to unfilled and fall back to filled.
+// Variant selection rules. ``unfilled`` is the canonical source of truth
+// (filled can be derived from it, not vice versa), so surfaces default to
+// unfilled and fall back to filled.
 
 const UNFILLED = "unfilled";
 const FILLED = "filled";
@@ -9,9 +9,9 @@ function isPresent(variant) {
     return Boolean(variant && variant.present);
 }
 
-// Returns { profile, source } so the caller can label the data
-// ("source data" vs "filled fallback") without re-deriving which
-// side won. ``null`` when neither variant is present.
+// Returns { profile, source } so the caller can label the data ("source data"
+// vs "filled fallback") without re-deriving which side won. Null when neither
+// variant is present.
 export function pickPreferUnfilled(map) {
     if (!map) return null;
     if (isPresent(map.unfilled)) {

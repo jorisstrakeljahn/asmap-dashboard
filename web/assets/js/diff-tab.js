@@ -1,4 +1,4 @@
-// Diff Explorer tab: pick any two builds and inspect what changed —
+// Diff Explorer tab: pick any two builds and inspect what changed -
 // match rate, the three-bucket classification of entry-level changes,
 // and the top movers table. Owns the IPv4 / IPv6 family toggle, which
 // re-renders via the explorer's setFamily() handle.

@@ -50,9 +50,9 @@ export function t(key, params) {
     return value;
 }
 
-// Routes through Intl.PluralRules so non-English locales pick up
-// "few" / "many" / etc. automatically. Falls back to ``other`` if
-// the loaded dictionary lacks the selected category.
+// Routes through Intl.PluralRules so non-English locales pick up "few" /
+// "many" / etc. automatically. Falls back to ``other`` if the loaded
+// dictionary lacks the selected category.
 export function tPlural(key, count, params = {}) {
     const rules = pluralRules || makePluralRules(locale);
     const category = rules.select(count);
@@ -87,9 +87,8 @@ function interpolate(template, params) {
     });
 }
 
-// Localises static HTML at bootstrap. ``data-i18n="key"`` sets
-// textContent; ``data-i18n-attr="attr:key,attr:key"`` sets one or
-// more attributes from the same dictionary.
+// Localises static HTML at boot: data-i18n="key" sets textContent,
+// data-i18n-attr="attr:key,..." sets attributes from the same dictionary.
 export function applyDomTranslations(root = document) {
     for (const el of root.querySelectorAll("[data-i18n]")) {
         const value = t(el.getAttribute("data-i18n"));
