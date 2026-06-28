@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 # Least-privilege default: these jobs only read the checked-out code
-# and run tests/linters, so they never need a writable token — even
+# and run tests/linters, so they never need a writable token - even
 # though fork PRs run the PR author's install/build code.
 permissions:
   contents: read
@@ -42,7 +42,7 @@ jobs:
     # ESLint runs against the static web/ assets to catch obvious
     # typos and unused imports before a drive-by contributor opens
     # a PR. The dashboard has no build step, so a single Node
-    # version is enough — pin to the active LTS.
+    # version is enough - pin to the active LTS.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -55,6 +55,25 @@ jobs:
       - run: npm ci
 
       - run: npm run lint
+
+  test-js:
+    # The dashboard's pure JS logic (range resolution, top-movers sort,
+    # diff lookups, bar geometry, variant selection) is unit-tested with
+    # Node's built-in runner - no Jest/Vitest, no jsdom. A drift guard also
+    # asserts the vendored lit-html still matches the package.json pin. No
+    # build step, so a single active-LTS Node is enough.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm test
 
   pytest:
     runs-on: ubuntu-latest
