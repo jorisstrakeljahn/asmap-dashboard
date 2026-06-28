@@ -1,6 +1,7 @@
 // Tiny shared DOM helpers; anything past a one-liner belongs in its component.
 
 import { render } from "../vendor/lit-html.js";
+import { claimContainer } from "./lit-host.js";
 
 // In utils, not symbols.js: a DOM API constant for createElementNS, not a glyph.
 export const SVG_NS = "http://www.w3.org/2000/svg";
@@ -20,6 +21,15 @@ export function mutedNote(text) {
     note.className = "muted";
     note.textContent = text;
     return note;
+}
+
+// Hand a container over to lit, clearing any one-time placeholder (a static
+// skeleton from index.html, or one injected while the data was loading) the
+// first time lit renders into it - see claimContainer for why. Later
+// re-renders skip the clear and let lit reconcile in place.
+export function renderInto(template, container) {
+    claimContainer(container);
+    render(template, container);
 }
 
 // Render a single-root lit template once and hand back the real element. Many

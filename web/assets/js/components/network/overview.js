@@ -13,9 +13,9 @@
 // ASmap coverage has no card: it idles at ~99.9% and reads as noise; its story
 // lives in the coverage trend chart.
 
-import { html, nothing, render } from "../../vendor/lit-html.js";
+import { html, nothing } from "../../vendor/lit-html.js";
 import { formatNumber, formatPercent } from "../../format.js";
-import { mutedNote } from "../../utils/dom.js";
+import { mutedNote, renderInto } from "../../utils/dom.js";
 import { t } from "../../utils/i18n.js";
 import {
     createCard,
@@ -29,7 +29,7 @@ const TARGET_STALENESS_DAYS = 365;
 export function mount(parent, { snapshot, decay, latestUpdate, asOf }) {
     if (!parent) return;
     if (!snapshot) {
-        render(mutedNote(t("network.overview.empty")), parent);
+        renderInto(mutedNote(t("network.overview.empty")), parent);
         return;
     }
     // The optional latest-update card slots into row 2 next to staleness (both
@@ -47,7 +47,7 @@ export function mount(parent, { snapshot, decay, latestUpdate, asOf }) {
     // A muted caption above the card row names the crawl and its snapshot date:
     // the source switch lives in the section header, so the date sits where the
     // numbers are and updates with the switch.
-    render(
+    renderInto(
         html`
             ${asOf
                 ? html`<p class="network-overview__meta muted">${asOf}</p>`
