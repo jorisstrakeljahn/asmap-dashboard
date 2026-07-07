@@ -32,8 +32,11 @@ TOP_ASES_LIMIT = 15
 
 # Preferred node set for the all-pairs node-impact pass. Mirrors the
 # frontend's series-data.js SOURCE_ORDER so card and payload count the
-# same nodes; KIT first because it is the live, fully annotated crawl.
-PRIMARY_SOURCE_ORDER = ("kit", "bitnodes", "bitmex")
+# same nodes; KIT first because it is the fully annotated crawl, then
+# bitmex (the live bitnod.es continuation) over the archived bitnodes
+# series, so the diff banner scores against the freshest node set when
+# KIT is absent (the public CI build).
+PRIMARY_SOURCE_ORDER = ("kit", "bitmex", "bitnodes")
 
 # Minimum share of clearnet nodes that must carry a crawler ASN before
 # the cross-check is shown; below it the sample is too thin to trust.
