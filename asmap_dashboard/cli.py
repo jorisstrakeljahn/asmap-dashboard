@@ -19,6 +19,7 @@ from asmap_dashboard.asn_names import BGP_TOOLS_URL
 from asmap_dashboard.asn_names import refresh as refresh_asn_names
 from asmap_dashboard.diff import diff_maps
 from asmap_dashboard.metrics import SCHEMA_VERSION, generate_dashboard_data
+from asmap_dashboard.network.merge import merge_network_payloads
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -97,6 +98,32 @@ def _build_parser() -> argparse.ArgumentParser:
             "Directory of Bitnodes snapshots (b10c JSON crawls and/or "
             "bitnod.es CSV exports); adds the network section."
         ),
+    )
+
+    p_merge = sub.add_parser(
+        "merge-network",
+        help=(
+            "Graft the committed KIT-only network payload into the "
+            "CI-generated one (see network/merge.py for the rules)."
+        ),
+    )
+    p_merge.add_argument(
+        "--base",
+        type=Path,
+        required=True,
+        help="The CI-generated network.json (its top-level keys win).",
+    )
+    p_merge.add_argument(
+        "--extra",
+        type=Path,
+        required=True,
+        help="The committed payload whose extra sources are grafted in.",
+    )
+    p_merge.add_argument(
+        "--out",
+        type=Path,
+        required=True,
+        help="Where to write the merged payload (may equal --base).",
     )
 
     p_refresh = sub.add_parser(
@@ -221,6 +248,14 @@ def _run_metrics(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_merge_network(args: argparse.Namespace) -> int:
+    merged = merge_network_payloads(args.base, args.extra)
+    if merged is None:
+        sys.stderr.write("merge-network: neither input exists, nothing written\n")
+        return 0
+    return _emit_json(merged, args.out, compact=True)
+
+
 def _run_refresh_asn_names(args: argparse.Namespace) -> int:
     count = refresh_asn_names(args.payload, args.out, source_url=args.source_url)
     sys.stderr.write(f"Wrote {count} ASN names to {args.out}\n")
@@ -233,6 +268,7 @@ _COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     "analyze": _run_analyze,
     "diff": _run_diff,
     "metrics": _run_metrics,
+    "merge-network": _run_merge_network,
     "refresh-asn-names": _run_refresh_asn_names,
 }
 

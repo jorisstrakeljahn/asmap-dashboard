@@ -5,10 +5,12 @@ Start here for the big picture. This is the one-screen map of how data flows thr
 ## Data flow
 
 ```
-bitcoin-core/asmap-data        snapshots/ (KIT + Bitnodes, private)
-  <year>/<ts>_asmap.dat          *_dossier.json / <ts>.json
-  <year>/<ts>_asmap_unfilled.dat        │
-        │                               │
+bitcoin-core/asmap-data        node snapshots
+  <year>/<ts>_asmap.dat          public: network-snapshots release
+  <year>/<ts>_asmap_unfilled.dat   (bitnodes.io archive + daily
+        │                           bitnod.es CSVs, fetch-bitmex.yml)
+        │                         private: KIT dossiers -> committed
+        │                           data/network-kit.json (merged in)
         ▼                               ▼
   asmap_dashboard/  ── Python pipeline (stdlib only) ──┐
     metrics.py      profile every build, diff every pair │
@@ -29,7 +31,7 @@ bitcoin-core/asmap-data        snapshots/ (KIT + Bitnodes, private)
     network-tab snapshot hero + trend charts + cross-check
 ```
 
-`metrics.json`, `diffs.json`, and `asn-names.json` are rebuilt on every deploy and are not tracked in git. `network.json` is committed because the snapshots behind it are not public yet - see the reproducibility note in the [README](../README.md#how-it-works).
+All payloads are rebuilt on every deploy and are not tracked in git. The `bitnodes`/`bitmex` series of `network.json` regenerate from the public snapshots on the `network-snapshots` release; the KIT series comes from the committed `data/network-kit.json` aggregate (its raw dossiers are not public) and is grafted in by `merge-network` - see the reproducibility note in the [README](../README.md#how-it-works).
 
 ## Module map
 
@@ -46,6 +48,7 @@ bitcoin-core/asmap-data        snapshots/ (KIT + Bitnodes, private)
 | `_prefix.py` | Prefix/range arithmetic shared by diff and metrics. |
 | `network/snapshots.py` | Source-agnostic snapshot loading (KIT, Bitnodes). |
 | `network/metrics.py` | The seven network-tap metrics (glossary below). |
+| `network/merge.py` | Graft the committed KIT payload into the CI-generated one. |
 
 ### Frontend (`web/assets/js/`)
 
@@ -87,7 +90,7 @@ The deliberate choices, each with the trade-off that justified it, so intent nev
 - **All dates are UTC.** Build times are parsed and compared on the UTC grid, so a build never renders on a different calendar day for viewers in different timezones.
 - **Diffs are unfilled-vs-unfilled.** Comparing the source variants isolates real BGP / RPKI / IRR drift from the rebalancing the `--fill` heuristic introduces; pairs without an unfilled side are shown as a gap, never a misleading number.
 - **The all-pairs diff is precomputed (O(N²)).** Every pair is diffed up front so the Diff Explorer pivots to any (A, B) with no backend; the cost budget and switch point live at the diff site in `metrics.py`.
-- **`network.json` is the one committed artefact.** Its KIT inputs are not public, so CI cannot regenerate or verify it - it must be rebuilt locally after any network-pipeline change (see the [README](../README.md#how-it-works)).
+- **`data/network-kit.json` is the one committed data artefact.** The KIT dossiers behind it are not public, so CI cannot regenerate or verify that series - it must be rebuilt locally after any network-pipeline change and is merged into the CI-generated `network.json` at deploy time (see the [README](../README.md#how-it-works)).
 
 ## The seven network-tap metrics
 

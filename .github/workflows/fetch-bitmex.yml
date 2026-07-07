@@ -1,0 +1,55 @@
+name: fetch-bitmex
+
+# Appends the newest bitnod.es (BitMEX Research) node CSVs to the
+# `network-snapshots` release, where the Pages build picks them up to
+# regenerate network.json (see pages.yml). Runs before the nightly
+# Pages cron so each deploy sees the freshest snapshot. Every missing
+# day in the lookback window is fetched (not just the newest), so a
+# one-day Action outage self-heals while bitnod.es still serves the
+# file; old dates 404 there quickly, hence the window.
+on:
+  schedule:
+    - cron: "17 22 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch missing CSVs and upload as release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          existing=$(gh release view network-snapshots -R "$REPO" \
+            --json assets --jq '.assets[].name')
+          covered=0
+          for offset in 0 1 2 3; do
+            day=$(date -u -d "-${offset} days" +%F)
+            name="bitcoin_nodes_${day}.csv.gz"
+            if echo "$existing" | grep -qx "$name"; then
+              echo "$name already archived"
+              covered=1
+              continue
+            fi
+            url="https://bitnod.es/csv/bitcoin_nodes_${day}.csv"
+            if curl -sf --max-time 120 "$url" -o /tmp/nodes.csv; then
+              gzip -n -9 -c /tmp/nodes.csv > "/tmp/$name"
+              gh release upload network-snapshots "/tmp/$name" -R "$REPO"
+              echo "uploaded $name ($(stat -c%s "/tmp/$name") bytes)"
+              covered=1
+            else
+              echo "$url not available"
+            fi
+          done
+          # Fail only when the whole window is empty: that means the
+          # source is down or moved and someone should look at it.
+          if [ "$covered" -eq 0 ]; then
+            echo "no CSV found within the lookback window" >&2
+            exit 1
+          fi
