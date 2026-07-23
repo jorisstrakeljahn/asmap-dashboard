@@ -55,14 +55,10 @@ def test_extract_asns_collects_network_top_ases():
         ],
         "network": {
             "sources": {
-                "kit": {
+                "bitnodes": {
                     "snapshots": [
                         {"top_ases": [{"asn": 24940}, {"asn": 14061}]},
                         {"top_ases": [{"asn": 14061}, {"asn": 0}]},
-                    ],
-                },
-                "bitnodes": {
-                    "snapshots": [
                         {"top_ases": [{"asn": 16509}]},
                     ],
                 },
@@ -227,7 +223,9 @@ def test_refresh_unions_multiple_payloads_and_skips_missing(tmp_path, capsys):
         json.dumps(
             {
                 "network": {
-                    "sources": {"kit": {"snapshots": [{"top_ases": [{"asn": 7018}]}]}}
+                    "sources": {
+                        "bitnodes": {"snapshots": [{"top_ases": [{"asn": 7018}]}]}
+                    }
                 }
             }
         )

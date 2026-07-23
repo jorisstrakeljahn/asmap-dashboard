@@ -7,16 +7,13 @@ actually announced on?".
 
 It is deliberately a separate subpackage from the per-map ``analyze`` /
 ``diff`` pipeline because its inputs come from outside asmap-data
-(node-list snapshots from KIT monitor nodes, Bitnodes crawls, ...) and
-those inputs are not guaranteed to be public yet. ``generate_dashboard_data``
+(public Bitnodes crawler snapshots). ``generate_dashboard_data``
 only attaches the ``network`` section when a caller passes snapshot
 sources, so the public Maps/Diff payload stays byte-for-byte unchanged
 when no snapshots are available.
 
-Source-agnostic by design: every snapshot loader returns the same
-``Snapshot`` shape (a timestamp plus a list of clearnet ``Node``s), so a
-new crawler can be plugged in by writing one loader without touching the
-metric code.
+The archive and daily export shapes normalise to the same ``Snapshot`` shape
+and source id. Independent WHOIS annotation is an optional preprocessing step.
 """
 
 from asmap_dashboard.network.snapshots import (

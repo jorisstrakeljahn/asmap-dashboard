@@ -118,16 +118,21 @@ def test_metrics_splits_top_movers_into_detail_file(tmp_path):
 
 
 def test_metrics_writes_network_payload_when_sources_given(tmp_path):
-    """--kit-dir produces a third file carrying only the network section."""
+    """--bitnodes-dir produces a third file carrying the network section."""
     (tmp_path / "data" / "2024").mkdir(parents=True)
     write_asmap(
         tmp_path / "data" / "2024" / "1700000000_asmap_unfilled.dat",
         [(ipaddress.IPv4Network("1.0.0.0/8"), 100)],
     )
-    kit_dir = tmp_path / "kit"
-    kit_dir.mkdir()
-    (kit_dir / "20240315_120000_dossier.json").write_text(
-        json.dumps({"(IPv4Address('1.1.1.1'), 8333)": {"whois": {"asn": "100"}}})
+    bitnodes_dir = tmp_path / "bitnodes"
+    bitnodes_dir.mkdir()
+    (bitnodes_dir / "1710504000.json").write_text(
+        json.dumps(
+            {
+                "timestamp": 1710504000,
+                "nodes": {"1.1.1.1:8333": [70016, "/Satoshi:29.0.0/", 1, 1, 1]},
+            }
+        )
     )
     out = tmp_path / "metrics.json"
 
@@ -138,8 +143,8 @@ def test_metrics_writes_network_payload_when_sources_given(tmp_path):
             str(tmp_path / "data"),
             "--out",
             str(out),
-            "--kit-dir",
-            str(kit_dir),
+            "--bitnodes-dir",
+            str(bitnodes_dir),
         ]
     )
 
@@ -147,7 +152,147 @@ def test_metrics_writes_network_payload_when_sources_given(tmp_path):
     assert "network" not in json.loads(out.read_text())
     network = json.loads((tmp_path / "network.json").read_text())
     assert network["schema_version"] == SCHEMA_VERSION
-    assert "kit" in network["network"]["sources"]
+    assert set(network["network"]["sources"]) == {"bitnodes"}
+
+
+def test_network_command_skips_prefix_diffs(tmp_path):
+    (tmp_path / "data" / "2024").mkdir(parents=True)
+    write_asmap(
+        tmp_path / "data" / "2024" / "1700000000_asmap_unfilled.dat",
+        [(ipaddress.IPv4Network("1.0.0.0/8"), 100)],
+    )
+    snapshots = tmp_path / "snapshots"
+    snapshots.mkdir()
+    (snapshots / "1710504000.json").write_text(
+        json.dumps(
+            {
+                "timestamp": 1710504000,
+                "nodes": {"1.1.1.1:8333": [70016, "/Satoshi:29.0.0/", 1, 1, 1]},
+            }
+        )
+    )
+    out = tmp_path / "network.json"
+
+    with patch(
+        "asmap_dashboard.metrics._compute_pair_diffs",
+        side_effect=AssertionError("network must not compute prefix diffs"),
+    ):
+        rc = main(
+            [
+                "network",
+                "--data-dir",
+                str(tmp_path / "data"),
+                "--bitnodes-dir",
+                str(snapshots),
+                "--out",
+                str(out),
+            ]
+        )
+
+    assert rc == 0
+    payload = json.loads(out.read_text())
+    assert payload["schema_version"] == SCHEMA_VERSION
+    assert set(payload["network"]["sources"]) == {"bitnodes"}
+
+
+def test_metrics_whois_fixture_requires_local_cache(tmp_path, capsys):
+    (tmp_path / "data" / "2024").mkdir(parents=True)
+    fixture = tmp_path / "whois.json"
+    fixture.write_text('{"records":{}}\n')
+
+    rc = main(
+        [
+            "metrics",
+            "--data-dir",
+            str(tmp_path / "data"),
+            "--whois-fixture",
+            str(fixture),
+        ]
+    )
+
+    assert rc == 2
+    assert "requires --whois-cache" in capsys.readouterr().err
+
+
+def test_network_cache_only_accepts_legacy_records_without_timestamps(tmp_path):
+    (tmp_path / "data" / "2024").mkdir(parents=True)
+    write_asmap(
+        tmp_path / "data" / "2024" / "1710000000_asmap_unfilled.dat",
+        [(ipaddress.IPv4Network("1.0.0.0/8"), 100)],
+    )
+    snapshots = tmp_path / "snapshots"
+    snapshots.mkdir()
+    (snapshots / "bitcoin_nodes_2026-06-21.csv").write_text(
+        "export_date,ip_address,port,country\n2026-06-21,1.1.1.1,8333,DE\n"
+    )
+    cache = tmp_path / "whois.json"
+    cache.write_text(
+        json.dumps({"records": {"1.1.1.1": {"asn": 100, "country": "DE"}}})
+    )
+    out = tmp_path / "network.json"
+
+    rc = main(
+        [
+            "network",
+            "--data-dir",
+            str(tmp_path / "data"),
+            "--bitnodes-dir",
+            str(snapshots),
+            "--whois-cache",
+            str(cache),
+            "--out",
+            str(out),
+        ]
+    )
+
+    assert rc == 0
+    network = json.loads(out.read_text())["network"]
+    assert network["sources"]["bitnodes"]["decay_truth"]["node_set_size"] == 1
+    assert network["reality_attribution"]["provider"] == "local-cache"
+
+
+def test_metrics_whois_fixture_populates_cache_and_reality_curve(tmp_path):
+    (tmp_path / "data" / "2024").mkdir(parents=True)
+    write_asmap(
+        tmp_path / "data" / "2024" / "1710000000_asmap_unfilled.dat",
+        [(ipaddress.IPv4Network("1.0.0.0/8"), 100)],
+    )
+    snapshots = tmp_path / "snapshots"
+    snapshots.mkdir()
+    (snapshots / "bitcoin_nodes_2026-06-21.csv").write_text(
+        "export_date,ip_address,port,country\n2026-06-21,1.1.1.1,8333,DE\n"
+    )
+    fixture = tmp_path / "fixture.json"
+    fixture.write_text(
+        json.dumps({"records": {"1.1.1.1": {"asn": 100, "country": "DE"}}})
+    )
+    cache = tmp_path / "cache" / "whois.json"
+    out = tmp_path / "metrics.json"
+
+    rc = main(
+        [
+            "metrics",
+            "--data-dir",
+            str(tmp_path / "data"),
+            "--bitnodes-dir",
+            str(snapshots),
+            "--whois-cache",
+            str(cache),
+            "--whois-fixture",
+            str(fixture),
+            "--out",
+            str(out),
+        ]
+    )
+
+    assert rc == 0
+    network_text = (tmp_path / "network.json").read_text()
+    network = json.loads(network_text)["network"]
+    assert network["sources"]["bitnodes"]["decay_truth"]["node_set_size"] == 1
+    assert network["reality_attribution"]["scope"] == "latest_snapshot"
+    assert network["reality_attribution"]["coverage_pct"] == 100
+    assert json.loads(cache.read_text())["records"]["1.1.1.1"]["asn"] == 100
+    assert "1.1.1.1" not in network_text
 
 
 def test_metrics_stdout_keeps_combined_payload(tmp_path, capsys):
