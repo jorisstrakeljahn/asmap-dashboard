@@ -278,17 +278,22 @@
             "ariaLabel": "Address family"
         },
         "source": {
-            "kit": "KIT",
-            "bitnodes": "bitnodes.io",
-            "bitmex": "bitnod.es"
+            "bitnodes": "Bitnodes"
+        },
+        "whois": {
+            "teamCymru": "Team Cymru",
+            "localCache": "the local WHOIS cache",
+            "independent": "the independent WHOIS source"
+        },
+        "transition": {
+            "marker": "Export moved to bitnod.es"
         },
         "overview": {
             "sectionTitle": "Network",
-            "sectionLede": "This tab tests each ASmap build against the real Bitcoin nodes that crawlers observe on the network, so you can see how well a build actually groups the peers a node meets in practice.",
+            "sectionLede": "This tab scores published ASmaps against reachable Bitcoin nodes from Bitnodes. Provider and coverage details are shown with the independent ASN cross-check.",
             "empty": "No observed node snapshots in network.json.",
-            "clearnetNote": "The cards count only clearnet (IPv4/IPv6) reachable nodes - Tor, I2P, and CJDNS peers have no IP for ASmap to resolve to an autonomous system, so they are left out.",
+            "clearnetNote": "The series combines archived bitnodes.io snapshots with daily bitnod.es CSV exports. Chart markers show the handoff. Tor, I2P, and CJDNS peers are excluded because ASmap needs an IP address.",
             "snapshotMeta": "{source} crawl, latest snapshot {date} - scored against ASmap build {build}",
-            "sourceSwitchAria": "Card snapshot source",
             "familySplit": "IPv4 {ipv4}, IPv6 {ipv6}",
             "nodes": {
                 "label": "Reachable nodes",
@@ -360,33 +365,34 @@
         },
         "charts": {
             "sectionTitle": "Trends",
-            "sectionLede": "These trends follow how the map performs against the observed network over time, with each independent crawler drawn as its own line so they confirm one another. Click a legend entry to isolate one."
+            "sectionLede": "These charts follow one Bitnodes series. The marker shows where exports moved from archived bitnodes.io JSON to daily bitnod.es CSVs."
         },
         "decay": {
             "title": "Map staleness for today's nodes",
-            "ledeTruth": "How wrong an aging map is for the nodes a crawler sees today, checked against reality (the crawler's own whois): the share it files under a different operator than the node really sits in. Time runs from today on the left into the past on the right, so each line starts at its crawler's freshest snapshot and climbs as the map ages. Even the newest point sits above zero - the attribution gap against live routing - so where a line crosses your tolerance is how often a fresh map is worth shipping. Only crawlers that ship their own whois carry that ground truth, so bitnod.es is greyed out here; switch to \u201cNewest map\u201d to compare it too.",
+            "ledeTruth": "This checks aging maps against the BGP origin ASN that {provider} returned for the latest Bitnodes snapshot. The line shows the share of nodes assigned to a different operator. Time runs from today on the left into the past on the right.",
             "ledeMap": "How much an aging map reshuffles the nodes a crawler sees today versus that crawler's own freshest map: the share it moves to a different operator. Time runs from today on the left into the past on the right, and each line's freshest map is its own zero, so it starts at zero and climbs with age - isolating how much aging alone changes the buckets. Switch to \u201cReality\u201d to measure against live routing instead.",
+            "ledeMapNoWhois": "This chart compares older maps with the latest map on the current node set. Reality and the ASN cross-check stay hidden when the independent lookup is unavailable or covers less than half of the latest snapshot.",
             "infoAria": "About the staleness curve",
-            "ariaLabel": "Share of each crawler's most recent observed nodes that an older build resolves to a different autonomous system, against the picked reference. The axis runs from today on the left into the past on the right. One line per crawler.",
+            "ariaLabel": "Share of the most recent observed nodes that an older build resolves to a different autonomous system, against the picked reference. The axis runs from today on the left into the past on the right.",
             "tooltipTitle": "{date} build, {days} days old",
             "reference": {
                 "truth": "Reality",
                 "map": "Newest map",
                 "ariaLabel": "Staleness reference"
             },
-            "noWhois": "No whois on this crawler's snapshots, so there is no ground truth to measure against here.",
+            "noWhois": "The latest snapshot does not yet have sufficient independent WHOIS coverage.",
             "info": [
                 "Each crawler's most recent node set, held fixed and looked up in every build at or older than that snapshot, plotted from today on the left into the past on the right. Holding the node set fixed means map age is the only thing changing between points.",
-                "Reality: each build's disagreement with the crawler's own whois ASN. The newest point equals the attribution gap (100 minus the agreement shown below) and age only adds to it - the direct \u201cwhen do I need a fresher map?\u201d reading. Each crawler is anchored on its newest whois-bearing snapshot, so a frozen archive starts at its last annotated crawl; crawlers without whois are greyed out here.",
-                "Newest map: each build versus that crawler's own freshest map, which sits at zero. This isolates how much aging alone reshuffles the buckets and works for every crawler.",
-                "One line per crawler. Where they overlap, the map ages the same no matter who observed the network."
+                "Reality: each build's disagreement with independent WHOIS on the latest snapshot. The newest point equals the attribution gap (100 minus the agreement shown below) and age only adds to it - the direct \u201cwhen do I need a fresher map?\u201d reading. If fewer than half of the latest nodes have WHOIS, this view is unavailable rather than falling back to stale archive tags.",
+                "Newest map: each build versus the crawler's own freshest map, which sits at zero. This isolates how much aging alone reshuffles the buckets and needs no WHOIS.",
+                "Both views hold the node set fixed, so only the map changes between points."
             ]
         },
         "hhi": {
             "title": "AS concentration (HHI) over time",
             "lede": "The same concentration boiled down to a single score, the chance that two random nodes belong to the same operator. Lower is better, since it means nodes are spread across many operators rather than bunched into a few.",
             "infoAria": "About AS concentration over time",
-            "ariaLabel": "Herfindahl-Hirschman index of the observed node set across every snapshot, scored against the build in effect at each one. One line per crawler. Lower means more diverse.",
+            "ariaLabel": "Herfindahl-Hirschman index of the observed node set across every snapshot, scored against the build in effect at each one. Lower means more diverse.",
             "info": [
                 "Pick two observed nodes at random: this index is the chance they sit in the same autonomous system. At 0.02 that chance is 2 percent.",
                 "The same HHI as the concentration card, but scored against the build in effect at each snapshot. A falling line means the network keeps spreading across more operators.",
@@ -398,31 +404,30 @@
             "title": "ASmap coverage of observed nodes",
             "lede": "How much of the real network the map can place at all, meaning the share of observed nodes whose address it can match to an operator. A falling line means ASmap's data is lagging behind where new nodes are appearing.",
             "infoAria": "About ASmap coverage over time",
-            "ariaLabel": "Share of each snapshot's clearnet nodes the build in effect resolves to an autonomous system. One line per crawler. Higher means the map fits the network better.",
+            "ariaLabel": "Share of each snapshot's clearnet nodes the build in effect resolves to an autonomous system. Higher means the map fits the network better.",
             "info": [
                 "For each snapshot, the share of clearnet nodes the build in effect resolves to an autonomous system. The rest fall outside every prefix the map carries and use Bitcoin Core's default /16 and /32 groups.",
                 "The HHI chart asks how mapped nodes distribute; this asks how many get mapped at all. A falling line means the routing data behind ASmap is lagging where the nodes are.",
                 "Each snapshot is scored against the build in effect at its crawl time, so it reflects what a then current map actually delivered.",
-                "The dips are map staleness, not bad data: coverage sags as a map ages and snaps back at each release. The deepest (KIT, August 2024) was crawled hours before a release against a five-month-old build, so every node it missed resolves under the next one."
+                "Coverage can sag as a map ages and snap back at the next release; each snapshot is paired with the build then in effect."
             ]
         },
         "concentration": {
             "combinedLabel": "Top {count} combined",
             "operatorsTitle": "Top 5 operators per snapshot",
-            "sourceSwitchAria": "Operator breakdown source",
             "operatorsLede": "Where those observed nodes actually sit, shown as the combined share of the network held by the five largest operators at each point in time. A shrinking stack means nodes are spreading across more operators, which is healthier, since no single operator comes close to surrounding a node.",
             "operatorsInfoAria": "About the top operator breakdown",
             "operatorsAria": "Stacked bars, one per snapshot of the selected crawler, segmented into that snapshot's five largest operators by node share. The bar height is the combined top-5 share. Hover a bar for the operator names.",
             "operatorsInfo": [
                 "One bar per snapshot, split into the five operators with the largest node share at that point, scored against the build in effect. Bar height is the combined top-5 share, so a shrinking bar means the top tier is losing its grip.",
                 "The top five are re-picked per snapshot, since a fixed five would understate the share when a new operator rises. Each operator keeps its colour across bars, so a colour appearing or vanishing is the tier reshuffling. Hover a bar for the names.",
-                "KIT only, the live crawl. The cross-crawler check lives in the decay and HHI charts above."
+                "The bars follow the same Bitnodes lineage as the other Network charts."
             ]
         },
         "crosscheck": {
             "label": "ASN attribution agreement",
             "metric": "~{pct}",
-            "note": "Share of nodes where the {source} crawl's own ASN tag matches the ASmap lookup for the same IP - a data-quality cross-check, not a network-health metric. A few percent always differ where whois and routing disagree, so a steady reading (both crawlers stay within a {min} to {max} band) is evidence the data behind every chart is sound."
+            "note": "For the latest {source} snapshot, {provider} returned a BGP origin ASN for {coverage} of clearnet nodes. {agreement} matched the ASmap lookup across {compared} nodes that both methods could map. This checks attribution data, not network health."
         }
     },
 

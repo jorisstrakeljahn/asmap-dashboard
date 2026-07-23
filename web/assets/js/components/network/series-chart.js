@@ -49,10 +49,13 @@ export function mountSeriesChart(parent, config) {
         // + caller-supplied ticks). See line-chart.js.
         linearDomain = false,
         xTicks = null,
+        xMarkers = [],
         state = { hidden: new Set() },
     } = config;
 
     if (!state.hidden) state.hidden = new Set();
+    const legendEntries = [...series, ...unavailableSeries];
+    if (legendEntries.length <= 1) state.hidden.clear();
 
     if (!Array.isArray(timestamps) || timestamps.length === 0) {
         parent.replaceChildren(mutedNote(emptyMessage ?? t("network.empty")));
@@ -62,20 +65,23 @@ export function mountSeriesChart(parent, config) {
     // ctrl is the mountTimeSeriesCard handle; the legend toggle closure below
     // calls it on click, by which point it is assigned.
     let ctrl;
-    const legend = createChartLegend({
-        entries: series.map((s) => ({
-            key: s.key,
-            label: s.label,
-            swatchClass: s.swatchClass,
-        })),
-        hidden: state.hidden,
-        onToggle: (key) => {
-            if (state.hidden.has(key)) state.hidden.delete(key);
-            else state.hidden.add(key);
-            ctrl?.rerender();
-        },
-        unavailable: unavailableSeries,
-    });
+    const legend =
+        legendEntries.length > 1
+            ? createChartLegend({
+                  entries: series.map((s) => ({
+                      key: s.key,
+                      label: s.label,
+                      swatchClass: s.swatchClass,
+                  })),
+                  hidden: state.hidden,
+                  onToggle: (key) => {
+                      if (state.hidden.has(key)) state.hidden.delete(key);
+                      else state.hidden.add(key);
+                      ctrl?.rerender();
+                  },
+                  unavailable: unavailableSeries,
+              })
+            : null;
 
     ctrl = mountTimeSeriesCard(parent, {
         title,
@@ -98,6 +104,7 @@ export function mountSeriesChart(parent, config) {
                     domainEnd,
                     linearDomain,
                     xTicks,
+                    xMarkers,
                     hidden: state.hidden,
                 },
                 width,
@@ -129,6 +136,7 @@ function drawPlot(spec, width, height, layout) {
             yTitle: null,
             linearDomain: spec.linearDomain,
             xTicks: spec.xTicks,
+            xMarkers: spec.xMarkers,
             ariaLabel: spec.ariaLabel,
             tooltipBodyAt: (i) =>
                 buildTooltipBody({

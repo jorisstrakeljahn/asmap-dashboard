@@ -10,7 +10,7 @@ import { createModeSwitch } from "../mode-switch.js";
 import { mountOperatorsChart } from "./operators-chart.js";
 import { mountSeriesChart } from "./series-chart.js";
 import {
-    SOURCE_ORDER,
+    attributionProviderLabel,
     buildUnionTimeline,
     sourceLabel,
     sourceSeries,
@@ -36,7 +36,7 @@ function ensureToggle(state, factory) {
 // ``rerender`` re-runs this whole pass when a chart's own toggle changes.
 export function mountTrendCharts(network, sources, bounds, states, rerender) {
     mountDecayChart(network, sources, bounds, states.decay, rerender);
-    mountConcentrationChart(network, bounds, states.operators, rerender);
+    mountConcentrationChart(network, bounds, sources[0]);
     mountHhiChart(network, sources, bounds, states.hhi, rerender);
     mountCoverageChart(network, sources, bounds, states.coverage);
 }
@@ -51,7 +51,7 @@ export function mountTrendCharts(network, sources, bounds, states, rerender) {
 //   - "truth" (default): vs the crawler's own whois ASN. The freshest point is
 //     the live attribution gap, rising into the past - the direct "when do I
 //     need a fresher map?" reading. Only whois-bearing crawlers can be scored;
-//     the rest are greyed in the legend.
+//     without current WHOIS the tab defaults to the map view.
 //   - "map": vs the crawler's own freshest map (yardstick at 0), isolating how
 //     much aging alone reshuffles the bucketing. Defined for every crawler.
 //
@@ -63,6 +63,9 @@ function mountDecayChart(network, sources, bounds, state, rerender) {
     // The shared "now" edge: rangeBounds pins domainEnd to today, so the decay
     // axis mirrors the other charts off the same instant.
     const nowMs = bounds.domainEnd;
+    const truthAvailable = sources.some(
+        (source) => network.sources[source].decay_truth?.points?.length,
+    );
     const truthMode = (state.ref ?? "truth") === "truth";
     // Each mode reads its own curve: "map" is anchored on every crawler's
     // newest snapshot; "truth" only exists for crawlers that ship whois,
@@ -92,24 +95,33 @@ function mountDecayChart(network, sources, bounds, state, rerender) {
             : (bounds.domainEnd - bounds.cutoff) / MS_PER_DAY;
     const timeline = clampTimelineMax(buildUnionTimeline(entries), ageWindowDays);
 
-    const refToggle = ensureToggle(state, () =>
-        createModeSwitch({
-            options: ["truth", "map"].map((value) => ({
-                value,
-                label: t(`network.decay.reference.${value}`),
-            })),
-            value: state.ref ?? "truth",
-            onChange: (next) => {
-                state.ref = next;
-                rerender();
-            },
-            ariaLabel: t("network.decay.reference.ariaLabel"),
-        }),
-    );
+    const refToggle = truthAvailable
+        ? ensureToggle(state, () =>
+              createModeSwitch({
+                  options: ["truth", "map"].map((value) => ({
+                      value,
+                      label: t(`network.decay.reference.${value}`),
+                  })),
+                  value: state.ref ?? "truth",
+                  onChange: (next) => {
+                      state.ref = next;
+                      rerender();
+                  },
+                  ariaLabel: t("network.decay.reference.ariaLabel"),
+              }),
+          )
+        : null;
 
     mountSeriesChart(document.querySelector("[data-network-decay]"), {
         title: t("network.decay.title"),
-        lede: t(truthMode ? "network.decay.ledeTruth" : "network.decay.ledeMap"),
+        lede: t(
+            truthMode
+                ? "network.decay.ledeTruth"
+                : truthAvailable
+                  ? "network.decay.ledeMap"
+                  : "network.decay.ledeMapNoWhois",
+            { provider: attributionProviderLabel(network) },
+        ),
         ariaLabel: t("network.decay.ariaLabel"),
         headerExtra: refToggle,
         timestamps: timeline.timestamps,
@@ -234,6 +246,7 @@ function mountHhiChart(network, sources, bounds, state, rerender) {
         yFormat: formatHhi,
         domainStart: bounds.domainStart,
         domainEnd: bounds.domainEnd,
+        xMarkers: transitionMarkers(network),
         tooltipTitleAt: (i) => snapshotTitle(timeline, i),
         tooltipRowsAt: (i) => sourceRows(sources, timeline, i, formatHhi),
         state,
@@ -273,6 +286,7 @@ function mountCoverageChart(network, sources, bounds, state) {
         yCeil: 100,
         domainStart: bounds.domainStart,
         domainEnd: bounds.domainEnd,
+        xMarkers: transitionMarkers(network),
         tooltipTitleAt: (i) => snapshotTitle(timeline, i),
         tooltipRowsAt: (i) => sourceRows(sources, timeline, i, formatPercentNumber),
         state,
@@ -284,56 +298,36 @@ function mountCoverageChart(network, sources, bounds, state) {
 // The top-operator breakdown: stacked bars per snapshot, segmented into that
 // snapshot's actual top five so the height is the honest per-period CR5 (see
 // operators-chart.js). A stack is single-source by nature, so instead of
-// forcing one crawl it carries a header source switch - every crawl scores its
-// own top_ases, and the BitMEX roster makes its hosting-heavy vantage visible.
-// state.source persists the pick across range re-mounts; rerender re-runs on a
-// switch.
-function mountConcentrationChart(network, bounds, state, rerender) {
+// forcing multiple crawls it follows the one Bitnodes lineage.
+function mountConcentrationChart(network, bounds, source) {
     const parent = document.querySelector("[data-network-concentration]");
     if (!parent) return;
-    const sources = SOURCE_ORDER.filter(
-        (s) => network.sources[s]?.snapshots?.length,
-    );
-    if (sources.length === 0) {
+    if (!source || !network.sources[source]?.snapshots?.length) {
         parent.replaceChildren();
         return;
     }
-    if (!sources.includes(state.source)) state.source = sources[0];
-
-    // One switch instance, cached on state, so a range re-mount re-uses it (the
-    // card keeps its header, the pill keeps its transition).
-    const toggle =
-        sources.length > 1
-            ? ensureToggle(state, () =>
-                  createModeSwitch({
-                      options: sources.map((s) => ({
-                          value: s,
-                          label: sourceLabel(s),
-                      })),
-                      value: state.source,
-                      onChange: (next) => {
-                          state.source = next;
-                          rerender();
-                      },
-                      ariaLabel: t("network.concentration.sourceSwitchAria"),
-                  }),
-              )
-            : null;
-    if (toggle) toggle.setValue(state.source);
 
     mountOperatorsChart(parent, {
-        snapshots: network.sources[state.source].snapshots,
+        snapshots: network.sources[source].snapshots,
         bounds,
-        headerExtra: toggle,
+        xMarkers: transitionMarkers(network),
     });
+}
+
+function transitionMarkers(network) {
+    const transition = network.source_transition;
+    if (!transition?.timestamp) return [];
+    return [
+        {
+            timestamp: toMs(transition.timestamp),
+            label: t("network.transition.marker"),
+        },
+    ];
 }
 
 // ---- shared helpers ---------------------------------------------
 
-// Series descriptors for the trend charts. Every source uses its plain label:
-// KIT and Bitnodes are both ongoing crawls (the Bitnodes line stitches the b10c
-// archive to the bitnod.es / BitMEX continuation), so neither is marked as a
-// frozen archive.
+// Series descriptors for the single Bitnodes lineage.
 function legendSeries(sources) {
     return sources.map(sourceSeries);
 }

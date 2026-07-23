@@ -13,7 +13,7 @@ import { applyDomTranslations, loadStrings, t } from "./utils/i18n.js";
 // The data layer is split by size (see cli.py): metrics.json holds
 // the maps + per-pair diff summary (~100 KB), diffs.json the heavy
 // top-mover rosters (~99% of diff bytes), network.json the optional
-// KIT/Bitnodes section (~30 KB). metrics.json + network.json drive
+// Bitnodes network section. metrics.json + network.json drive
 // the first paint; diffs.json loads lazily when the Diff Explorer
 // opens (see ensureDiffMounted).
 const METRICS_URL = "assets/data/metrics.json";
@@ -26,7 +26,7 @@ const I18N_URL = "assets/i18n/en.json";
 // caches assets ~10 min, so post-deploy a browser can pair a stale
 // app.js with a fresh payload (or vice versa). Checking the payload
 // version turns silent nonsense (0.0% drift) into a reload banner.
-const EXPECTED_SCHEMA_VERSION = 8;
+const EXPECTED_SCHEMA_VERSION = 10;
 
 // Snapshot of the static tab-panel markup, captured before any tab
 // module swaps in rendered DOM. The error banner's retry button
@@ -39,7 +39,7 @@ let mainTemplate = null;
 // commit).
 //
 // ``optional`` turns a 404 into ``null`` (network.json only exists
-// when KIT data was available at generation time). A schema mismatch
+// when snapshot data was available at generation time). A schema mismatch
 // is retried once with cache "reload" to heal a stale CDN/browser
 // cache entry before giving up with the reload banner.
 async function loadPayload(url, { optional = false } = {}) {

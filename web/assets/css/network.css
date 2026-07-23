@@ -23,16 +23,6 @@
     }
 }
 
-.chart__line--kit,
-.chart__dot--kit {
-    stroke: var(--color-accent);
-    fill: var(--color-accent);
-}
-
-.chart__line--kit {
-    fill: none;
-}
-
 .chart__line--bitnodes,
 .chart__dot--bitnodes {
     stroke: var(--color-success);
@@ -43,26 +33,19 @@
     fill: none;
 }
 
-.chart__line--bitmex,
-.chart__dot--bitmex {
-    stroke: var(--color-series-2);
-    fill: var(--color-series-2);
+.chart__transition-line {
+    stroke: var(--color-text-muted);
+    stroke-dasharray: 4 4;
+    stroke-width: 1;
 }
 
-.chart__line--bitmex {
-    fill: none;
-}
-
-.chart-legend__swatch--kit {
-    background: var(--color-accent);
-}
-
-.chart-legend__swatch--bitnodes {
-    background: var(--color-success);
-}
-
-.chart-legend__swatch--bitmex {
-    background: var(--color-series-2);
+.chart__transition-label {
+    fill: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    paint-order: stroke fill;
+    stroke: var(--color-surface);
+    stroke-linejoin: round;
+    stroke-width: 4px;
 }
 
 .chart__bar--op1 {
