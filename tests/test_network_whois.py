@@ -161,6 +161,7 @@ def test_team_cymru_frames_single_and_bulk_requests(monkeypatch):
         def __init__(self):
             self.sent = b""
             self.shutdown_called = False
+            self._body = "13335 | 1.1.1.1 | 1.1.1.0/24 | AU | apnic | x | Cloudflare\n"
 
         def __enter__(self):
             return self
@@ -178,9 +179,7 @@ def test_team_cymru_frames_single_and_bulk_requests(monkeypatch):
             self.shutdown_called = True
 
         def makefile(self, *_args, **_kwargs):
-            return io.StringIO(
-                "13335 | 1.1.1.1 | 1.1.1.0/24 | AU | apnic | x | Cloudflare\n"
-            )
+            return io.StringIO(self._body)
 
     connection = _Connection()
     monkeypatch.setattr(
@@ -197,7 +196,45 @@ def test_team_cymru_frames_single_and_bulk_requests(monkeypatch):
 
     connection.sent = b""
     connection.shutdown_called = False
-    resolver._query_batch(["1.1.1.1", "8.8.8.8"])
+    connection._body = (
+        "Bulk mode; whois.cymru.com\n"
+        "13335 | 1.1.1.1 | 1.1.1.0/24 | AU | apnic | x | Cloudflare\n"
+        "15169 | 8.8.8.8 | 8.8.8.0/24 | US | arin | x | Google\n"
+    )
+    records = resolver._query_batch(["1.1.1.1", "8.8.8.8"])
 
     assert connection.sent == b"begin\nverbose\n1.1.1.1\n8.8.8.8\nend\n"
-    assert connection.shutdown_called
+    assert not connection.shutdown_called
+    assert records["1.1.1.1"].asn == 13335
+    assert records["8.8.8.8"].asn == 15169
+
+
+def test_team_cymru_empty_response_includes_preview(monkeypatch):
+    class _Connection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+        def settimeout(self, _timeout):
+            pass
+
+        def sendall(self, _payload):
+            pass
+
+        def makefile(self, *_args, **_kwargs):
+            return io.StringIO("Error: rate limited\ntry again later\n")
+
+    monkeypatch.setattr(
+        "asmap_dashboard.network.whois.socket.create_connection",
+        lambda *_args, **_kwargs: _Connection(),
+    )
+
+    try:
+        TeamCymruWhoisResolver()._query_batch(["1.1.1.1", "8.8.8.8"])
+    except RuntimeError as exc:
+        assert "no usable records for 2 IPs" in str(exc)
+        assert "rate limited" in str(exc)
+    else:
+        raise AssertionError("expected RuntimeError")

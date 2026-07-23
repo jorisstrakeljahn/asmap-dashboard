@@ -201,8 +201,11 @@ class TeamCymruWhoisResolver:
     def _query_batch(self, ips: Sequence[str]) -> dict[str, WhoisRecord]:
         if not ips:
             return {}
-        # The server's bulk mode can return an empty response for a one-address
-        # request. Its regular verbose form is reliable for that final batch.
+        # Single lookups use the regular verbose form: bulk mode can return an
+        # empty body for a one-address request. Do not half-close the socket
+        # after send; Team Cymru treats SHUT_WR as a cancelled query and
+        # answers with zero bytes. The trailing "end" already finishes bulk
+        # input; the server closes after writing the response.
         request = (
             f" -v {ips[0]}\n"
             if len(ips) == 1
@@ -214,17 +217,18 @@ class TeamCymruWhoisResolver:
         ) as connection:
             connection.settimeout(self.timeout)
             connection.sendall(request.encode("ascii"))
-            if len(ips) > 1:
-                connection.shutdown(socket.SHUT_WR)
             with connection.makefile(
                 "r",
                 encoding="utf-8",
                 errors="replace",
             ) as response:
-                records = _parse_team_cymru_response(response)
+                body = response.read()
+                records = _parse_team_cymru_response(body.splitlines())
         if not records:
+            preview = body.strip().splitlines()[:3]
+            detail = f" response={preview!r}" if preview else " empty response"
             raise RuntimeError(
-                f"Team Cymru returned no usable records for {len(ips)} IPs"
+                f"Team Cymru returned no usable records for {len(ips)} IPs;{detail}"
             )
         return records
 
