@@ -9,13 +9,11 @@ bitcoin-core/asmap-data        node snapshots
   <year>/<ts>_asmap.dat          public: network-snapshots release
   <year>/<ts>_asmap_unfilled.dat   (bitnodes.io archive + daily
         │                           bitnod.es CSVs, fetch-bitmex.yml)
-        │                         private: KIT dossiers -> committed
-        │                           data/network-kit.json (merged in)
         ▼                               ▼
   asmap_dashboard/  ── Python pipeline (stdlib only) ──┐
-    metrics.py      profile every build, diff every pair │
-    diff.py         classify prefix changes              │
-    network/        score observed nodes vs build history│
+    metrics command profile builds and diff every pair   │
+    network command score nodes without prefix diffs     │
+    network/whois  query Team Cymru with a private cache │
         │                                                │
         ▼                                                ▼
    three JSON payloads (schema_version-stamped)   bgp.tools/asns.csv
@@ -31,7 +29,7 @@ bitcoin-core/asmap-data        node snapshots
     network-tab snapshot hero + trend charts + cross-check
 ```
 
-All payloads are rebuilt on every deploy and are not tracked in git. The `bitnodes`/`bitmex` series of `network.json` regenerate from the public snapshots on the `network-snapshots` release; the KIT series comes from the committed `data/network-kit.json` aggregate (its raw dossiers are not public) and is grafted in by `merge-network` - see the reproducibility note in the [README](../README.md#how-it-works).
+The generated payloads are not tracked in git. GitHub Actions caches `metrics.json` and `diffs.json` by asmap-data revision, schema, and map-analysis code. The daily `network` command parses the maps but skips the expensive prefix-diff pass. It rebuilds `network.json` from the public snapshots and refreshes Team Cymru records older than 24 hours.
 
 ## Module map
 
@@ -46,9 +44,9 @@ All payloads are rebuilt on every deploy and are not tracked in git. The `bitnod
 | `loader.py` | Parse one `.dat` into an `ASMap` plus the per-ASN caches the diff reuses. |
 | `netgroup.py` | Bitcoin Core `GetGroup()` default buckets + `GetLinkedIPv4()` unwrap. |
 | `_prefix.py` | Prefix/range arithmetic shared by diff and metrics. |
-| `network/snapshots.py` | Source-agnostic snapshot loading (KIT, Bitnodes). |
+| `network/snapshots.py` | Bitnodes archive/CSV loading and normalisation. |
 | `network/metrics.py` | The seven network-tap metrics (glossary below). |
-| `network/merge.py` | Graft the committed KIT payload into the CI-generated one. |
+| `network/whois.py` | Team Cymru bulk WHOIS client plus TTL and negative cache. |
 
 ### Frontend (`web/assets/js/`)
 
@@ -90,7 +88,9 @@ The deliberate choices, each with the trade-off that justified it, so intent nev
 - **All dates are UTC.** Build times are parsed and compared on the UTC grid, so a build never renders on a different calendar day for viewers in different timezones.
 - **Diffs are unfilled-vs-unfilled.** Comparing the source variants isolates real BGP / RPKI / IRR drift from the rebalancing the `--fill` heuristic introduces; pairs without an unfilled side are shown as a gap, never a misleading number.
 - **The all-pairs diff is precomputed (O(N²)).** Every pair is diffed up front so the Diff Explorer pivots to any (A, B) with no backend; the cost budget and switch point live at the diff site in `metrics.py`.
-- **`data/network-kit.json` is the one committed data artefact.** The KIT dossiers behind it are not public, so CI cannot regenerate or verify that series - it must be rebuilt locally after any network-pipeline change and is merged into the CI-generated `network.json` at deploy time (see the [README](../README.md#how-it-works)).
+- **One public crawler lineage, with an explicit handoff.** Archived bitnodes.io snapshots and daily bitnod.es CSV exports share one source id and line. Snapshot-time charts mark where the export host and format changed.
+- **WHOIS is independent from ASmap and private by construction.** The pipeline queries Team Cymru for the latest snapshot only. Raw IP-to-ASN records live in a gitignored cache and never enter the Pages artifact. The Reality curve and cross-check require sufficient current coverage; they never substitute an ASmap lookup or apply today's routing to old CSV snapshots.
+- **Map diffs and daily network scoring have separate commands.** Prefix diffs rebuild when their inputs change. Daily node scoring reuses cached map payloads and runs without `_compute_pair_diffs`.
 
 ## The seven network-tap metrics
 
