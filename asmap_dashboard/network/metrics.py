@@ -1,8 +1,8 @@
 """Network-tap metrics: observed nodes scored against the ASmap history.
 
-The seven metrics and what each answers are catalogued in
-``docs/architecture.md`` ("The seven network-tap metrics"); the per-node
-arithmetic lives in the leaf functions below. All of them consume the
+The metrics and what each answers are catalogued in
+``docs/metrics.md`` (Network tab section); the per-node arithmetic
+lives in the leaf functions below. All of them consume the
 same normalised ``Snapshot`` stream, so archived and live Bitnodes
 exports flow through identical code as one crawler lineage.
 
