@@ -16,12 +16,11 @@ The data layer is split into three files along size and reproducibility lines:
 - `diffs.json` (~4 MB): the per-pair top-mover rosters keyed by `"<from>|<to>"` - ~99 % of the diff bytes, read only by the Top Movers table. The frontend fetches it lazily the first time the Diff Explorer tab is opened, so the first paint never downloads or parses it.
 - `network.json` (optional): observed-node metrics scoring real Bitcoin nodes against the build history. When the file is absent the Network tab stays hidden. Alongside the per-snapshot series it carries node-impact aggregates: `latest_update` (how many observed nodes change AS between the two most recent builds) and `pair_impact` (the same count for every diffable build pair, so the Diff Explorer can show a per-pair banner). `pair_impact` scales with the pair count, so the file grows with the build history; only aggregate counts are emitted, never node addresses.
 
-All four payloads (`metrics.json`, `diffs.json`, `network.json`, `asn-names.json`) are generated artefacts and are not tracked in git. The Pages workflow rebuilds them from scratch on every deploy and a daily cron picks up new asmap-data builds and node snapshots.
+All four payloads (`metrics.json`, `diffs.json`, `network.json`, `asn-names.json`) are generated artefacts and are not tracked in git. The Pages workflow caches `metrics.json` and `diffs.json` by asmap-data revision, schema, and analysis code. `network.json` is rebuilt daily without running the prefix-diff pass.
 
-The observed-node data behind `network.json` is split along data-access lines:
+The observed-node data behind `network.json` is fully public. Assets on the [`network-snapshots` release](../../releases/tag/network-snapshots) contain archived bitnodes.io crawls plus one gzipped [bitnod.es](https://bitnod.es) (BitMEX Research) CSV per day, appended by the `fetch-bitmex` workflow each night. They are one crawler lineage and therefore one `bitnodes` source in the payload and UI. The dashboard marks the archive-to-daily-export handoff instead of presenting it as a second crawler. Release assets named 2026-06-22 through 2026-06-25 were never archived and are no longer available from bitnod.es. The June 26 file contains June 25 as its newest embedded export date, so the plotted series has no measurements for June 22 through June 24 or June 26.
 
-- **Public snapshots** live as assets on the [`network-snapshots` release](../../releases/tag/network-snapshots): the archived bitnodes.io crawls (collected by b10c) plus one gzipped [bitnod.es](https://bitnod.es) (BitMEX Research) CSV per day, appended by the `fetch-bitmex` workflow each night. They are release assets rather than committed files because the CSVs are ~5 MB/day raw and would bloat every clone. CI downloads them on each deploy and regenerates the `bitnodes` and `bitmex` series from scratch. At ~1 MB/day gzipped the release grows ~365 assets/year; if the nightly download or parse ever gets slow, thin the old dailies to a weekly cadence with `gh release delete-asset` - the charts lose nothing meaningful at that distance.
-- **The KIT series** is derived from KIT DSN crawler dossiers that are not public, so CI cannot rebuild it. The small aggregate `data/network-kit.json` is committed instead and grafted into the CI-generated payload at deploy time (`merge-network`; base keys win, extra sources are added). After any change to the network pipeline (`asmap_dashboard/network/`), regenerate it locally from the KIT dossiers and commit it in the same change, or the frozen aggregate drifts from the code that produces it. The output is byte-stable, so a no-op regeneration produces no diff.
+The CSV has no ASN column. The daily build sends the newest snapshot's clearnet IPs to [Team Cymru's IP-to-ASN service](https://www.team-cymru.com/ip-asn-mapping) and compares the returned BGP origin ASN with the ASmap lookup. It does not use Team Cymru's country field as geolocation. A 24-hour local cache stores successful lookups and temporary misses under `cache/whois/`; stale entries are refreshed. These files contain raw node IPs and are gitignored. GitHub Actions keeps them outside the Pages artifact, and only aggregate counts enter `network.json`.
 
 Every payload carries a `schema_version` that the frontend checks before rendering, so a stale cached `app.js` paired with a freshly deployed payload (GitHub Pages caches assets for ~10 minutes) produces an explicit "please reload" message instead of silently wrong numbers.
 
@@ -62,37 +61,38 @@ python -m asmap_dashboard refresh-asn-names \
     --out web/assets/data/asn-names.json
 ```
 
-The first command builds `metrics.json` (maps + diff summary) plus `diffs.json` next to it (the top-mover rosters; override with `--diffs-out`). The second pulls operator labels (`AS7018 (AT&T Services, Inc.)`) from [bgp.tools/asns.csv](https://bgp.tools/asns.csv) and filters them down to the ASNs the payloads actually reference. Missing payload files are skipped with a warning. The ASN-names step is non-fatal: if bgp.tools is unreachable the dashboard falls back to bare `AS<num>` labels. The same two commands run on every Pages deploy and daily via cron.
+The first command builds `metrics.json` (maps + diff summary) plus `diffs.json` next to it (the top-mover rosters; override with `--diffs-out`). The Pages workflow reuses those files until the asmap-data revision, schema, or map-analysis code changes. The second command pulls operator labels (`AS7018 (AT&T Services, Inc.)`) from [bgp.tools/asns.csv](https://bgp.tools/asns.csv) and filters them down to the ASNs the payloads reference.
 
 To regenerate the network section, add the snapshot directories. The public snapshots come from the `network-snapshots` release (gunzip the CSVs; the loader reads plain `.json`/`.csv`):
 
 ```
 gh release download network-snapshots --dir snapshots-dl
-mkdir -p snapshots/bitmex
+mkdir -p snapshots/live
 tar -xzf snapshots-dl/bitnodes-asmap.tar.gz -C snapshots
-for f in snapshots-dl/bitcoin_nodes_*.csv.gz; do gunzip -c "$f" > "snapshots/bitmex/$(basename "$f" .gz)"; done
-python -m asmap_dashboard metrics --data-dir asmap-data \
+for f in snapshots-dl/bitcoin_nodes_*.csv.gz; do gunzip -c "$f" > "snapshots/live/$(basename "$f" .gz)"; done
+python -m asmap_dashboard network --data-dir asmap-data \
     --bitnodes-dir snapshots \
-    --out web/assets/data/metrics.json
+    --whois-cache cache/whois/records.json \
+    --whois-team-cymru \
+    --out web/assets/data/network.json
+python -m asmap_dashboard refresh-asn-names \
+    --payload web/assets/data/metrics.json web/assets/data/diffs.json web/assets/data/network.json \
+    --out web/assets/data/asn-names.json
 ```
 
-The Bitnodes directory can mix b10c JSON crawls and bitnod.es (BitMEX) CSV exports: the loader dispatches on file extension and recurses into subfolders. Each CSV is a cumulative "last seen" dump, so only rows within ~2 days of the file's newest `export_date` are kept, recovering a point-in-time set comparable to one JSON crawl.
+The Bitnodes directory can mix archived bitnodes.io JSON crawls and bitnod.es CSV exports. The loader dispatches on file extension, recurses into subfolders, and emits one continuous source. Each CSV is a cumulative "last seen" dump, so only rows within about two days of the file's newest `export_date` are kept. WHOIS is applied only to the newest snapshot because current BGP data cannot reconstruct historical routing.
 
-With access to the non-public KIT dossiers, add `--kit-dir /path/to/kit-dossiers` and refresh the committed KIT graft from the result:
+For fixture-backed attribution during development, replace `--whois-team-cymru` with a local fixture:
 
 ```
-python - <<'EOF'
-import json
-d = json.load(open("web/assets/data/network.json"))
-kit = {"schema_version": d["schema_version"], "network": {
-    "reference_timestamp": d["network"]["reference_timestamp"],
-    "sources": {"kit": d["network"]["sources"]["kit"]}}}
-open("data/network-kit.json", "w").write(
-    json.dumps(kit, separators=(",", ":"), sort_keys=True) + "\n")
-EOF
+python -m asmap_dashboard network --data-dir asmap-data \
+    --bitnodes-dir snapshots \
+    --whois-cache cache/whois/records.json \
+    --whois-fixture /path/to/whois-fixture.json \
+    --out web/assets/data/network.json
 ```
 
-CI merges `data/network-kit.json` into the freshly generated payload on every deploy (`python -m asmap_dashboard merge-network --base ... --extra ... --out ...`).
+The CLI omits Reality and the ASN cross-check without sufficient current coverage. The Pages workflow also requires at least 50 percent Team Cymru coverage, so a provider outage stops that deployment and leaves the previous site online. The pipeline never substitutes an ASmap lookup or stale archive attribution.
 
 ## Run the dashboard
 
