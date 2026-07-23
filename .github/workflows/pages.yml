@@ -1,13 +1,11 @@
 name: pages
 
-# The dashboard's data layer is split along reproducibility lines:
-#   - metrics.json + diffs.json: rebuilt fresh on every deploy from the
-#     public bitcoin-core/asmap-data history; never committed.
-#   - network.json: rebuilt fresh from the public snapshots on the
+# The dashboard's data layer is split along update frequency:
+#   - metrics.json + diffs.json: cached by asmap-data revision, schema, and
+#     map-analysis code. They rebuild only when one of those inputs changes.
+#   - network.json: rebuilt daily from the public snapshots on the
 #     `network-snapshots` release (archived bitnodes.io crawls + daily
-#     bitnod.es CSVs appended by fetch-bitmex.yml), then merged with
-#     the committed data/network-kit.json, the KIT series that can only
-#     be regenerated locally from the non-public dossiers.
+#     bitnod.es CSVs) and a cached Team Cymru BGP-origin lookup.
 #   - asn-names.json: rebuilt from bgp.tools, scoped to the ASNs the
 #     other payloads reference.
 # Triggers:
@@ -82,6 +80,26 @@ jobs:
       - name: Clone bitcoin-core/asmap-data
         run: git clone --depth=1 https://github.com/bitcoin-core/asmap-data.git /tmp/asmap-data
 
+      - name: Read asmap-data revision
+        id: asmap-data
+        run: echo "revision=$(git -C /tmp/asmap-data rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore generated map payloads
+        id: map-payload-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            web/assets/data/metrics.json
+            web/assets/data/diffs.json
+          key: map-payload-v10-${{ steps.asmap-data.outputs.revision }}-${{ hashFiles('asmap_dashboard/analyze.py', 'asmap_dashboard/diff.py', 'asmap_dashboard/loader.py', 'asmap_dashboard/metrics.py', 'asmap_dashboard/cli.py', 'asmap_dashboard/_prefix.py', 'asmap_dashboard/netgroup.py', 'asmap_dashboard/_vendor/asmap.py') }}
+
+      - name: Generate metrics.json and diffs.json
+        if: steps.map-payload-cache.outputs.cache-hit != 'true'
+        run: |
+          python -m asmap_dashboard metrics \
+            --data-dir /tmp/asmap-data \
+            --out web/assets/data/metrics.json
+
       # Public observed-node snapshots: the archived bitnodes.io crawls
       # (tar) plus the daily bitnod.es CSVs (gzipped, appended by
       # fetch-bitmex.yml). The snapshot loader reads plain .json/.csv,
@@ -90,38 +108,44 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p /tmp/snapshots/bitmex
+          mkdir -p /tmp/snapshots/live
           gh release download network-snapshots -R "$GITHUB_REPOSITORY" \
             --dir /tmp/snapshot-assets
           tar -xzf /tmp/snapshot-assets/bitnodes-asmap.tar.gz -C /tmp/snapshots
           for f in /tmp/snapshot-assets/bitcoin_nodes_*.csv.gz; do
-            gunzip -c "$f" > "/tmp/snapshots/bitmex/$(basename "$f" .gz)"
+            gunzip -c "$f" > "/tmp/snapshots/live/$(basename "$f" .gz)"
           done
-          ls -R /tmp/snapshots | head -40
 
-      # Writes metrics.json (maps), diffs.json, and network.json from
-      # public inputs only. The KIT series lives in the committed
-      # data/network-kit.json and is grafted in by the merge step.
-      - name: Generate metrics.json + diffs.json + network.json
+      # Caches raw lookup records between runs. The cache is never copied into
+      # web/, and the public payload contains aggregate counts only. A daily key
+      # lets each successful run save its refreshed TTL state.
+      - name: Set WHOIS cache date
+        id: whois-date
+        run: echo "date=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore private WHOIS cache
+        uses: actions/cache@v4
+        with:
+          path: cache/whois/records.json
+          key: whois-v2-${{ steps.whois-date.outputs.date }}
+          restore-keys: |
+            whois-v2-
+
+      - name: Generate network.json with Team Cymru cross-check
         run: |
-          python -m asmap_dashboard metrics \
+          python -m asmap_dashboard network \
             --data-dir /tmp/asmap-data \
             --bitnodes-dir /tmp/snapshots \
-            --out web/assets/data/metrics.json
-
-      - name: Merge committed KIT series into network.json
-        run: |
-          python -m asmap_dashboard merge-network \
-            --base web/assets/data/network.json \
-            --extra data/network-kit.json \
+            --whois-cache cache/whois/records.json \
+            --whois-team-cymru \
+            --whois-cache-max-age-hours 24 \
             --out web/assets/data/network.json
 
       - name: Refresh ASN names from bgp.tools
         # Non-fatal: if bgp.tools is unreachable we still ship the
         # payloads and the dashboard falls back to bare AS<num> labels.
-        # network.json is listed even though it may not exist (public
-        # deploys without the KIT preview); refresh-asn-names skips
-        # missing files with a warning.
+        # network.json is listed even though it may not exist; the command
+        # skips missing files with a warning.
         continue-on-error: true
         run: |
           python -m asmap_dashboard refresh-asn-names \
@@ -137,8 +161,12 @@ jobs:
         run: |
           jq -e '.maps | length > 0' web/assets/data/metrics.json > /dev/null
           jq -e '.schema_version' web/assets/data/metrics.json > /dev/null
-          jq -e '.diffs | length >= 0' web/assets/data/diffs.json > /dev/null
+          jq -e '.top_movers | type == "object"' web/assets/data/diffs.json > /dev/null
           jq -e '.network.sources | length > 0' web/assets/data/network.json > /dev/null
+          jq -e '.network.reality_attribution.provider == "team-cymru"' \
+            web/assets/data/network.json > /dev/null
+          jq -e '.network.reality_attribution.coverage_pct >= 50' \
+            web/assets/data/network.json > /dev/null
 
       - uses: actions/configure-pages@v6
 
