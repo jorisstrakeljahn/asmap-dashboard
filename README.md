@@ -1,47 +1,19 @@
 # asmap-dashboard
 
-Dashboard for exploring ASmap binary files used by Bitcoin Core for peer diversity.
+Dashboard for exploring the ASmap binary files Bitcoin Core uses for peer diversity.
 
 Live: <https://jorisstrakeljahn.github.io/asmap-dashboard/>
 
-## How it works
+A stdlib-only Python pipeline (`asmap_dashboard/`) profiles every build in [bitcoin-core/asmap-data](https://github.com/bitcoin-core/asmap-data), diffs every pair, and scores observed Bitcoin nodes against the build history. The static site under `web/` renders three tabs from the generated payloads: Maps (per-build profiles and history charts), Network (observed nodes scored against the maps), and a Diff Explorer.
 
-A Python pipeline (`asmap_dashboard/`) reads every published `.dat` file in [bitcoin-core/asmap-data](https://github.com/bitcoin-core/asmap-data), profiles each build, diffs every distinct pair, and emits the dashboard payloads. The static site under `web/` consumes them: overview cards, time-series charts, a network tab scoring observed Bitcoin nodes against the build history, and a diff explorer with match-rate banner, change classification, and top-movers table.
+Documentation:
 
-See [`docs/architecture.md`](docs/architecture.md) for the architecture overview: data flow, module layout, URL structure, design decisions, and the network-metric glossary.
-
-The data layer is split into three files along size and reproducibility lines:
-
-- `metrics.json` (~110 KB): per-build profiles plus the all-pairs diff *summary* (every pair's aggregate fields, no top-mover roster). Loaded first; drives the overview, every drift chart, and the Diff Explorer's match banner.
-- `diffs.json` (~4 MB): the per-pair top-mover rosters keyed by `"<from>|<to>"` - ~99 % of the diff bytes, read only by the Top Movers table. The frontend fetches it lazily the first time the Diff Explorer tab is opened, so the first paint never downloads or parses it.
-- `network.json` (optional): observed-node metrics scoring real Bitcoin nodes against the build history. When the file is absent the Network tab stays hidden. Alongside the per-snapshot series it carries node-impact aggregates: `latest_update` (how many observed nodes change AS between the two most recent builds) and `pair_impact` (the same count for every diffable build pair, so the Diff Explorer can show a per-pair banner). `pair_impact` scales with the pair count, so the file grows with the build history; only aggregate counts are emitted, never node addresses.
-
-All four payloads (`metrics.json`, `diffs.json`, `network.json`, `asn-names.json`) are generated artefacts and are not tracked in git. The Pages workflow caches `metrics.json` and `diffs.json` by asmap-data revision, schema, and analysis code. `network.json` is rebuilt daily without running the prefix-diff pass.
-
-The observed-node data behind `network.json` is fully public. Assets on the [`network-snapshots` release](../../releases/tag/network-snapshots) contain archived bitnodes.io crawls plus one gzipped [bitnod.es](https://bitnod.es) (BitMEX Research) CSV per day, appended by the `fetch-bitmex` workflow each night. They are one crawler lineage and therefore one `bitnodes` source in the payload and UI. The dashboard marks the archive-to-daily-export handoff instead of presenting it as a second crawler. Release assets named 2026-06-22 through 2026-06-25 were never archived and are no longer available from bitnod.es. The June 26 file contains June 25 as its newest embedded export date, so the plotted series has no measurements for June 22 through June 24 or June 26.
-
-The CSV has no ASN column. The daily build sends the newest snapshot's clearnet IPs to [Team Cymru's IP-to-ASN service](https://www.team-cymru.com/ip-asn-mapping) and compares the returned BGP origin ASN with the ASmap lookup. It does not use Team Cymru's country field as geolocation. A 24-hour local cache stores successful lookups and temporary misses under `cache/whois/`; stale entries are refreshed. These files contain raw node IPs and are gitignored. GitHub Actions keeps them outside the Pages artifact, and only aggregate counts enter `network.json`.
-
-Every payload carries a `schema_version` that the frontend checks before rendering, so a stale cached `app.js` paired with a freshly deployed payload (GitHub Pages caches assets for ~10 minutes) produces an explicit "please reload" message instead of silently wrong numbers.
-
-### Filled vs unfilled inputs
-
-Each build in asmap-data publishes up to two binary variants:
-
-- **Unfilled** (`<timestamp>_asmap_unfilled.dat`) is the raw upstream prefix data the build was produced from (RPKI / IRR / Routeviews). It is the canonical source of truth. Filled can be derived from unfilled deterministically. The reverse is not possible.
-- **Filled** (`<timestamp>_asmap.dat`) is the same data with `asmap-tool encode --fill` applied so adjacent same-AS prefixes collapse into a smaller binary. It is the form Bitcoin Core embeds.
-
-The dashboard prefers unfilled almost everywhere because filled-vs-filled comparisons conflate real BGP / RPKI / IRR shifts with the rebalancing the fill heuristic does whenever adjacent same-AS prefixes appear or disappear. Concretely:
-
-- Overview cards (entries, unique ASes, IPv4 / IPv6 split) read the unfilled profile, falling back to filled when a build did not publish unfilled. The fallback is annotated with a small badge.
-- Pair diffs (drift chart, diff explorer, top movers, entries-delta chart) are computed unfilled-vs-unfilled. Pairs missing the unfilled variant on either side are skipped silently rather than rendered as misleading numbers.
-- The map size chart shows both lines side-by-side: filled answers "what does Bitcoin Core embed?", unfilled answers "how much source data backed it?", and the tooltip reports the fill-compression ratio between them.
-
-Builds that only published one variant remain visible in the build picker. Cards on those builds either show the available side (with the fallback badge) or report "not published" for the missing side, depending on which surface is reading the data.
+- [`docs/metrics.md`](docs/metrics.md) - what each number means: data sources with samples, per-metric inputs, calculation, caveats, and code pointers.
+- [`docs/architecture.md`](docs/architecture.md) - data flow, module map, URL structure, and design decisions.
 
 ## Setup
 
-Requires Python 3.10+. The runtime uses only the standard library; the dev extras (`pytest`, `ruff`) are pulled in from `pyproject.toml`.
+Requires Python 3.10+. The runtime uses only the standard library; the dev extras (`pytest`, `ruff`) come from [`pyproject.toml`](pyproject.toml).
 
 ```
 python3 -m venv .venv
@@ -61,9 +33,9 @@ python -m asmap_dashboard refresh-asn-names \
     --out web/assets/data/asn-names.json
 ```
 
-The first command builds `metrics.json` (maps + diff summary) plus `diffs.json` next to it (the top-mover rosters; override with `--diffs-out`). The Pages workflow reuses those files until the asmap-data revision, schema, or map-analysis code changes. The second command pulls operator labels (`AS7018 (AT&T Services, Inc.)`) from [bgp.tools/asns.csv](https://bgp.tools/asns.csv) and filters them down to the ASNs the payloads reference.
+The first command writes `metrics.json` plus `diffs.json` next to it (override with `--diffs-out`). The second pulls operator labels from [bgp.tools/asns.csv](https://bgp.tools/asns.csv), scoped to the ASNs the payloads reference.
 
-To regenerate the network section, add the snapshot directories. The public snapshots come from the `network-snapshots` release (gunzip the CSVs; the loader reads plain `.json`/`.csv`):
+For the optional Network tab, download the public node snapshots from the [`network-snapshots` release](https://github.com/jorisstrakeljahn/asmap-dashboard/releases/tag/network-snapshots) and run the `network` command (Team Cymru WHOIS needs a private cache path; see [`docs/metrics.md`](docs/metrics.md#team-cymru-ip-to-asn) for what it stores and why it stays local):
 
 ```
 gh release download network-snapshots --dir snapshots-dl
@@ -80,19 +52,7 @@ python -m asmap_dashboard refresh-asn-names \
     --out web/assets/data/asn-names.json
 ```
 
-The Bitnodes directory can mix archived bitnodes.io JSON crawls and bitnod.es CSV exports. The loader dispatches on file extension, recurses into subfolders, and emits one continuous source. Each CSV is a cumulative "last seen" dump, so only rows within about two days of the file's newest `export_date` are kept. WHOIS is applied only to the newest snapshot because current BGP data cannot reconstruct historical routing.
-
-For fixture-backed attribution during development, replace `--whois-team-cymru` with a local fixture:
-
-```
-python -m asmap_dashboard network --data-dir asmap-data \
-    --bitnodes-dir snapshots \
-    --whois-cache cache/whois/records.json \
-    --whois-fixture /path/to/whois-fixture.json \
-    --out web/assets/data/network.json
-```
-
-The CLI omits Reality and the ASN cross-check without sufficient current coverage. The Pages workflow also requires at least 50 percent Team Cymru coverage, so a provider outage stops that deployment and leaves the previous site online. The pipeline never substitutes an ASmap lookup or stale archive attribution.
+During development, replace `--whois-team-cymru` with `--whois-fixture /path/to/whois-fixture.json` to use a local fixture instead of the live service.
 
 ## Run the dashboard
 
@@ -135,3 +95,11 @@ npm test
 ```
 
 `npm test` runs Node's built-in test runner over the pure frontend logic (see [`web/tests/`](web/tests/README.md)); no extra dependencies, no jsdom.
+
+## Developing and CI
+
+Generated payloads (`web/assets/data/*.json`) and the WHOIS cache (`cache/whois/`) are not committed. The cache holds raw node IPs; only aggregate counts ship in `network.json`. Point `--bitnodes-dir` at a Bitnodes-only tree (archived JSON and/or bitnod.es CSVs). Extra folders with other snapshot formats produce skip warnings and are not used.
+
+Use `python -m asmap_dashboard metrics` when map profiles or prefix diffs change. Use `python -m asmap_dashboard network` for the daily node score; it skips the expensive all-pairs prefix-diff pass. Run `refresh-asn-names` after either so labels stay in sync. For offline Network work, replace `--whois-team-cymru` with `--whois-fixture`.
+
+GitHub Actions (`.github/workflows/pages.yml`) runs on push to `main`, nightly, and `workflow_dispatch`. It gates deploy on ruff, pytest, and `npm test`. `metrics.json` / `diffs.json` are cached by asmap-data revision, schema, and map-analysis code; `network.json` rebuilds every run with Team Cymru and a private WHOIS cache. Below 50% Team Cymru coverage the smoke check fails and the previous site stays up. `.github/workflows/fetch-bitmex.yml` appends missing bitnod.es CSVs to the [`network-snapshots` release](https://github.com/jorisstrakeljahn/asmap-dashboard/releases/tag/network-snapshots) before the nightly Pages cron.
