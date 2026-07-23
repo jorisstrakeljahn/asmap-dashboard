@@ -9,6 +9,7 @@
 // so a "total = bar height" reading needs no separate series.
 
 import { linearScale, niceTicks, svg } from "./svg.js";
+import { drawXMarkers } from "./chart-markers.js";
 import {
     createChartSvg,
     labelDensityForWidth,
@@ -47,6 +48,7 @@ export function buildStackedBarChart(spec, width, height, layout, options = {}) 
     const root = createChartSvg(width, height, spec.ariaLabel);
 
     drawAxes(root, geometry, spec, width);
+    drawXMarkers(root, geometry, spec.xMarkers);
     const groups = drawStacks(root, geometry, spec);
     return attachHover(root, geometry, spec, groups, width);
 }

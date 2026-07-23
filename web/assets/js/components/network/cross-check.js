@@ -1,51 +1,44 @@
 // ASN attribution agreement: a single data-quality KPI, not a time
 // series (it's a near-constant ~93%, so a flat chart added no signal).
-// The headline reads off the primary crawl (KIT annotates every node
-// with an ASN); the note widens it to the min/max band every scored
-// source stays inside, so it reads as a cross-check, not one number.
+// The headline reads off the latest independently WHOIS-annotated
+// Bitnodes snapshot. Provider and coverage metadata make the comparison
+// reproducible without exposing any node IPs.
 
 import { html, nothing, render } from "../../vendor/lit-html.js";
 import { t } from "../../utils/i18n.js";
-import { sourceLabel, toMs } from "./series-data.js";
+import { crossCheckSummary } from "./quality-data.js";
+import {
+    attributionProviderLabel,
+    sourceLabel,
+} from "./series-data.js";
 
 // Summarises the whole series, so it is range-independent and renders
-// once. Scores every source that ships an ASN, so the agreement band
-// cross-validates KIT against Bitnodes.
+// once. Snapshots without sufficient WHOIS coverage self-hide upstream.
 export function mountCrossCheckStat(network, sources, primary) {
     const slot = document.querySelector("[data-network-crosscheck]");
     if (!slot) return;
 
-    // Every scored snapshot across all sources, newest first, so the
-    // headline reads the latest primary figure and the note spans the
-    // band across both crawlers.
-    const rows = [];
-    for (const source of sources) {
-        for (const sn of network.sources[source].snapshots) {
-            if (!sn.cross_check) continue;
-            rows.push({ source, label: sn.label, ts: toMs(sn.timestamp), cc: sn.cross_check });
-        }
-    }
-    // lit owns the slot, so the empty case clears it the same way the card path
-    // fills it - one writer per node.
-    if (rows.length === 0) {
+    const summary = crossCheckSummary(network, sources, primary);
+    // Never fall back to an annotated archive when the newest live snapshot
+    // lacks WHOIS. lit owns the slot, so the empty case clears it.
+    if (!summary) {
         render(nothing, slot);
         return;
     }
-    rows.sort((a, b) => b.ts - a.ts);
-
-    const primaryRows = rows.filter((r) => r.source === primary);
-    const latest = primaryRows[0] ?? rows[0];
-    const values = rows.map((r) => r.cc.agreement_pct);
 
     // Pre-format so each string is the exact text content of its element.
     const labelText = t("network.crosscheck.label").toUpperCase();
     const metricText = t("network.crosscheck.metric", {
-        pct: `${Math.round(latest.cc.agreement_pct)}%`,
+        pct: `${Math.round(summary.latest.cc.agreement_pct)}%`,
     });
     const noteText = t("network.crosscheck.note", {
         source: sourceLabel(primary),
-        min: `${Math.round(Math.min(...values))}%`,
-        max: `${Math.round(Math.max(...values))}%`,
+        provider: attributionProviderLabel(network),
+        coverage: `${(
+            network.reality_attribution?.coverage_pct ?? 0
+        ).toFixed(1)}%`,
+        agreement: `${summary.latest.cc.agreement_pct.toFixed(1)}%`,
+        compared: summary.latest.cc.compared.toLocaleString("en-US"),
     });
 
     render(

@@ -1,5 +1,5 @@
 // Network tab: the "network tap" from the proposal. Scores the
-// observed Bitcoin node set (KIT crawls, Bitnodes snapshots) against
+// observed Bitcoin node set (the Bitnodes crawler lineage) against
 // the published ASmap history. Reads the optional ``network`` section
 // of metrics.json; when absent (public deploy before snapshot data is
 // published) the tab is never mounted and app.js hides its nav entry.
@@ -14,17 +14,8 @@
 // nodes each crawler reaches, so two raw-count lines invite a false
 // comparison.
 //
-// The decay chart overlays KIT and the two Bitnodes crawls as
-// toggleable lines: it plots a normalised drift share, comparable
-// across crawlers of different size. The Bitnodes feed split when
-// bitnodes.io shut down - "bitnodes" is the frozen b10c archive,
-// "bitmex" is the bitnod.es / BitMEX continuation - and they stay
-// separate lines because BitMEX's vantage reaches a different
-// population (so a spliced line would fake a concentration step at the
-// handover). Several independent crawlers agreeing is the strongest
-// credibility signal. The operator breakdown is KIT-only: KIT carries
-// full whois on every node, so its per-AS roster is the trustworthy
-// one, and extra breakdowns would clutter without adding a comparison.
+// The archive-to-live handoff remains visible as an annotated marker,
+// while every chart follows the one continuous crawler lineage.
 //
 // The Trends section's 1Y/3Y/5Y/Max range picker (mirroring the Maps
 // History range) windows the trend charts' x-axis; the hero and
@@ -36,6 +27,10 @@
 import { formatDate } from "./format.js";
 import * as overview from "./components/network/overview.js";
 import { mountCrossCheckStat } from "./components/network/cross-check.js";
+import {
+    defaultDecayReference,
+    resolveDecayReference,
+} from "./components/network/decay-reference.js";
 import { SOURCE_ORDER, sourceLabel, toMs } from "./components/network/series-data.js";
 import { collectTimestamps } from "./components/network/timelines.js";
 import { mountTrendCharts } from "./components/network/trend-charts.js";
@@ -51,7 +46,6 @@ import { t } from "./utils/i18n.js";
 // Network is not the default tab, so it only writes its state once the
 // hash already carries the "#network" token (no empty-hash stamping).
 const TAB = "network";
-const DECAY_REFS = ["truth", "map"];
 const HHI_FAMILIES = ["all", "ipv4", "ipv6"];
 
 // Mount the tab. Returns true when a network section was present and
@@ -79,43 +73,18 @@ export function mount(payload) {
         )}`;
     }
 
-    // Re-render the hero cards for one source. Driven by the header
-    // source switch so every crawl's own snapshot numbers, "as of"
-    // date, and latest-update impact are one click apart. Each source
-    // carries its own latest_update (node-impact scored on its newest
-    // node set), so the impact card now follows the switch too.
-    const renderHero = (source) => {
-        const data = network.sources[source];
-        const latest = data.snapshots[data.snapshots.length - 1];
-        overview.mount(overviewSlot, {
-            snapshot: latest,
-            decay: data.decay,
-            latestUpdate: data.latest_update ?? null,
-            asOf: t("network.overview.snapshotMeta", {
-                source: sourceLabel(source),
-                date: formatDate(latest.label),
-                build: formatDate(new Date(toMs(latest.build.timestamp))),
-            }),
-        });
-    };
-    renderHero(primary);
-
-    // Source switch above the cards: only meaningful with more than one
-    // crawler present, so it is omitted on single-source data.
-    const heroSourceSlot = document.querySelector("[data-network-overview-source]");
-    if (heroSourceSlot && presentSources.length > 1) {
-        heroSourceSlot.replaceChildren(
-            createModeSwitch({
-                options: presentSources.map((s) => ({
-                    value: s,
-                    label: sourceLabel(s),
-                })),
-                value: primary,
-                onChange: renderHero,
-                ariaLabel: t("network.overview.sourceSwitchAria"),
-            }),
-        );
-    }
+    const data = network.sources[primary];
+    const latest = data.snapshots[data.snapshots.length - 1];
+    overview.mount(overviewSlot, {
+        snapshot: latest,
+        decay: data.decay,
+        latestUpdate: data.latest_update ?? null,
+        asOf: t("network.overview.snapshotMeta", {
+            source: sourceLabel(primary),
+            date: formatDate(latest.label),
+            build: formatDate(new Date(toMs(latest.build.timestamp))),
+        }),
+    });
 
     // A deep link can pin the Trends range plus the decay reference and
     // HHI family so a shared finding opens on the same view.
@@ -123,16 +92,14 @@ export function mount(payload) {
     const requestedRange = hash.get("range");
     const requestedRef = hash.get("ref");
     const requestedFamily = hash.get("family");
+    const defaultRef = defaultDecayReference(network, presentSources);
 
     // Per-chart toggle state hoisted here so a range re-mount keeps
-    // hidden series - and, for decay / HHI, the active reference or
-    // family. The operator breakdown has no legend (its per-period cast
-    // changes) but carries a source switch, so its picked crawl lives
-    // here too and survives a range re-mount.
+    // hidden series - and, for decay / HHI, the active reference or family.
     const states = {
         decay: {
             hidden: new Set(),
-            ref: DECAY_REFS.includes(requestedRef) ? requestedRef : "truth",
+            ref: resolveDecayReference(network, presentSources, requestedRef),
         },
         hhi: {
             hidden: new Set(),
@@ -141,7 +108,6 @@ export function mount(payload) {
                 : "all",
         },
         coverage: { hidden: new Set() },
-        operators: { source: primary },
     };
     const allTimestamps = collectTimestamps(network, presentSources);
 
@@ -156,7 +122,7 @@ export function mount(payload) {
         // "#network".
         writeHashState(TAB, {
             range: range !== DEFAULT_RANGE ? range : null,
-            ref: states.decay.ref !== "truth" ? states.decay.ref : null,
+            ref: states.decay.ref !== defaultRef ? states.decay.ref : null,
             family: states.hhi.family !== "all" ? states.hhi.family : null,
         });
         const bounds = rangeBounds(range, allTimestamps);

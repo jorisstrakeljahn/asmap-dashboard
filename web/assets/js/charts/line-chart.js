@@ -7,6 +7,7 @@
 // decision. Callers handle that and pass the already-filtered visible series.
 
 import { linearScale, niceTicks, smoothPath, svg } from "./svg.js";
+import { drawXMarkers } from "./chart-markers.js";
 import {
     createChartSvg,
     labelDensityForWidth,
@@ -54,6 +55,7 @@ export function buildLineChart(spec, width, height, layout, options = {}) {
     const root = createChartSvg(width, height, spec.ariaLabel);
 
     drawAxes(root, geometry, spec, width);
+    drawXMarkers(root, geometry, spec.xMarkers);
     drawSeriesLines(root, geometry, spec);
     drawSeriesDots(root, geometry, spec);
 

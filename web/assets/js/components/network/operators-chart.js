@@ -1,5 +1,5 @@
-// Top-operator breakdown for one crawler (picked via the header source switch)
-// as stacked vertical bars: one bar per snapshot, segmented into that
+// Top-operator breakdown for the Bitnodes lineage as stacked vertical bars:
+// one bar per snapshot, segmented into that
 // snapshot's actual top five operators by node share, so the stack height is
 // the true CR5 of that period.
 //
@@ -30,7 +30,10 @@ const OPERATOR_LIMIT = 5;
 // colours cycle and the tooltip dot keeps rows unambiguous.
 const COLOR_SLOTS = 10;
 
-export function mountOperatorsChart(parent, { snapshots, bounds, headerExtra = null }) {
+export function mountOperatorsChart(
+    parent,
+    { snapshots, bounds, headerExtra = null, xMarkers = [] },
+) {
     if (!parent) return;
 
     const rows = buildRows(snapshots, bounds.cutoff);
@@ -45,7 +48,7 @@ export function mountOperatorsChart(parent, { snapshots, bounds, headerExtra = n
         lede: t("network.concentration.operatorsLede"),
         headerExtra,
         drawPlot: ({ width, height, layout }) =>
-            drawPlot(rows, palette, bounds, width, height, layout),
+            drawPlot(rows, palette, bounds, xMarkers, width, height, layout),
     });
 }
 
@@ -88,7 +91,7 @@ function assignColors(rows) {
     return palette;
 }
 
-function drawPlot(rows, palette, bounds, width, height, layout) {
+function drawPlot(rows, palette, bounds, xMarkers, width, height, layout) {
     // The scaffold wants a fixed series list. Series = the union of every bar's
     // top five, stacked in palette order so a segment never jumps inside the
     // stack; a bar omits operators not in its own top five. Largest aggregate
@@ -118,6 +121,7 @@ function drawPlot(rows, palette, bounds, width, height, layout) {
             yMax,
             yFormat: (v) => `${v}%`,
             yTitle: null,
+            xMarkers,
             ariaLabel: t("network.concentration.operatorsAria"),
             tooltipBodyAt: (i) => tooltipBody(rows[i], palette),
         },

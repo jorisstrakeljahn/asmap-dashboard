@@ -23,8 +23,7 @@ import {
     metricNumber,
     metricUnit,
 } from "../metric-card.js";
-
-const TARGET_STALENESS_DAYS = 365;
+import { stalenessAtTarget } from "./staleness-data.js";
 
 export function mount(parent, { snapshot, decay, latestUpdate, asOf }) {
     if (!parent) return;
@@ -197,49 +196,6 @@ function stalenessCard(decay) {
         info: t("network.overview.staleness.info"),
         infoAria: t("network.overview.staleness.infoAria"),
     });
-}
-
-// Reads the curve at TARGET_STALENESS_DAYS. Three cases: two points bracket the
-// mark -> interpolate linearly (stays on the measured curve); a point sits on
-// it -> take as is; one-sided history -> scale the nearest point by 365/age (a
-// linear extrapolation through the origin). The decay curve saturates, so the
-// extrapolation over-estimates from a younger anchor, under-estimates from an
-// older one, and amplifies that point's noise by 365/age - hence the separate
-// basis label. Live data brackets the mark, so case 1 applies.
-function stalenessAtTarget(decay) {
-    const points = (decay?.points ?? [])
-        .filter((p) => p.age_days > 0)
-        .sort((a, b) => a.age_days - b.age_days);
-    if (points.length === 0) return null;
-    let lower = null;
-    let upper = null;
-    for (const point of points) {
-        if (point.age_days <= TARGET_STALENESS_DAYS) lower = point;
-        if (point.age_days >= TARGET_STALENESS_DAYS) {
-            upper = point;
-            break;
-        }
-    }
-    if (lower && upper) {
-        const span = upper.age_days - lower.age_days;
-        if (span === 0) {
-            // A build exactly one year old - read it directly.
-            return { interpolated: false, value: lower.drift_pct, point: lower };
-        }
-        const fraction = (TARGET_STALENESS_DAYS - lower.age_days) / span;
-        return {
-            interpolated: true,
-            value: lower.drift_pct + fraction * (upper.drift_pct - lower.drift_pct),
-            lower,
-            upper,
-        };
-    }
-    const nearest = lower ?? upper;
-    return {
-        interpolated: false,
-        value: (nearest.drift_pct * TARGET_STALENESS_DAYS) / nearest.age_days,
-        point: nearest,
-    };
 }
 
 function stalenessBasis(reading) {
