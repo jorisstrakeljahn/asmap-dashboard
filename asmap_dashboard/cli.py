@@ -18,8 +18,47 @@ from asmap_dashboard.analyze import analyze_map
 from asmap_dashboard.asn_names import BGP_TOOLS_URL
 from asmap_dashboard.asn_names import refresh as refresh_asn_names
 from asmap_dashboard.diff import diff_maps
-from asmap_dashboard.metrics import SCHEMA_VERSION, generate_dashboard_data
-from asmap_dashboard.network.merge import merge_network_payloads
+from asmap_dashboard.metrics import (
+    SCHEMA_VERSION,
+    generate_dashboard_data,
+    generate_maps_data,
+    generate_network_data,
+)
+from asmap_dashboard.network.whois import (
+    CachedWhoisResolver,
+    JsonWhoisStore,
+    TeamCymruWhoisResolver,
+)
+
+
+def _add_whois_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--whois-cache",
+        type=Path,
+        default=None,
+        help=(
+            "Private JSON cache for independent IP-to-ASN records. "
+            "Contains raw node IPs and must never be published."
+        ),
+    )
+    upstream = parser.add_mutually_exclusive_group()
+    upstream.add_argument(
+        "--whois-team-cymru",
+        action="store_true",
+        help="Batch-resolve the newest snapshot through Team Cymru.",
+    )
+    upstream.add_argument(
+        "--whois-fixture",
+        type=Path,
+        default=None,
+        help="Use a local JSON fixture as the upstream resolver.",
+    )
+    parser.add_argument(
+        "--whois-cache-max-age-hours",
+        type=float,
+        default=24,
+        help="Refresh cached records older than this many hours (default: 24).",
+    )
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -78,53 +117,43 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Where to write the network section, when snapshot sources "
-            "are given. Defaults to network.json next to --out. Split "
-            "out because it is the one payload that cannot be "
-            "regenerated from public inputs (KIT data), so it is the "
-            "only one worth committing."
+            "are given. Defaults to network.json next to --out."
         ),
-    )
-    p_metrics.add_argument(
-        "--kit-dir",
-        type=Path,
-        default=None,
-        help="Directory of KIT dossier JSON files; adds the network section.",
     )
     p_metrics.add_argument(
         "--bitnodes-dir",
         type=Path,
         default=None,
         help=(
-            "Directory of Bitnodes snapshots (b10c JSON crawls and/or "
+            "Directory of Bitnodes snapshots (archived JSON crawls and/or "
             "bitnod.es CSV exports); adds the network section."
         ),
     )
+    _add_whois_args(p_metrics)
 
-    p_merge = sub.add_parser(
-        "merge-network",
-        help=(
-            "Graft the committed KIT-only network payload into the "
-            "CI-generated one (see network/merge.py for the rules)."
-        ),
+    p_network = sub.add_parser(
+        "network",
+        help="Render network.json without computing prefix diffs.",
     )
-    p_merge.add_argument(
-        "--base",
+    p_network.add_argument(
+        "--data-dir",
         type=Path,
         required=True,
-        help="The CI-generated network.json (its top-level keys win).",
+        help="Path to a checkout of bitcoin-core/asmap-data.",
     )
-    p_merge.add_argument(
-        "--extra",
+    p_network.add_argument(
+        "--bitnodes-dir",
         type=Path,
         required=True,
-        help="The committed payload whose extra sources are grafted in.",
+        help="Directory containing archived and daily Bitnodes snapshots.",
     )
-    p_merge.add_argument(
+    p_network.add_argument(
         "--out",
         type=Path,
-        required=True,
-        help="Where to write the merged payload (may equal --base).",
+        default=None,
+        help="Write network.json here; without --out it goes to stdout.",
     )
+    _add_whois_args(p_network)
 
     p_refresh = sub.add_parser(
         "refresh-asn-names",
@@ -194,7 +223,7 @@ def _run_metrics(args: argparse.Namespace) -> int:
     summary (``--out``, drives first paint), the heavy per-pair
     ``top_movers`` rosters (``--diffs-out``, ~99 % of the bytes, lazy
     -loaded by the Diff Explorer), and the network section
-    (``--network-out``, the only git-committed part). Without ``--out``
+    (``--network-out``, when snapshot inputs are supplied). Without ``--out``
     everything goes to stdout as one document. Every document carries
     ``schema_version``.
     """
@@ -202,14 +231,22 @@ def _run_metrics(args: argparse.Namespace) -> int:
     # ``metrics --data-dir X`` alone emits the snapshot-free payload.
     snapshot_sources = {
         source: directory
-        for source, directory in (
-            ("kit", args.kit_dir),
-            ("bitnodes", args.bitnodes_dir),
-        )
+        for source, directory in (("bitnodes", args.bitnodes_dir),)
         if directory is not None
     }
-    result = generate_dashboard_data(
-        args.data_dir, snapshot_sources=snapshot_sources or None
+    try:
+        whois_resolver = _build_whois_resolver(args)
+    except ValueError as exc:
+        sys.stderr.write(f"metrics: {exc}\n")
+        return 2
+    result = (
+        generate_dashboard_data(
+            args.data_dir,
+            snapshot_sources=snapshot_sources,
+            whois_resolver=whois_resolver,
+        )
+        if snapshot_sources
+        else generate_maps_data(args.data_dir)
     )
     result["schema_version"] = SCHEMA_VERSION
 
@@ -248,12 +285,52 @@ def _run_metrics(args: argparse.Namespace) -> int:
     return 0
 
 
-def _run_merge_network(args: argparse.Namespace) -> int:
-    merged = merge_network_payloads(args.base, args.extra)
-    if merged is None:
-        sys.stderr.write("merge-network: neither input exists, nothing written\n")
-        return 0
-    return _emit_json(merged, args.out, compact=True)
+def _build_whois_resolver(
+    args: argparse.Namespace,
+) -> CachedWhoisResolver | None:
+    fixture = getattr(args, "whois_fixture", None)
+    use_team_cymru = getattr(args, "whois_team_cymru", False)
+    cache_path = getattr(args, "whois_cache", None)
+    if (fixture is not None or use_team_cymru) and cache_path is None:
+        raise ValueError("WHOIS upstream requires --whois-cache")
+    if cache_path is None:
+        return None
+    max_age_hours = getattr(args, "whois_cache_max_age_hours", 24)
+    if max_age_hours <= 0:
+        raise ValueError("--whois-cache-max-age-hours must be positive")
+    upstream = (
+        JsonWhoisStore(fixture)
+        if fixture is not None
+        else TeamCymruWhoisResolver()
+        if use_team_cymru
+        else None
+    )
+    return CachedWhoisResolver(
+        JsonWhoisStore(cache_path),
+        upstream=upstream,
+        # A cache-only run cannot refresh stale records. Preserve its explicit
+        # offline behavior; production always supplies Team Cymru and a TTL.
+        max_age_seconds=round(max_age_hours * 3600) if upstream else None,
+    )
+
+
+def _run_network(args: argparse.Namespace) -> int:
+    """Generate network.json without the expensive prefix-diff pass."""
+    try:
+        whois_resolver = _build_whois_resolver(args)
+    except ValueError as exc:
+        sys.stderr.write(f"network: {exc}\n")
+        return 2
+    network = generate_network_data(
+        args.data_dir,
+        snapshot_sources={"bitnodes": args.bitnodes_dir},
+        whois_resolver=whois_resolver,
+    )
+    return _emit_json(
+        {"schema_version": SCHEMA_VERSION, "network": network},
+        args.out,
+        compact=True,
+    )
 
 
 def _run_refresh_asn_names(args: argparse.Namespace) -> int:
@@ -268,7 +345,7 @@ _COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     "analyze": _run_analyze,
     "diff": _run_diff,
     "metrics": _run_metrics,
-    "merge-network": _run_merge_network,
+    "network": _run_network,
     "refresh-asn-names": _run_refresh_asn_names,
 }
 

@@ -3,8 +3,8 @@
 The seven metrics and what each answers are catalogued in
 ``docs/architecture.md`` ("The seven network-tap metrics"); the per-node
 arithmetic lives in the leaf functions below. All of them consume the
-same normalised ``Snapshot`` stream, so KIT, Bitnodes, or a future
-crawler flow through identical code and produce comparable series.
+same normalised ``Snapshot`` stream, so archived and live Bitnodes
+exports flow through identical code as one crawler lineage.
 
 Every per-snapshot metric is also split by *effective* address family
 (after the linked-IPv4 unwrap, so a 6to4/NAT64 peer counts as IPv4 like
@@ -30,13 +30,9 @@ from asmap_dashboard.network.snapshots import Node, Snapshot
 
 TOP_ASES_LIMIT = 15
 
-# Preferred node set for the all-pairs node-impact pass. Mirrors the
-# frontend's series-data.js SOURCE_ORDER so card and payload count the
-# same nodes; KIT first because it is the fully annotated crawl, then
-# bitmex (the live bitnod.es continuation) over the archived bitnodes
-# series, so the diff banner scores against the freshest node set when
-# KIT is absent (the public CI build).
-PRIMARY_SOURCE_ORDER = ("kit", "bitmex", "bitnodes")
+# Preferred node set for the all-pairs node-impact pass. The archive and
+# daily exports share this one source id by product decision.
+PRIMARY_SOURCE_ORDER = ("bitnodes",)
 
 # Minimum share of clearnet nodes that must carry a crawler ASN before
 # the cross-check is shown; below it the sample is too thin to trust.
@@ -304,8 +300,8 @@ def _truth_target(node: _PreparedNode, reference_asn: int) -> int | None:
     """Reality target: the crawler's own whois ASN, restricted to nodes
     the newest build also maps so age 0 reads as the attribution gap.
     ``None`` drops nodes without whois (or unmapped by the newest
-    build), so a crawler whose anchor snapshot ships no whois yields an
-    empty curve and is greyed out of the reality view."""
+    build). The source-entry builder omits the reality curve unless the
+    latest snapshot has sufficient independent WHOIS coverage."""
     return node.asn if (reference_asn and node.asn is not None) else None
 
 
@@ -501,9 +497,10 @@ def _build_source_entry(
     """One source's payload: per-snapshot series, up to two decay curves,
     and the latest-update card.
 
-    ``decay`` (vs the snapshot's own freshest map) exists for every crawler;
-    ``decay_truth`` (vs crawler whois) needs a whois-bearing anchor, so
-    whois-less crawlers (BitMEX CSVs) omit it and are greyed out of that view.
+    ``decay`` (vs the snapshot's own freshest map) always exists.
+    ``decay_truth`` uses only the latest snapshot when at least half its nodes
+    carry independent WHOIS. It never falls back to an annotated historical
+    archive, which would present stale nodes as today's reality.
     """
     series = [
         _snapshot_metrics(s, _select_in_effect_build(prepared_builds, s.timestamp))
@@ -515,9 +512,12 @@ def _build_source_entry(
     if map_curve is not None:
         entry["decay"] = map_curve
 
-    truth_anchor = next(
-        (s for s in reversed(usable) if any(n.asn is not None for n in s.nodes)),
-        None,
+    latest = usable[-1]
+    annotated = sum(node.asn is not None for node in latest.nodes)
+    truth_anchor = (
+        latest
+        if latest.nodes and annotated / len(latest.nodes) >= ANNOTATION_COVERAGE_FLOOR
+        else None
     )
     if truth_anchor is not None:
         truth_curve = _decay_window(
@@ -600,6 +600,20 @@ def build_network_section(
         "reference_timestamp": reference.timestamp,
         "sources": sources_out,
     }
+    transition = next(
+        (
+            snapshot
+            for snapshots in snapshots_by_source.values()
+            for snapshot in snapshots
+            if snapshot.lineage_stage == "live"
+        ),
+        None,
+    )
+    if transition is not None:
+        out["source_transition"] = {
+            "timestamp": transition.timestamp,
+            "label": transition.label,
+        }
     if len(diffable) >= 2:
         out.update(_build_diff_banner(latest_snapshot_by_source, sources_out, diffable))
     return out

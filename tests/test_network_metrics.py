@@ -326,14 +326,12 @@ def test_build_node_impact_latest_update_none_with_single_build():
     assert _latest_update_impact(snap, [build]) is None
 
 
-def _write_kit_dossier(path, ip_to_asn):
-    doc = {
-        f"(IPv4Address('{ip}'), 8333)": {
-            "whois": {"asn": str(asn), "asn_country_code": "DE"}
-        }
-        for ip, asn in ip_to_asn.items()
-    }
-    path.write_text(json.dumps(doc))
+def _write_bitnodes_snapshot(path, timestamp, ip, asn):
+    fields = [70016, "/Satoshi:29.0.0/", timestamp, 1, 1, "host", "x", "DE"]
+    fields.extend([0, 0, "Europe/Berlin", f"AS{asn}", "Example"])
+    path.write_text(
+        json.dumps({"timestamp": timestamp, "nodes": {f"{ip}:8333": fields}})
+    )
 
 
 def test_generate_dashboard_data_attaches_network_when_sources_given(tmp_path):
@@ -345,31 +343,62 @@ def test_generate_dashboard_data_attaches_network_when_sources_given(tmp_path):
             [(ipaddress.IPv4Network("1.0.0.0/8"), asn)],
         )
 
-    kit_dir = tmp_path / "kit"
-    kit_dir.mkdir()
-    _write_kit_dossier(kit_dir / "20240315_120000_dossier.json", {"1.1.1.1": 200})
+    bitnodes_dir = tmp_path / "bitnodes"
+    bitnodes_dir.mkdir()
+    _write_bitnodes_snapshot(
+        bitnodes_dir / "1710504000.json", 1710504000, "1.1.1.1", 200
+    )
 
-    payload = generate_dashboard_data(data_dir, snapshot_sources={"kit": kit_dir})
+    payload = generate_dashboard_data(
+        data_dir, snapshot_sources={"bitnodes": bitnodes_dir}
+    )
 
     assert "network" in payload
-    assert "kit" in payload["network"]["sources"]
-    kit = payload["network"]["sources"]["kit"]
-    assert len(kit["snapshots"]) == 1
-    assert kit["decay"]["reference_build"] == "2024/1710000000"
-    # The KIT dossier ships whois, so a reality curve is attached and
+    assert set(payload["network"]["sources"]) == {"bitnodes"}
+    bitnodes = payload["network"]["sources"]["bitnodes"]
+    assert len(bitnodes["snapshots"]) == 1
+    assert bitnodes["decay"]["reference_build"] == "2024/1710000000"
+    # The archived snapshot ships whois, so a reality curve is attached and
     # anchored on the same (only) snapshot.
-    assert kit["decay_truth"]["node_set_size"] == 1
+    assert bitnodes["decay_truth"]["node_set_size"] == 1
     # Node impact rides along: the node 1.1.1.1 (in 1.0.0.0/8) is
     # reassigned AS100 -> AS200 between the two diffable builds.
     network = payload["network"]
-    assert network["latest_update"]["node_set_source"] == "kit"
+    assert network["latest_update"]["node_set_source"] == "bitnodes"
     assert network["latest_update"]["reassigned"] == 1
     pair_key = "2024/1700000000|2024/1710000000"
     assert network["pair_impact"]["pairs"][pair_key]["reassigned"] == 1
     # The same impact rides along on the source itself, so the hero's
     # impact card can follow the source switch.
-    assert kit["latest_update"]["reassigned"] == 1
-    assert kit["latest_update"]["to_build"] == "2024/1710000000"
+    assert bitnodes["latest_update"]["reassigned"] == 1
+    assert bitnodes["latest_update"]["to_build"] == "2024/1710000000"
+
+
+def test_truth_curve_does_not_fall_back_to_historical_whois(tmp_path):
+    data_dir = tmp_path / "asmap-data"
+    (data_dir / "2024").mkdir(parents=True)
+    write_asmap(
+        data_dir / "2024" / "1710000000_asmap_unfilled.dat",
+        [(ipaddress.IPv4Network("1.0.0.0/8"), 200)],
+    )
+    snapshots = tmp_path / "snapshots"
+    snapshots.mkdir()
+    _write_bitnodes_snapshot(snapshots / "1700000000.json", 1700000000, "1.1.1.1", 200)
+    csv_path = snapshots / "bitcoin_nodes_2026-06-21.csv"
+    csv_path.write_text(
+        "export_date,ip_address,port,country\n2026-06-21,1.1.1.1,8333,DE\n"
+    )
+
+    payload = generate_dashboard_data(
+        data_dir, snapshot_sources={"bitnodes": snapshots}
+    )
+
+    network = payload["network"]
+    source = network["sources"]["bitnodes"]
+    assert len(source["snapshots"]) == 2
+    assert "decay_truth" not in source
+    assert network["source_transition"]["label"] == "2026-06-21"
+    assert "1.1.1.1" not in json.dumps(network)
 
 
 def test_generate_dashboard_data_omits_network_without_sources(tmp_path):

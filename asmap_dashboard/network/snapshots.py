@@ -7,12 +7,11 @@ produced here, so adding a source is one ``load_*`` function plus a
 ``_LOADERS`` entry - the metric layer never learns a source's on-disk
 quirks. The per-shape parsing details live in each ``load_*`` below.
 
-Sources today: KIT dossiers (hourly JSON, full whois on every node),
-Bitnodes JSON crawls (b10c, two shapes), and bitnod.es CSV exports
-(BitMEX). The CSV carries no AS number, so its nodes load with
-``asn=None`` and the cross-check self-hides; it is stamped
-``source="bitmex"`` so the bitnod.es crawler rides as its own series
-rather than a hidden step in the b10c line.
+The one source today is the Bitnodes crawler lineage: archived bitnodes.io
+JSON crawls in two shapes followed by bitnod.es CSV exports (BitMEX).
+Both forms are stamped ``source="bitnodes"`` and carry a ``lineage_stage``
+so the payload can mark the export/host handoff without splitting the series.
+CSV nodes carry no ASN until an independent WHOIS resolver annotates them.
 
 Onion / I2P / CJDNS peers are dropped at load (no ASmap-resolvable IP);
 the ``*_skipped`` counters on ``Snapshot`` preserve how many and why.
@@ -25,15 +24,13 @@ import ipaddress
 import json
 import re
 import sys
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from asmap_dashboard.loader import PathLike
-
-# Pull the address out of a KIT key like "(IPv4Address('5.39.74.166'),
-# 8333)" without eval()-ing untrusted input.
-_KIT_ADDRESS_RE = re.compile(r"Address\('([^']+)'\)")
+from asmap_dashboard.network.whois import WhoisRecord, WhoisResolver
 
 # Bitnodes ASN is "AS<digits>" or a non-AS sentinel ("TOR", null); only a
 # real numeric ASN matches, anything else becomes ``None``.
@@ -56,8 +53,7 @@ _BITNODES_OLD_ASN_IDX = 13
 # 50-80 %. One day (two calendar days) bridges a mid-day partial export.
 _BITNODES_CSV_WINDOW_DAYS = 1
 
-# Bitnod.es exports carry only a day; noon UTC anchors them within the day
-# to match the KIT dossiers' ~12:00 capture so the series share a time axis.
+# Bitnod.es exports carry only a day; noon UTC anchors them within that day.
 _BITNODES_CSV_HOUR_UTC = 12
 
 
@@ -94,6 +90,7 @@ class Snapshot:
     observed_total: int
     onion_skipped: int
     unresolved_skipped: int
+    lineage_stage: str = "archive"
 
 
 def _make_node(ip: str, asn: int | None, country: str | None) -> Node | None:
@@ -131,46 +128,6 @@ def _parse_bitnodes_asn(value: object) -> int | None:
         return None
     m = _BITNODES_ASN_RE.match(value.strip())
     return int(m.group(1)) if m else None
-
-
-def load_kit_dossier(path: PathLike) -> Snapshot:
-    """Load a KIT hourly dossier into a Snapshot.
-
-    Keyed by the Python ``repr()`` of an ``(IPvNAddress(...), port)``
-    tuple, each value carrying a ``whois`` block (ASN + country). Capture
-    time is the filename stem (``YYYYMMDD_HHMMSS_dossier``).
-    """
-    path = Path(path)
-    raw = json.loads(path.read_text())
-    timestamp = _kit_timestamp(path.stem)
-
-    nodes: list[Node] = []
-    onion = 0
-    unresolved = 0
-    for key, value in raw.items():
-        m = _KIT_ADDRESS_RE.search(key)
-        if not m:
-            unresolved += 1
-            continue
-        ip = m.group(1)
-        whois = value.get("whois") or {}
-        asn = _coerce_int(whois.get("asn"))
-        country = whois.get("asn_country_code")
-        node = _make_node(ip, asn, country)
-        if node is None:
-            onion += 1
-            continue
-        nodes.append(node)
-
-    return Snapshot(
-        source="kit",
-        timestamp=timestamp,
-        label=_to_iso_date(timestamp),
-        nodes=tuple(nodes),
-        observed_total=len(raw),
-        onion_skipped=onion,
-        unresolved_skipped=unresolved,
-    )
 
 
 def load_bitnodes(path: PathLike) -> Snapshot:
@@ -214,18 +171,22 @@ def load_bitnodes_csv(path: PathLike) -> Snapshot:
     ``export_date`` (noon UTC) and only rows within
     ``_BITNODES_CSV_WINDOW_DAYS`` of it are kept; the rest is the stale
     tail. No ``export_date`` raises ``ValueError`` so the file is skipped.
-    No AS number (only ``isp``), so nodes load ``asn=None``; stamped
-    ``source="bitmex"`` (see the module docstring).
+    No AS number (only ``isp``), so nodes initially load ``asn=None``.
+    They retain the same ``bitnodes`` source id as the archive while the
+    ``live`` lineage stage records the handoff.
     """
     path = Path(path)
-    with Path(path).open(newline="") as fh:
-        rows = list(csv.DictReader(fh))
-
-    dates = [_parse_iso_date(row.get("export_date")) for row in rows]
-    seen = [d for d in dates if d is not None]
-    if not seen:
+    # These cumulative exports grow every day. A two-pass stream avoids
+    # retaining millions of stale DictReader rows while still deriving the
+    # capture date from file content instead of trusting the filename.
+    newest: date | None = None
+    with path.open(newline="") as fh:
+        for row in csv.DictReader(fh):
+            seen_on = _parse_iso_date(row.get("export_date"))
+            if seen_on is not None and (newest is None or seen_on > newest):
+                newest = seen_on
+    if newest is None:
         raise ValueError(f"{path.name}: no parseable export_date")
-    newest = max(seen)
     cutoff = newest - timedelta(days=_BITNODES_CSV_WINDOW_DAYS)
     timestamp = int(
         datetime(
@@ -241,28 +202,31 @@ def load_bitnodes_csv(path: PathLike) -> Snapshot:
     onion = 0
     unresolved = 0
     observed = 0
-    for row, seen_on in zip(rows, dates, strict=True):
-        if seen_on is None or seen_on < cutoff:
-            continue
-        observed += 1
-        host = _parse_host(str(row.get("ip_address") or ""))
-        if host is None:
-            onion += 1
-            continue
-        node = _make_node(host, None, row.get("country"))
-        if node is None:
-            unresolved += 1
-            continue
-        nodes.append(node)
+    with path.open(newline="") as fh:
+        for row in csv.DictReader(fh):
+            seen_on = _parse_iso_date(row.get("export_date"))
+            if seen_on is None or seen_on < cutoff:
+                continue
+            observed += 1
+            host = _parse_host(str(row.get("ip_address") or ""))
+            if host is None:
+                onion += 1
+                continue
+            node = _make_node(host, None, row.get("country"))
+            if node is None:
+                unresolved += 1
+                continue
+            nodes.append(node)
 
     return Snapshot(
-        source="bitmex",
+        source="bitnodes",
         timestamp=timestamp,
         label=_to_iso_date(timestamp),
         nodes=tuple(nodes),
         observed_total=observed,
         onion_skipped=onion,
         unresolved_skipped=unresolved,
+        lineage_stage="live",
     )
 
 
@@ -351,15 +315,8 @@ def _bitnodes_node_annotations(fields: object) -> tuple[int | None, str | None]:
     return asn, (country if isinstance(country, str) else None)
 
 
-# Input source -> loader. The key is the CLI directory family, not the
-# output series: ``bitnodes`` fans out into the "bitnodes" (JSON) and
-# "bitmex" (CSV) series via ``load_bitnodes``'s extension dispatch, and
-# the metric layer regroups by each snapshot's own ``source``. Wiring a
-# new crawler in is one line here plus the loader itself.
-_LOADERS = {
-    "kit": load_kit_dossier,
-    "bitnodes": load_bitnodes,
-}
+# Input source -> loader. Both JSON and CSV forms belong to one lineage.
+_LOADERS = {"bitnodes": load_bitnodes}
 
 
 def load_snapshot(path: PathLike, source: str) -> Snapshot:
@@ -373,7 +330,11 @@ def load_snapshot(path: PathLike, source: str) -> Snapshot:
     return loader(path)
 
 
-def discover_snapshots(directory: PathLike, source: str) -> list[Snapshot]:
+def discover_snapshots(
+    directory: PathLike,
+    source: str,
+    whois_resolver: WhoisResolver | None = None,
+) -> list[Snapshot]:
     """Load every ``*.json`` / ``*.csv`` snapshot under ``directory``, sorted
     in time.
 
@@ -404,14 +365,53 @@ def discover_snapshots(directory: PathLike, source: str) -> list[Snapshot]:
             )
             continue
     out.sort(key=lambda s: s.timestamp)
+    if whois_resolver is not None and out:
+        # Current WHOIS describes current routing. Annotating old CSV exports
+        # with today's origin ASN would manufacture historical attribution, so
+        # only the newest snapshot receives fresh records.
+        out[-1] = annotate_snapshot(out[-1], whois_resolver)
     return out
 
 
-def _kit_timestamp(stem: str) -> int:
-    """Convert a ``YYYYMMDD_HHMMSS_dossier`` stem to a unix timestamp."""
-    head = stem.split("_dossier", 1)[0]
-    dt = datetime.strptime(head, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc)
-    return int(dt.timestamp())
+def annotate_snapshot(snapshot: Snapshot, resolver: WhoisResolver) -> Snapshot:
+    """Fill missing crawler ASNs from independent WHOIS records in one batch."""
+    missing = [node.ip for node in snapshot.nodes if node.asn is None]
+    if not missing:
+        return snapshot
+    return _annotate_with_records(snapshot, resolver.resolve_many(missing))
+
+
+def _annotate_with_records(
+    snapshot: Snapshot, records: Mapping[str, WhoisRecord]
+) -> Snapshot:
+    nodes = tuple(_annotate_node(node, records) for node in snapshot.nodes)
+    return Snapshot(
+        source=snapshot.source,
+        timestamp=snapshot.timestamp,
+        label=snapshot.label,
+        nodes=nodes,
+        observed_total=snapshot.observed_total,
+        onion_skipped=snapshot.onion_skipped,
+        unresolved_skipped=snapshot.unresolved_skipped,
+        lineage_stage=snapshot.lineage_stage,
+    )
+
+
+def _annotate_node(node: Node, records: Mapping[str, WhoisRecord]) -> Node:
+    """Fill only missing annotations; preserve historical crawler truth."""
+    if node.asn is not None:
+        return node
+    record = records.get(node.ip)
+    if record is None:
+        return node
+    return Node(
+        ip=node.ip,
+        version=node.version,
+        asn=record.asn,
+        # Team Cymru's country is RIR allocation metadata, not GeoIP. Keep the
+        # crawler's country value and use independent WHOIS only for the ASN.
+        country=node.country,
+    )
 
 
 def _to_iso_date(unix_ts: int) -> str:

@@ -22,15 +22,22 @@ from pathlib import Path
 
 from asmap_dashboard.analyze import analyze_loaded_map
 from asmap_dashboard.diff import diff_loaded_maps
-from asmap_dashboard.loader import LoadedMap, PathLike, load_map
+from asmap_dashboard.loader import (
+    LoadedMap,
+    LookupMap,
+    PathLike,
+    load_lookup_map,
+    load_map,
+)
 from asmap_dashboard.network.metrics import build_network_section
 from asmap_dashboard.network.snapshots import discover_snapshots
+from asmap_dashboard.network.whois import WhoisResolver
 
 # JSON data-contract version (app.js mirrors it as
 # EXPECTED_SCHEMA_VERSION). Bump on any field-name or semantics change;
 # the frontend refuses a payload whose version it does not expect rather
 # than silently computing nonsense against a renamed field.
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 10
 
 FILLED_FILENAME_RE = re.compile(r"^(\d+)_asmap\.dat$")
 UNFILLED_FILENAME_RE = re.compile(r"^(\d+)_asmap_unfilled\.dat$")
@@ -117,6 +124,7 @@ def _to_iso_date(unix_ts: int) -> str:
 def generate_dashboard_data(
     data_dir: PathLike,
     snapshot_sources: dict[str, PathLike] | None = None,
+    whois_resolver: WhoisResolver | None = None,
 ) -> dict:
     """Walk data_dir, profile every published variant, diff every pair.
 
@@ -151,40 +159,124 @@ def generate_dashboard_data(
     CI refresh only commits real data shifts.
     """
     data_dir = Path(data_dir)
-    builds = discover_maps(data_dir)
+    builds, loaded = _load_builds(data_dir)
+    payload = _build_maps_payload(data_dir, builds, loaded)
 
-    # Parse every .dat once, keyed by path; both the profiling and diff
-    # passes read from this cache.
+    if snapshot_sources:
+        network = _build_network_payload(
+            builds,
+            loaded,
+            snapshot_sources,
+            whois_resolver,
+        )
+        if network:
+            payload["network"] = network
+
+    return payload
+
+
+def generate_maps_data(data_dir: PathLike) -> dict:
+    """Generate map profiles and prefix diffs without loading node snapshots."""
+    data_dir = Path(data_dir)
+    builds, loaded = _load_builds(data_dir)
+    return _build_maps_payload(data_dir, builds, loaded)
+
+
+def generate_network_data(
+    data_dir: PathLike,
+    snapshot_sources: dict[str, PathLike],
+    whois_resolver: WhoisResolver | None = None,
+) -> dict:
+    """Generate only the daily network payload, skipping prefix diffs."""
+    builds, loaded = _load_lookup_builds(Path(data_dir))
+    return _build_network_payload(
+        builds,
+        loaded,
+        snapshot_sources,
+        whois_resolver,
+    )
+
+
+def _load_builds(
+    data_dir: Path,
+) -> tuple[list[DiscoveredBuild], dict[Path, LoadedMap]]:
+    """Discover and fully profile every published map variant once."""
+    builds = discover_maps(data_dir)
     loaded: dict[Path, LoadedMap] = {}
     for build in builds:
         for path in (build.unfilled_path, build.filled_path):
             if path is not None and path not in loaded:
                 loaded[path] = load_map(path)
+    return builds, loaded
 
-    maps = [_build_entry(build, loaded, data_dir) for build in builds]
-    diffs = _compute_pair_diffs(builds, loaded)
 
-    payload: dict = {
-        "maps": maps,
-        "diffs": diffs,
+def _load_lookup_builds(
+    data_dir: Path,
+) -> tuple[list[DiscoveredBuild], dict[Path, LookupMap]]:
+    """Parse one lookup-equivalent variant per build for network scoring."""
+    builds = discover_maps(data_dir)
+    loaded: dict[Path, LookupMap] = {}
+    for build in builds:
+        path = build.unfilled_path or build.filled_path
+        if path is not None:
+            loaded[path] = load_lookup_map(path)
+    return builds, loaded
+
+
+def _build_maps_payload(
+    data_dir: Path,
+    builds: list[DiscoveredBuild],
+    loaded: dict[Path, LoadedMap],
+) -> dict:
+    return {
+        "maps": [_build_entry(build, loaded, data_dir) for build in builds],
+        "diffs": _compute_pair_diffs(builds, loaded),
     }
 
-    if snapshot_sources:
-        # Group by each snapshot's *own* source, not the directory key:
-        # the Bitnodes dir mixes b10c JSON ("bitnodes") and bitnod.es CSV
-        # ("bitmex"), and splitting them keeps the crawler handover a
-        # distinct line. Re-sort since the interleaving breaks ordering.
-        snapshots_by_source: dict[str, list] = {}
-        for source, directory in snapshot_sources.items():
-            for snapshot in discover_snapshots(directory, source):
-                snapshots_by_source.setdefault(snapshot.source, []).append(snapshot)
-        for snapshots in snapshots_by_source.values():
-            snapshots.sort(key=lambda s: s.timestamp)
-        network = build_network_section(builds, loaded, snapshots_by_source)
-        if network:
-            payload["network"] = network
 
-    return payload
+def _build_network_payload(
+    builds: list[DiscoveredBuild],
+    loaded: dict[Path, LoadedMap | LookupMap],
+    snapshot_sources: dict[str, PathLike],
+    whois_resolver: WhoisResolver | None,
+) -> dict:
+    # Both archived bitnodes.io JSON and bitnod.es CSV files use one source id.
+    # ``lineage_stage`` retains the host and format handoff for chart markers.
+    snapshots_by_source: dict[str, list] = {}
+    for source, directory in snapshot_sources.items():
+        for snapshot in discover_snapshots(
+            directory,
+            source,
+            whois_resolver=whois_resolver,
+        ):
+            snapshots_by_source.setdefault(snapshot.source, []).append(snapshot)
+    for snapshots in snapshots_by_source.values():
+        snapshots.sort(key=lambda s: s.timestamp)
+
+    network = build_network_section(builds, loaded, snapshots_by_source)
+    if not network or whois_resolver is None or not snapshots_by_source:
+        return network
+
+    latest = max(
+        (
+            snapshot
+            for snapshots in snapshots_by_source.values()
+            for snapshot in snapshots
+        ),
+        key=lambda snapshot: snapshot.timestamp,
+    )
+    annotated = sum(node.asn is not None for node in latest.nodes)
+    network["reality_attribution"] = {
+        "provider": getattr(whois_resolver, "provider", "independent-whois"),
+        "scope": "latest_snapshot",
+        "snapshot_timestamp": latest.timestamp,
+        "annotated": annotated,
+        "nodes_clearnet": len(latest.nodes),
+        "coverage_pct": (
+            round(100 * annotated / len(latest.nodes), 4) if latest.nodes else 0.0
+        ),
+    }
+    return network
 
 
 def _compute_pair_diffs(

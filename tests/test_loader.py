@@ -8,7 +8,7 @@ import ipaddress
 import pytest
 
 from asmap_dashboard._vendor.asmap import ASMap
-from asmap_dashboard.loader import LoadedMap, load_map
+from asmap_dashboard.loader import LoadedMap, LookupMap, load_lookup_map, load_map
 
 from .conftest import write_asmap
 
@@ -25,6 +25,19 @@ def test_load_map_returns_parsed_asmap_with_file_size(tmp_path):
     assert isinstance(loaded, LoadedMap)
     assert isinstance(loaded.asmap, ASMap)
     assert loaded.file_size_bytes == path.stat().st_size
+
+
+def test_lookup_map_skips_profile_indexes(tmp_path):
+    path = write_asmap(
+        tmp_path / "lookup.dat",
+        [(ipaddress.IPv4Network("1.0.0.0/8"), 100)],
+    )
+
+    loaded = load_lookup_map(path)
+
+    assert isinstance(loaded, LookupMap)
+    assert isinstance(loaded.asmap, ASMap)
+    assert not hasattr(loaded, "entries_per_asn")
 
 
 def test_load_map_caches_entries_count(tmp_path):

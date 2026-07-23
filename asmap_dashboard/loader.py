@@ -58,6 +58,27 @@ class LoadedMap:
     ipv6_addresses_per_asn: Counter[int]
 
 
+@dataclass(frozen=True)
+class LookupMap:
+    """Lightweight parsed map for IP lookups without profile counters."""
+
+    asmap: ASMap
+
+
+def _read_asmap(path: Path) -> tuple[ASMap, int]:
+    bindata = path.read_bytes()
+    asmap = ASMap.from_binary(bindata)
+    if asmap is None:
+        raise ValueError(f"{path} is not a valid ASmap binary file")
+    return asmap, len(bindata)
+
+
+def load_lookup_map(path: PathLike) -> LookupMap:
+    """Parse one map without the expensive profile and diff indexes."""
+    asmap, _file_size = _read_asmap(Path(path))
+    return LookupMap(asmap=asmap)
+
+
 def load_map(path: PathLike) -> LoadedMap:
     """Read a .dat file and return its parsed ASMap with on-disk size.
 
@@ -65,10 +86,7 @@ def load_map(path: PathLike) -> LoadedMap:
         ValueError: if the file does not parse as a valid ASmap binary.
     """
     path = Path(path)
-    bindata = path.read_bytes()
-    asmap = ASMap.from_binary(bindata)
-    if asmap is None:
-        raise ValueError(f"{path} is not a valid ASmap binary file")
+    asmap, file_size = _read_asmap(path)
 
     minimal_entries = asmap.to_entries()
     entries_per_asn: Counter[int] = Counter(
@@ -79,7 +97,7 @@ def load_map(path: PathLike) -> LoadedMap:
     )
     return LoadedMap(
         asmap=asmap,
-        file_size_bytes=len(bindata),
+        file_size_bytes=file_size,
         entries_count=len(minimal_entries),
         ipv4_address_space=sum(ipv4_per_asn.values()),
         ipv6_address_space=sum(ipv6_per_asn.values()),

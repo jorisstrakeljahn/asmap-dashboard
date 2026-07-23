@@ -21,8 +21,7 @@ node_modules/
 # network.json, asn-names.json) are built fresh on every Pages deploy
 # from bitcoin-core/asmap-data, the public snapshots on the
 # network-snapshots release, and bgp.tools; see README for the regen
-# commands used locally. The KIT series CI cannot rebuild lives in the
-# committed data/network-kit.json and is merged in at deploy time.
+# commands used locally.
 /web/assets/data/*.json
 .firecrawl/
 
@@ -30,9 +29,8 @@ node_modules/
 # carries its own git history and is cloned fresh on deploy, never tracked.
 /asmap-data/
 
-# Local copies of the non-public node snapshots (KIT dossiers + the
-# archived Bitnodes matches) used to regenerate network.json. The raw
-# data carries node IP addresses and is not cleared for publication, so
-# it must never be committed; only the aggregate network.json derived
-# from it is tracked. See README for the regen command.
+# Local copies of node snapshots and WHOIS caches. Both carry raw node IP
+# addresses and must never be committed or published; public payloads contain
+# aggregate metrics only. See README for the regen command and cache layout.
 /snapshots/
+/cache/whois/

@@ -10,11 +10,12 @@ from datetime import datetime, timezone
 import pytest
 
 from asmap_dashboard.network.snapshots import (
+    annotate_snapshot,
     discover_snapshots,
     load_bitnodes_csv,
-    load_kit_dossier,
     load_snapshot,
 )
+from asmap_dashboard.network.whois import JsonWhoisStore
 
 _BITNODES_CSV_HEADER = [
     "export_date",
@@ -55,64 +56,6 @@ def _write_bitnodes_csv(path, rows):
         )
     path.write_text(buf.getvalue())
     return path
-
-
-def _write_kit(path, entries):
-    """Write a KIT-shaped dossier from {ip: (version, asn, country)} entries.
-
-    Keys mirror KIT's Python-repr format so the loader's regex extractor
-    is exercised, not bypassed.
-    """
-    doc = {}
-    for ip, (version, asn, country) in entries.items():
-        key = f"(IPv{version}Address('{ip}'), 8333)"
-        doc[key] = {
-            "ipStr": f"{ip}:8333",
-            "ip": {"version": version},
-            "whois": {"asn": asn, "asn_country_code": country},
-        }
-    path.write_text(json.dumps(doc))
-    return path
-
-
-def test_load_kit_extracts_ip_asn_country_and_filename_timestamp(tmp_path):
-    path = tmp_path / "20260305_121237_dossier.json"
-    _write_kit(
-        path,
-        {
-            "5.39.74.166": (4, "16276", "FR"),
-            "2a00:1398::1": (6, "34878", "DE"),
-        },
-    )
-
-    snap = load_kit_dossier(path)
-
-    assert snap.source == "kit"
-    # 2026-03-05 12:12:37 UTC.
-    assert snap.timestamp == 1772712757
-    assert snap.label == "2026-03-05"
-    assert {n.ip for n in snap.nodes} == {"5.39.74.166", "2a00:1398::1"}
-    by_ip = {n.ip: n for n in snap.nodes}
-    assert by_ip["5.39.74.166"].asn == 16276
-    assert by_ip["5.39.74.166"].country == "FR"
-    assert by_ip["5.39.74.166"].version == 4
-    assert by_ip["2a00:1398::1"].version == 6
-
-
-def test_load_kit_counts_unparseable_keys_as_unresolved(tmp_path):
-    path = tmp_path / "20240105_125503_dossier.json"
-    doc = {
-        "(IPv4Address('1.2.3.4'), 8333)": {
-            "whois": {"asn": "1", "asn_country_code": "US"}
-        },
-        "garbage-key-without-address": {"whois": {}},
-    }
-    path.write_text(json.dumps(doc))
-
-    snap = load_kit_dossier(path)
-
-    assert len(snap.nodes) == 1
-    assert snap.unresolved_skipped == 1
 
 
 def test_load_bitnodes_good_full_form_parses_asn_and_country(tmp_path):
@@ -294,23 +237,6 @@ def test_discover_snapshots_recurses_and_sorts_by_time(tmp_path):
     assert [s.timestamp for s in snaps] == [1704672612, 1762444952]
 
 
-def test_discover_snapshots_skips_kit_dossier_with_nonobject_node(tmp_path, capsys):
-    """A KIT node value that is valid JSON but not an object (so
-    ``value.get`` would raise AttributeError) is skipped per-file with a
-    warning, leaving the healthy dossier in the series."""
-    good = tmp_path / "20240105_120000_dossier.json"
-    _write_kit(good, {"1.2.3.4": (4, "1", "US")})
-    bad = tmp_path / "20240106_120000_dossier.json"
-    bad.write_text(json.dumps({"(IPv4Address('5.6.7.8'), 8333)": "not-an-object"}))
-
-    snaps = discover_snapshots(tmp_path, "kit")
-
-    assert [s.label for s in snaps] == ["2024-01-05"]
-    err = capsys.readouterr().err
-    assert "20240106_120000_dossier.json" in err
-    assert "skipping" in err
-
-
 def test_discover_snapshots_skips_bitnodes_nodes_as_array(tmp_path, capsys):
     """A good-matches file whose ``nodes`` is a JSON array (so ``.items()``
     would raise AttributeError) is skipped, not fatal to the run."""
@@ -387,8 +313,8 @@ def test_load_bitnodes_csv_parses_clearnet_drops_onion_and_dates_by_newest(tmp_p
 
     snap = load_bitnodes_csv(path)
 
-    # bitnod.es exports surface as their own "bitmex" series, not "bitnodes".
-    assert snap.source == "bitmex"
+    assert snap.source == "bitnodes"
+    assert snap.lineage_stage == "live"
     # Newest export_date in the file, anchored at noon UTC.
     assert snap.timestamp == _noon_utc("2026-06-21")
     assert snap.label == "2026-06-21"
@@ -437,16 +363,15 @@ def test_load_snapshot_routes_csv_through_bitnodes_loader(tmp_path):
 
     snap = load_snapshot(path, "bitnodes")
 
-    # The CSV dispatch stamps the bitnod.es series, not the b10c one.
-    assert snap.source == "bitmex"
+    assert snap.source == "bitnodes"
     assert snap.timestamp == _noon_utc("2026-05-22")
     assert [n.ip for n in snap.nodes] == ["5.6.7.8"]
 
 
 def test_discover_snapshots_loads_csv_alongside_json(tmp_path):
-    """A Bitnodes directory mixing the b10c JSON crawls and the bitnod.es
-    CSV exports loads both, ordered by capture time, each tagged with its
-    own source so the regrouping in the pipeline can split them."""
+    """A Bitnodes directory mixing archived JSON crawls and bitnod.es
+    CSV exports loads both, ordered by capture time and tagged as one
+    continuous crawler lineage."""
     (tmp_path / "1762444952.json").write_text(
         json.dumps(
             {
@@ -455,7 +380,7 @@ def test_discover_snapshots_loads_csv_alongside_json(tmp_path):
             }
         )
     )
-    sub = tmp_path / "bitmex"
+    sub = tmp_path / "live"
     sub.mkdir()
     _write_bitnodes_csv(
         sub / "bitcoin_nodes_2026-06-21.csv",
@@ -465,10 +390,88 @@ def test_discover_snapshots_loads_csv_alongside_json(tmp_path):
     snaps = discover_snapshots(tmp_path, "bitnodes")
 
     assert [s.timestamp for s in snaps] == [1762444952, _noon_utc("2026-06-21")]
-    assert {s.timestamp: s.source for s in snaps} == {
-        1762444952: "bitnodes",
-        _noon_utc("2026-06-21"): "bitmex",
-    }
+    assert {s.source for s in snaps} == {"bitnodes"}
+    assert [s.lineage_stage for s in snaps] == ["archive", "live"]
+
+
+def test_annotate_snapshot_uses_independent_whois_fixture(tmp_path):
+    path = tmp_path / "bitcoin_nodes_2026-06-21.csv"
+    _write_bitnodes_csv(path, [("2026-06-21", "1.1.171.38", "Thailand")])
+    fixture = tmp_path / "fixture.json"
+    fixture.write_text(
+        json.dumps({"records": {"1.1.171.38": {"asn": 64500, "country": "DE"}}})
+    )
+
+    annotated = annotate_snapshot(load_bitnodes_csv(path), JsonWhoisStore(fixture))
+
+    [node] = annotated.nodes
+    assert node.asn == 64500
+    # Team Cymru's country is allocation metadata, not GeoIP.
+    assert node.country == "THAILAND"
+
+
+def test_batch_whois_preserves_historical_archive_annotations(tmp_path):
+    snapshots_dir = tmp_path / "snapshots"
+    snapshots_dir.mkdir()
+    archive = snapshots_dir / "1700000000.json"
+    fields = [70016, "/Satoshi:29.0.0/", 1, 1, 1, "host", "x", "US"]
+    fields.extend([0, 0, "America/New_York", "AS13335", "Cloudflare"])
+    archive.write_text(
+        json.dumps(
+            {
+                "timestamp": 1700000000,
+                "nodes": {"1.1.1.1:8333": fields},
+            }
+        )
+    )
+    _write_bitnodes_csv(
+        snapshots_dir / "bitcoin_nodes_2026-06-21.csv",
+        [("2026-06-21", "1.1.1.1", "United States")],
+    )
+    fixture = tmp_path / "fixture.json"
+    fixture.write_text(
+        json.dumps({"records": {"1.1.1.1": {"asn": 64500, "country": "DE"}}})
+    )
+
+    snapshots = discover_snapshots(
+        snapshots_dir, "bitnodes", whois_resolver=JsonWhoisStore(fixture)
+    )
+
+    assert snapshots[0].nodes[0].asn == 13335
+    assert snapshots[0].nodes[0].country == "US"
+    assert snapshots[1].nodes[0].asn == 64500
+    assert snapshots[1].nodes[0].country == "UNITED STATES"
+
+
+def test_discovery_applies_current_whois_only_to_newest_csv(tmp_path):
+    _write_bitnodes_csv(
+        tmp_path / "bitcoin_nodes_2026-06-21.csv",
+        [("2026-06-21", "1.1.1.1", "US")],
+    )
+    _write_bitnodes_csv(
+        tmp_path / "bitcoin_nodes_2026-06-26.csv",
+        [("2026-06-26", "2.2.2.2", "DE")],
+    )
+    fixture = tmp_path / "fixture.json"
+    fixture.write_text(
+        json.dumps(
+            {
+                "records": {
+                    "1.1.1.1": {"asn": 13335, "country": "US"},
+                    "2.2.2.2": {"asn": 64500, "country": "DE"},
+                }
+            }
+        )
+    )
+
+    snapshots = discover_snapshots(
+        tmp_path,
+        "bitnodes",
+        whois_resolver=JsonWhoisStore(fixture),
+    )
+
+    assert snapshots[0].nodes[0].asn is None
+    assert snapshots[1].nodes[0].asn == 64500
 
 
 def test_unknown_source_is_rejected(tmp_path):
