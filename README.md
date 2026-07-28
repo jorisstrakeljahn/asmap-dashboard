@@ -2,7 +2,7 @@
 
 Dashboard for exploring the ASmap binary files Bitcoin Core uses for peer diversity.
 
-Live: <https://jorisstrakeljahn.github.io/asmap-dashboard/>
+Live: <https://dashboard.asmap.org>
 
 A stdlib-only Python pipeline (`asmap_dashboard/`) profiles every build in [bitcoin-core/asmap-data](https://github.com/bitcoin-core/asmap-data), diffs every pair, and scores observed Bitcoin nodes against the build history. The static site under `web/` renders three tabs from the generated payloads: Maps (per-build profiles and history charts), Network (observed nodes scored against the maps), and a Diff Explorer.
 
@@ -103,4 +103,4 @@ Generated payloads (`web/assets/data/*.json`) and the WHOIS cache (`cache/whois/
 
 Use `python -m asmap_dashboard metrics` when map profiles or prefix diffs change. Use `python -m asmap_dashboard network` for the daily node score; it skips the expensive all-pairs prefix-diff pass. Run `refresh-asn-names` after either so labels stay in sync. For offline Network work, replace `--whois-team-cymru` with `--whois-fixture`.
 
-GitHub Actions (`.github/workflows/pages.yml`) runs on push to `main`, nightly, and `workflow_dispatch`. It gates deploy on ruff, pytest, and `npm test`. `metrics.json` / `diffs.json` are cached by asmap-data revision, schema, and map-analysis code; `network.json` rebuilds every run with Team Cymru and a private WHOIS cache. Below 50% Team Cymru coverage the smoke check fails and the previous site stays up. `.github/workflows/fetch-bitmex.yml` appends missing bitnod.es CSVs to the [`network-snapshots` release](https://github.com/jorisstrakeljahn/asmap-dashboard/releases/tag/network-snapshots) before the nightly Pages cron.
+GitHub Actions (`.github/workflows/pages.yml`) runs on push to `main`, nightly, and `workflow_dispatch`. It gates deploy on ruff, pytest, and `npm test`. `metrics.json` / `diffs.json` are cached by asmap-data revision, schema, and map-analysis code; `network.json` rebuilds every run with Team Cymru and a private WHOIS cache. Smoke fails (previous site stays) when Team Cymru coverage is below 50%, clearnet count is zero, or the newest snapshot is older than three days. `.github/workflows/fetch-bitmex.yml` appends missing bitnod.es CSVs to the [`network-snapshots` release](https://github.com/jorisstrakeljahn/asmap-dashboard/releases/tag/network-snapshots) before the nightly Pages cron.
