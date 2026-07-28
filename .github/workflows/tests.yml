@@ -25,7 +25,7 @@ jobs:
     # job is enough and keeps PR feedback fast.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v6
         with:
@@ -45,7 +45,7 @@ jobs:
     # version is enough - pin to the active LTS.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -64,7 +64,7 @@ jobs:
     # build step, so a single active-LTS Node is enough.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -90,7 +90,7 @@ jobs:
         # CI has not actually exercised.
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v6
         with:
