@@ -37,6 +37,8 @@
         "bitnodesDesc": "bitnodes.io archive",
         "bitmexLabel": "bitnod.es",
         "bitmexDesc": "BitMEX node crawls",
+        "teamCymruLabel": "Team Cymru",
+        "teamCymruDesc": "IP-to-ASN WHOIS",
         "bgpToolsLabel": "bgp.tools",
         "bgpToolsDesc": "ASN labels",
         "repoLinkLabel": "Source on GitHub",
@@ -278,11 +280,13 @@
             "ariaLabel": "Address family"
         },
         "source": {
-            "bitnodes": "Bitnodes"
+            "bitnodes": "Bitnodes",
+            "bitnodesArchive": "bitnodes.io",
+            "bitnodesLive": "bitnod.es"
         },
         "whois": {
             "teamCymru": "Team Cymru",
-            "localCache": "the local WHOIS cache",
+            "localCache": "Team Cymru (cached)",
             "independent": "the independent WHOIS source"
         },
         "transition": {
@@ -322,8 +326,7 @@
                 "noData": "no mapped nodes in this snapshot",
                 "info": [
                     "Imagine an attacker buying up whole network operators one by one, biggest first. This is how many they would need before half of all mapped nodes sit inside operators they control. Higher is healthier: it means no small handful of operators is close to holding half the network.",
-                    "Sort the operators by how many nodes they host, then add them up from the top until the running total passes half. The number of operators that took is the figure shown. Nodes the map cannot place are left out, exactly as they are in AS concentration.",
-                    "The 50% line is the standard cut-off decentralisation studies use, so the count stays comparable across projects. It is a headcount of operators, not a claim that those operators actually control the network."
+                    "Sort the operators by how many nodes they host, then add them up from the top until the running total passes half. The number of operators that took is the figure shown. Nodes the map cannot place are left out, exactly as they are in AS concentration."
                 ],
                 "infoAria": "About how many ASes it takes to reach 50% of nodes"
             },
@@ -428,6 +431,14 @@
             "label": "ASN attribution agreement",
             "metric": "~{pct}",
             "note": "For the latest {source} snapshot, {provider} returned a BGP origin ASN for {coverage} of clearnet nodes. {agreement} matched the ASmap lookup across {compared} nodes that both methods could map. This checks attribution data, not network health."
+        },
+        "limitations": {
+            "title": "Limitations",
+            "ledeBefore": "Every figure on this tab excludes hosts on AS63949 that advertise /Satoshi:27.0.0/ whenever that signature appears. When none are present the filter is a no-op. Raw crawler snapshots still keep them. See the ",
+            "methodology": "methodology note",
+            "ledeMid": " and the ",
+            "bnoc": "BNOC discussion",
+            "ledeAfter": " for the match rule and background."
         }
     },
 

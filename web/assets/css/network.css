@@ -134,3 +134,15 @@
     text-align: justify;
     text-wrap: pretty;
 }
+
+/* Inline links inside the Limitations section lede (same chrome as
+   Network / Trends; spacing comes from .tab-panel > .section + .section). */
+[data-network-limitations] .section__heading {
+    flex: 1 1 100%;
+    max-width: none;
+}
+
+[data-network-limitations] .section__lede a {
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}

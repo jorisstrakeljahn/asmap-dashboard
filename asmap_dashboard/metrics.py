@@ -29,7 +29,10 @@ from asmap_dashboard.loader import (
     load_lookup_map,
     load_map,
 )
-from asmap_dashboard.network.metrics import build_network_section
+from asmap_dashboard.network.metrics import (
+    build_network_section,
+    scored_population_counts,
+)
 from asmap_dashboard.network.snapshots import discover_snapshots
 from asmap_dashboard.network.whois import WhoisResolver
 
@@ -37,7 +40,7 @@ from asmap_dashboard.network.whois import WhoisResolver
 # EXPECTED_SCHEMA_VERSION). Bump on any field-name or semantics change;
 # the frontend refuses a payload whose version it does not expect rather
 # than silently computing nonsense against a renamed field.
-SCHEMA_VERSION = 10
+SCHEMA_VERSION = 11
 
 FILLED_FILENAME_RE = re.compile(r"^(\d+)_asmap\.dat$")
 UNFILLED_FILENAME_RE = re.compile(r"^(\d+)_asmap_unfilled\.dat$")
@@ -265,15 +268,29 @@ def _build_network_payload(
         ),
         key=lambda snapshot: snapshot.timestamp,
     )
-    annotated = sum(node.asn is not None for node in latest.nodes)
+    # Same population filter as the Network tab so WHOIS coverage matches
+    # the clearnet denominator on the cards. Prefer the newest loaded map
+    # for the ASN side of the exclusion match; fall back to the raw
+    # snapshot when no build is available (should not happen in practice).
+    asmap = None
+    for build in reversed(builds):
+        path = build.unfilled_path or build.filled_path
+        if path is not None and path in loaded:
+            asmap = loaded[path].asmap
+            break
+    if asmap is not None:
+        clearnet, annotated, _excluded = scored_population_counts(latest, asmap)
+    else:
+        clearnet = len(latest.nodes)
+        annotated = sum(node.asn is not None for node in latest.nodes)
     network["reality_attribution"] = {
         "provider": getattr(whois_resolver, "provider", "independent-whois"),
         "scope": "latest_snapshot",
         "snapshot_timestamp": latest.timestamp,
         "annotated": annotated,
-        "nodes_clearnet": len(latest.nodes),
+        "nodes_clearnet": clearnet,
         "coverage_pct": (
-            round(100 * annotated / len(latest.nodes), 4) if latest.nodes else 0.0
+            round(100 * annotated / clearnet, 4) if clearnet else 0.0
         ),
     }
     return network

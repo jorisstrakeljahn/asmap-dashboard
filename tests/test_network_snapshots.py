@@ -106,8 +106,10 @@ def test_load_bitnodes_good_full_form_parses_asn_and_country(tmp_path):
     by_ip = {n.ip: n for n in snap.nodes}
     assert by_ip["103.106.90.72"].asn == 134090
     assert by_ip["103.106.90.72"].country == "AU"
+    assert by_ip["103.106.90.72"].user_agent == "/Satoshi:29.0.0/"
     assert by_ip["2a01:4f8::1"].asn == 24940
     assert by_ip["2a01:4f8::1"].version == 6
+    assert by_ip["2a01:4f8::1"].user_agent == "/Satoshi:27.0.0/"
 
 
 def test_load_bitnodes_good_compact_form_has_no_annotations(tmp_path):
@@ -129,6 +131,7 @@ def test_load_bitnodes_good_compact_form_has_no_annotations(tmp_path):
     assert node.ip == "176.66.85.219"
     assert node.asn is None
     assert node.country is None
+    assert node.user_agent == "/Satoshi:30.0.0/"
 
 
 def test_load_bitnodes_old_best_effort_list_form(tmp_path):
@@ -182,6 +185,7 @@ def test_load_bitnodes_old_best_effort_list_form(tmp_path):
     assert node.ip == "2a01:4f8:c0c:ce05::1"
     assert node.asn == 24940
     assert node.country == "DE"
+    assert node.user_agent == "/Satoshi:23.0.0/"
 
 
 def test_load_bitnodes_without_any_timestamp_is_rejected(tmp_path):
@@ -324,6 +328,7 @@ def test_load_bitnodes_csv_parses_clearnet_drops_onion_and_dates_by_newest(tmp_p
     # No AS number in the CSV, so every node is unannotated; country is kept.
     assert by_ip["1.1.171.38"].asn is None
     assert by_ip["1.1.171.38"].country == "THAILAND"
+    assert by_ip["1.1.171.38"].user_agent == "/Satoshi:29.0.0/"
     assert by_ip["1.1.171.38"].version == 4
     assert by_ip["2a01:4f8::1"].version == 6
 

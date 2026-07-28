@@ -7,12 +7,11 @@
 // Layout, top to bottom: a snapshot hero (up to six cards, paired by
 // theme - see overview.js), four range-windowed trend charts (decay
 // curve, top-5 operator breakdown, HHI concentration, ASmap coverage),
-// then the ASN-attribution agreement as a data-quality stat that keeps
-// the headline KPI but exposes the per-snapshot counts behind a
-// disclosure so the figure is checkable. Deliberately no raw
-// unique-AS "diversity" chart: that count is confounded by how many
-// nodes each crawler reaches, so two raw-count lines invite a false
-// comparison.
+// then the ASN-attribution agreement as a data-quality stat, then a
+// Limitations section (same chrome as Network / Trends) for population
+// exclusions (docs/network-exclusions.md). Deliberately no raw unique-AS
+// "diversity" chart: that count is confounded by how many nodes each
+// crawler reaches, so two raw-count lines invite a false comparison.
 //
 // The archive-to-live handoff remains visible as an annotated marker,
 // while every chart follows the one continuous crawler lineage.
@@ -27,11 +26,16 @@
 import { formatDate } from "./format.js";
 import * as overview from "./components/network/overview.js";
 import { mountCrossCheckStat } from "./components/network/cross-check.js";
+import { mountLimitationsNote } from "./components/network/limitations-note.js";
 import {
     defaultDecayReference,
     resolveDecayReference,
 } from "./components/network/decay-reference.js";
-import { SOURCE_ORDER, sourceLabel, toMs } from "./components/network/series-data.js";
+import {
+    SOURCE_ORDER,
+    latestLineageLabel,
+    toMs,
+} from "./components/network/series-data.js";
 import { collectTimestamps } from "./components/network/timelines.js";
 import { mountTrendCharts } from "./components/network/trend-charts.js";
 import { createModeSwitch } from "./components/mode-switch.js";
@@ -80,7 +84,7 @@ export function mount(payload) {
         decay: data.decay,
         latestUpdate: data.latest_update ?? null,
         asOf: t("network.overview.snapshotMeta", {
-            source: sourceLabel(primary),
+            source: latestLineageLabel(network, primary),
             date: formatDate(latest.label),
             build: formatDate(new Date(toMs(latest.build.timestamp))),
         }),
@@ -136,9 +140,10 @@ export function mount(payload) {
         );
     };
 
-    // The data-quality stat summarises the whole series, so it is
-    // range-independent and renders once outside renderTrends.
+    // Data-quality stat is range-independent; Limitations is its own
+    // section under Trends (same chrome as Network → Trends).
     mountCrossCheckStat(network, presentSources, primary);
+    mountLimitationsNote();
 
     const rangeSlot = document.querySelector("[data-network-range]");
     if (rangeSlot) {

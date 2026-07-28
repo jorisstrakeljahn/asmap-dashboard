@@ -233,29 +233,31 @@ Purpose: profile each build and show how the build history moved. Reads `metrics
 
 ## Network tab
 
-Purpose: score the published build history against reachable Bitcoin nodes from the Bitnodes lineage. Reads `network.json`; the tab and its nav entry stay hidden when that file is absent. Surfaces: a caption naming the crawl and the build it is scored against, up to six snapshot cards, four trend charts under a range picker, and one data-quality stat. Chart markers show the archive-to-bitnod.es handoff; every series remains one lineage.
+Purpose: score the published build history against reachable Bitcoin nodes from the Bitnodes lineage. Reads `network.json`; the tab and its nav entry stay hidden when that file is absent. Surfaces: a caption naming the crawl and the build it is scored against, up to six snapshot cards, four trend charts under a range picker, one data-quality stat, and a Limitations note for concentration exclusions. Chart markers show the archive-to-bitnod.es handoff; every series remains one lineage.
 
 Two shared rules first, because most metrics below inherit them:
 
 - **In-effect build:** each snapshot is scored against the most recent build released at or before the crawl, widened by one day so a crawl pairs with its own same-day build ([`asmap_dashboard/network/metrics.py::_select_in_effect_build`](../asmap_dashboard/network/metrics.py)).
 - **Effective address family:** an IPv6 address that transports an IPv4 host (6to4, Teredo, NAT64, v4-mapped) counts as IPv4, mirroring Bitcoin Core's `GetGroup()` ([`asmap_dashboard/netgroup.py::linked_ipv4`](../asmap_dashboard/netgroup.py)). Every per-snapshot metric also ships an `ipv4` / `ipv6` split under `families`.
 
+Deliberate carve-outs (today: AS63949 `/Satoshi:27.0.0/` out of the whole Network-tab population) are catalogued in [network-exclusions.md](network-exclusions.md) and stated on the Network tab under Limitations. When nothing matches, the filter is a no-op.
+
 ### AS concentration (card)
 
 - **Question:** how bunched are today's nodes across operators?
-- **Inputs:** per-AS node counts of the latest snapshot under the in-effect build; unmapped nodes excluded.
+- **Inputs:** per-AS node counts of the latest snapshot under the in-effect build, after Network population exclusions ([network-exclusions.md](network-exclusions.md)); unmapped nodes excluded from the HHI itself.
 - **Calculation:** Herfindahl-Hirschman index: each AS's share of mapped nodes, squared, summed. Equivalently the probability two random mapped nodes sit in the same AS. Range 0 to 1, lower is more diverse; 1/HHI is the effective number of equal-sized operators.
-- **Output:** `sources.bitnodes.snapshots[].hhi` (and `families.*.hhi`).
+- **Output:** `sources.bitnodes.snapshots[].hhi` (and `families.*.hhi`); exclusion count in `snapshots[].network_exclusions`.
 - **Example:** the 2026-07-23 snapshot scores 0.0299 overall, so two random nodes share an AS about 3 % of the time (roughly 33 equal-sized operators). IPv6 alone runs 0.075, noticeably more concentrated.
 - **Read as:** the honest concentration headline; it keeps rising when share shifts from the top operator to the runner-up, which "largest operator's share" would miss.
-- **Do not read as:** a statement about unmapped nodes; they are excluded here and counted in coverage instead.
+- **Do not read as:** a statement about unmapped nodes; they are left out of HHI and counted in coverage instead. Also not a raw census including the AS63949 `/Satoshi:27.0.0/` fleet — that fleet is carved out of every Network-tab figure.
 - **Code:** [`asmap_dashboard/network/metrics.py::_hhi`](../asmap_dashboard/network/metrics.py); [`web/assets/js/components/network/overview.js::concentrationCard`](../web/assets/js/components/network/overview.js).
 
 ### ASes to reach 50% (card)
 
 - **Question:** how many operators would an attacker need to control to sit next to half the mapped nodes?
-- **Inputs:** the same per-AS node counts as HHI.
-- **Calculation:** sort ASes by node count descending, add from the top until the running total reaches 50 % of mapped nodes, report the count. `None` (rendered as a no-data state) when nothing is mapped.
+- **Inputs:** the same per-AS node counts as HHI (after Network population exclusions).
+- **Calculation:** sort ASes by node count descending, add from the top until the running total reaches 50 % of mapped nodes in that distribution, report the count. `None` (rendered as a no-data state) when nothing is mapped.
 - **Output:** `snapshots[].ases_to_50pct`.
 - **Example:** 18 for the 2026-07-23 snapshot: the eighteen largest operators together host half of the 9,578 mapped nodes.
 - **Read as:** higher is healthier. The 50 % cut matches what decentralisation studies use (the AS Nakamoto coefficient), so the count is comparable across projects.
@@ -287,13 +289,13 @@ Two shared rules first, because most metrics below inherit them:
 ### Reachable nodes (card)
 
 - **Question:** how large is the population every other Network number rests on?
-- **Inputs:** the latest snapshot after loading (onion / I2P / CJDNS peers already dropped).
-- **Calculation:** count of clearnet nodes, split by effective family.
-- **Output:** `snapshots[].nodes_clearnet`, `families.*.nodes`.
-- **Example:** 9,587 clearnet nodes on 2026-07-23: 7,993 IPv4, 1,594 IPv6.
+- **Inputs:** the latest snapshot after loading (onion / I2P / CJDNS peers already dropped) and after Network population exclusions ([network-exclusions.md](network-exclusions.md)).
+- **Calculation:** count of remaining clearnet nodes, split by effective family.
+- **Output:** `snapshots[].nodes_clearnet`, `families.*.nodes`; excluded count in `snapshots[].network_exclusions`.
+- **Example:** about 8,630 scored clearnet nodes on 2026-07-23 after dropping ~956 AS63949 `/Satoshi:27.0.0/` hosts (raw crawl still ~9,587).
 - **Read as:** the denominator context for the cards around it.
-- **Do not read as:** the whole Bitcoin network. Tor-only listeners and unreachable nodes are out of scope by construction.
-- **Code:** [`asmap_dashboard/network/snapshots.py`](../asmap_dashboard/network/snapshots.py) (loaders); [`web/assets/js/components/network/overview.js::nodesCard`](../web/assets/js/components/network/overview.js).
+- **Do not read as:** the whole Bitcoin network, or the raw crawler clearnet count. Tor-only listeners, unreachable nodes, and the documented fleet exclusion are out of scope by construction.
+- **Code:** [`asmap_dashboard/network/snapshots.py`](../asmap_dashboard/network/snapshots.py) (loaders); [`asmap_dashboard/network/metrics.py::_network_metric_nodes`](../asmap_dashboard/network/metrics.py); [`web/assets/js/components/network/overview.js::nodesCard`](../web/assets/js/components/network/overview.js).
 
 ### Peer diversity buckets (card)
 
@@ -320,12 +322,12 @@ Two shared rules first, because most metrics below inherit them:
 ### Top 5 operators per snapshot (chart)
 
 - **Question:** who concentrates the nodes, and is the top tier losing grip?
-- **Inputs:** `snapshots[].top_ases` (top 15 stored; the chart renders five).
+- **Inputs:** `snapshots[].top_ases` (top 15 stored; the chart renders five), after Network population exclusions ([network-exclusions.md](network-exclusions.md)).
 - **Calculation:** per snapshot, the five largest ASes by node share, re-picked each time so a rising operator is not understated; stacked bar height is the combined top-5 share.
 - **Output:** `snapshots[].top_ases[]` (`asn`, `nodes`, `share`).
-- **Example:** on 2026-07-23 the top three are AS63949 Akamai/Linode (10.5 %), AS24940 Hetzner (9.6 %), AS396982 Google Cloud (5.3 %).
+- **Example:** after excluding the AS63949 `/Satoshi:27.0.0/` fleet, the 2026-07-23 top tier is led by ordinary operators (e.g. Hetzner); remaining AS63949 share is non-fleet Linode peers only.
 - **Read as:** a shrinking stack means nodes spreading across more operators. Colours are stable per operator, so a colour vanishing is the tier reshuffling.
-- **Do not read as:** the whole distribution; HHI covers the long tail this chart cuts off.
+- **Do not read as:** the whole distribution; HHI covers the long tail this chart cuts off. Also not a raw crawler census of every clearnet peer.
 - **Code:** [`asmap_dashboard/network/metrics.py::_top_ases`](../asmap_dashboard/network/metrics.py); [`web/assets/js/components/network/operators-chart.js`](../web/assets/js/components/network/operators-chart.js).
 
 ### AS concentration over time (chart)

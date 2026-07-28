@@ -19,6 +19,29 @@ export function sourceLabel(source) {
     return t(`network.source.${source}`);
 }
 
+// Host/export label for one point on the continuous Bitnodes lineage:
+// archived bitnodes.io JSON before the handoff, bitnod.es CSVs from the
+// first live export onward. Falls back to the generic lineage name when
+// the payload has no transition marker (older network.json).
+export function lineageStageLabel(network, tsMs) {
+    const transition = network?.source_transition?.timestamp;
+    if (transition == null || !Number.isFinite(tsMs)) {
+        return sourceLabel("bitnodes");
+    }
+    return tsMs >= toMs(transition)
+        ? t("network.source.bitnodesLive")
+        : t("network.source.bitnodesArchive");
+}
+
+// Label for the latest snapshot of a source (overview caption, cross-check).
+export function latestLineageLabel(network, source = "bitnodes") {
+    const snaps = network?.sources?.[source]?.snapshots;
+    if (!Array.isArray(snaps) || snaps.length === 0) {
+        return sourceLabel(source);
+    }
+    return lineageStageLabel(network, toMs(snaps[snaps.length - 1].timestamp));
+}
+
 export function attributionProviderLabel(network) {
     const provider = network.reality_attribution?.provider;
     if (provider === "team-cymru") return t("network.whois.teamCymru");

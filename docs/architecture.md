@@ -1,6 +1,6 @@
 # Architecture
 
-Start here for the big picture. This is the one-screen map of how data flows through the project, where each piece lives, and which design decisions are deliberate. For setup and commands see the [README](../README.md); for what each number means (data sources, per-metric inputs, calculation, caveats) see [metrics.md](metrics.md); for exact formulas, the inline docstrings next to each number are the source of truth.
+Start here for the big picture. This is the one-screen map of how data flows through the project, where each piece lives, and which design decisions are deliberate. For setup and commands see the [README](../README.md); for what each number means (data sources, per-metric inputs, calculation, caveats) see [metrics.md](metrics.md); for deliberate Network metric carve-outs see [network-exclusions.md](network-exclusions.md); for exact formulas, the inline docstrings next to each number are the source of truth.
 
 ## Data flow
 

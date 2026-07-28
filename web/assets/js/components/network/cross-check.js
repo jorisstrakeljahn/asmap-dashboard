@@ -9,7 +9,7 @@ import { t } from "../../utils/i18n.js";
 import { crossCheckSummary } from "./quality-data.js";
 import {
     attributionProviderLabel,
-    sourceLabel,
+    latestLineageLabel,
 } from "./series-data.js";
 
 // Summarises the whole series, so it is range-independent and renders
@@ -32,7 +32,7 @@ export function mountCrossCheckStat(network, sources, primary) {
         pct: `${Math.round(summary.latest.cc.agreement_pct)}%`,
     });
     const noteText = t("network.crosscheck.note", {
-        source: sourceLabel(primary),
+        source: latestLineageLabel(network, primary),
         provider: attributionProviderLabel(network),
         coverage: `${(
             network.reality_attribution?.coverage_pct ?? 0
