@@ -17,9 +17,11 @@ import {
     toMs,
 } from "./series-data.js";
 import {
+    chartGranularity,
     clampTimeline,
     clampTimelineMax,
-    dayUnionTimeline,
+    periodUnionTimeline,
+    unionBuildChangeAnchors,
 } from "./timelines.js";
 
 // Create the header mode-switch once and cache it on the chart's persistent
@@ -34,11 +36,21 @@ function ensureToggle(state, factory) {
 // Render all four trend charts for the current range bounds. ``states`` carries
 // the per-chart toggle state (hidden series, decay axis, HHI family);
 // ``rerender`` re-runs this whole pass when a chart's own toggle changes.
-export function mountTrendCharts(network, sources, bounds, states, rerender) {
+// ``range`` picks the display grain (weekly on 1Y, monthly on 3Y/5Y/Max);
+// daily samples stay in the payload and only the plotted slots are thinned.
+export function mountTrendCharts(
+    network,
+    sources,
+    bounds,
+    states,
+    rerender,
+    range,
+) {
+    const granularity = chartGranularity(range);
     mountDecayChart(network, sources, bounds, states.decay, rerender);
-    mountConcentrationChart(network, bounds, sources[0]);
-    mountHhiChart(network, sources, bounds, states.hhi, rerender);
-    mountCoverageChart(network, sources, bounds, states.coverage);
+    mountConcentrationChart(network, bounds, sources[0], granularity);
+    mountHhiChart(network, sources, bounds, states.hhi, rerender, granularity);
+    mountCoverageChart(network, sources, bounds, states.coverage, granularity);
 }
 
 // ---- Decay: how stale an older map is for a crawler's nodes ------
@@ -204,10 +216,11 @@ function ageAxisSpec(axisMax, nowMs) {
 // number comparable across crawlers, so this overlays every source - two
 // independent crawls tracing the same decline is the credibility signal. No
 // zero floor: HHI lives in a narrow band, so flooring would flatten the trend.
-// Points bucket by calendar day so same-map snapshots hours apart share one
-// slot and one tooltip. The header family toggle (All/IPv4/IPv6) exists because
-// the ~80/20 split makes the combined index IPv4-dominated, hiding IPv6.
-function mountHhiChart(network, sources, bounds, state, rerender) {
+// Points: every ASmap build change stays a slot, with week/month fillers
+// between so denser crawls do not paint one point per day. The header family
+// toggle (All/IPv4/IPv6) exists because the ~80/20 split makes the combined
+// index IPv4-dominated, hiding IPv6.
+function mountHhiChart(network, sources, bounds, state, rerender, granularity) {
     const slot = document.querySelector("[data-network-hhi]");
     if (!slot) return;
     const family = state.family ?? "all";
@@ -218,7 +231,12 @@ function mountHhiChart(network, sources, bounds, state, rerender) {
             value: family === "all" ? sn.hhi : (sn.families?.[family]?.hhi ?? null),
         })),
     }));
-    const timeline = clampTimeline(dayUnionTimeline(entries), bounds.cutoff);
+    const timeline = clampTimeline(
+        periodUnionTimeline(entries, granularity, {
+            anchorTs: unionBuildChangeAnchors(network, sources),
+        }),
+        bounds.cutoff,
+    );
 
     const familyToggle = ensureToggle(state, () =>
         createModeSwitch({
@@ -259,7 +277,7 @@ function mountHhiChart(network, sources, bounds, state, rerender) {
 // clearnet nodes the build in effect resolves to a real AS. A sinking line
 // means kartograf's input data is falling behind the network - independent of
 // the HHI distribution above.
-function mountCoverageChart(network, sources, bounds, state) {
+function mountCoverageChart(network, sources, bounds, state, granularity) {
     const slot = document.querySelector("[data-network-coverage]");
     if (!slot) return;
     const entries = sources.map((source) => ({
@@ -271,7 +289,12 @@ function mountCoverageChart(network, sources, bounds, state) {
                 : null,
         })),
     }));
-    const timeline = clampTimeline(dayUnionTimeline(entries), bounds.cutoff);
+    const timeline = clampTimeline(
+        periodUnionTimeline(entries, granularity, {
+            anchorTs: unionBuildChangeAnchors(network, sources),
+        }),
+        bounds.cutoff,
+    );
 
     mountSeriesChart(slot, {
         title: t("network.coverage.title"),
@@ -299,7 +322,7 @@ function mountCoverageChart(network, sources, bounds, state) {
 // snapshot's actual top five so the height is the honest per-period CR5 (see
 // operators-chart.js). A stack is single-source by nature, so instead of
 // forcing multiple crawls it follows the one Bitnodes lineage.
-function mountConcentrationChart(network, bounds, source) {
+function mountConcentrationChart(network, bounds, source, granularity) {
     const parent = document.querySelector("[data-network-concentration]");
     if (!parent) return;
     if (!source || !network.sources[source]?.snapshots?.length) {
@@ -310,6 +333,7 @@ function mountConcentrationChart(network, bounds, source) {
     mountOperatorsChart(parent, {
         snapshots: network.sources[source].snapshots,
         bounds,
+        granularity,
         xMarkers: transitionMarkers(network),
     });
 }

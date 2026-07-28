@@ -126,7 +126,14 @@ export function mount(payload) {
             family: states.hhi.family !== "all" ? states.hhi.family : null,
         });
         const bounds = rangeBounds(range, allTimestamps);
-        mountTrendCharts(network, presentSources, bounds, states, renderTrends);
+        mountTrendCharts(
+            network,
+            presentSources,
+            bounds,
+            states,
+            renderTrends,
+            range,
+        );
     };
 
     // The data-quality stat summarises the whole series, so it is

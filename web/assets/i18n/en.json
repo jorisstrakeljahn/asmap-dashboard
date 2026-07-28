@@ -365,7 +365,7 @@
         },
         "charts": {
             "sectionTitle": "Trends",
-            "sectionLede": "These charts follow one Bitnodes series. The marker shows where exports moved from archived bitnodes.io JSON to daily bitnod.es CSVs."
+            "sectionLede": "These charts follow one Bitnodes series. On 1Y, one point per week (and at each new ASmap build). On 3Y/5Y/Max, every build stays a point and quiet months still get a sample so the line keeps moving when no map ships. Daily samples stay in the data. The marker shows where exports moved from archived bitnodes.io JSON to daily bitnod.es CSVs."
         },
         "decay": {
             "title": "Map staleness for today's nodes",
@@ -414,14 +414,14 @@
         },
         "concentration": {
             "combinedLabel": "Top {count} combined",
-            "operatorsTitle": "Top 5 operators per snapshot",
-            "operatorsLede": "Where those observed nodes actually sit, shown as the combined share of the network held by the five largest operators at each point in time. A shrinking stack means nodes are spreading across more operators, which is healthier, since no single operator comes close to surrounding a node.",
+            "operatorsTitle": "Top 5 operators over time",
+            "operatorsLede": "Where those observed nodes actually sit, shown as the combined share of the network held by the five largest operators at each sampled point. A shrinking stack means nodes are spreading across more operators, which is healthier, since no single operator comes close to surrounding a node.",
             "operatorsInfoAria": "About the top operator breakdown",
-            "operatorsAria": "Stacked bars, one per snapshot of the selected crawler, segmented into that snapshot's five largest operators by node share. The bar height is the combined top-5 share. Hover a bar for the operator names.",
+            "operatorsAria": "Stacked bars for each ASmap build change plus weekly or monthly fillers, segmented into that sample's five largest operators by node share. The bar height is the combined top-5 share. Hover a bar for the operator names.",
             "operatorsInfo": [
-                "One bar per snapshot, split into the five operators with the largest node share at that point, scored against the build in effect. Bar height is the combined top-5 share, so a shrinking bar means the top tier is losing its grip.",
-                "The top five are re-picked per snapshot, since a fixed five would understate the share when a new operator rises. Each operator keeps its colour across bars, so a colour appearing or vanishing is the tier reshuffling. Hover a bar for the names.",
-                "The bars follow the same Bitnodes lineage as the other Network charts."
+                "On 1Y, one bar per week; on 3Y/5Y/Max, one bar per month - always using the ASmap build crawl when that period lands a new map. Months or weeks without a build still get a bar so concentration keeps updating between releases. Each bar splits into the five operators with the largest node share at that point, scored against the build in effect. Bar height is the combined top-5 share, so a shrinking bar means the top tier is losing its grip.",
+                "The top five are re-picked per sample, since a fixed five would understate the share when a new operator rises. Each operator keeps its colour across bars, so a colour appearing or vanishing is the tier reshuffling. Hover a bar for the names.",
+                "The bars follow the same Bitnodes lineage as the other Network charts. Daily crawls remain in the payload; only the drawn bars are thinned."
             ]
         },
         "crosscheck": {
