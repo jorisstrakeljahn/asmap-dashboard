@@ -39,9 +39,11 @@ _BITNODES_ASN_RE = re.compile(r"^AS(\d+)$")
 # Per-node array offsets in the two Bitnodes JSON shapes. Named so the
 # loaders read as field access, with one place to update on a schema bump.
 _BITNODES_FULL_NODE_LEN = 13
+_BITNODES_FULL_UA_IDX = 1
 _BITNODES_FULL_COUNTRY_IDX = 7
 _BITNODES_FULL_ASN_IDX = 11
 
+_BITNODES_OLD_UA_IDX = 3
 _BITNODES_OLD_ROW_MIN_LEN = 14
 _BITNODES_OLD_COUNTRY_IDX = 9
 _BITNODES_OLD_ASN_IDX = 13
@@ -64,13 +66,16 @@ class Node:
     ``asn`` / ``country`` are what the *crawler* resolved (for the ASN
     cross-check and per-country grouping). ``None`` when the source did
     not carry them; the metric layer reads ``None`` as "does not
-    contribute to that metric" rather than guessing.
+    contribute to that metric" rather than guessing. ``user_agent`` is
+    the peer's advertised agent string when the export carries it
+    (needed for concentration exclusions); ``None`` when absent.
     """
 
     ip: str
     version: int
     asn: int | None
     country: str | None
+    user_agent: str | None = None
 
 
 @dataclass(frozen=True)
@@ -93,7 +98,12 @@ class Snapshot:
     lineage_stage: str = "archive"
 
 
-def _make_node(ip: str, asn: int | None, country: str | None) -> Node | None:
+def _make_node(
+    ip: str,
+    asn: int | None,
+    country: str | None,
+    user_agent: str | None = None,
+) -> Node | None:
     """Validate ``ip`` and build a Node, or return None for non-IP peers
     (onion / I2P / CJDNS or unparseable), which callers fold into their
     ``*_skipped`` tallies."""
@@ -104,7 +114,17 @@ def _make_node(ip: str, asn: int | None, country: str | None) -> Node | None:
     # ``country`` can arrive non-string from the bare-list Bitnodes rows,
     # so guard the type before normalising.
     country = (country.strip().upper() or None) if isinstance(country, str) else None
-    return Node(ip=ip, version=parsed.version, asn=asn, country=country)
+    if isinstance(user_agent, str):
+        user_agent = user_agent.strip() or None
+    else:
+        user_agent = None
+    return Node(
+        ip=ip,
+        version=parsed.version,
+        asn=asn,
+        country=country,
+        user_agent=user_agent,
+    )
 
 
 def _parse_host(addr: str) -> str | None:
@@ -212,7 +232,9 @@ def load_bitnodes_csv(path: PathLike) -> Snapshot:
             if host is None:
                 onion += 1
                 continue
-            node = _make_node(host, None, row.get("country"))
+            node = _make_node(
+                host, None, row.get("country"), row.get("user_agent")
+            )
             if node is None:
                 unresolved += 1
                 continue
@@ -252,8 +274,8 @@ def _load_bitnodes_good(raw: dict, timestamp: int) -> Snapshot:
         if host is None:
             onion += 1
             continue
-        asn, country = _bitnodes_node_annotations(fields)
-        node = _make_node(host, asn, country)
+        asn, country, user_agent = _bitnodes_node_annotations(fields)
+        node = _make_node(host, asn, country, user_agent)
         if node is None:
             unresolved += 1
             continue
@@ -285,10 +307,15 @@ def _load_bitnodes_old(rows: list, timestamp: int) -> Snapshot:
             continue
         asn = None
         country = None
+        user_agent = None
+        if len(row) > _BITNODES_OLD_UA_IDX and isinstance(
+            row[_BITNODES_OLD_UA_IDX], str
+        ):
+            user_agent = row[_BITNODES_OLD_UA_IDX]
         if len(row) >= _BITNODES_OLD_ROW_MIN_LEN:
             asn = _parse_bitnodes_asn(row[_BITNODES_OLD_ASN_IDX])
             country = row[_BITNODES_OLD_COUNTRY_IDX]
-        node = _make_node(host, asn, country)
+        node = _make_node(host, asn, country, user_agent)
         if node is None:
             unresolved += 1
             continue
@@ -305,14 +332,26 @@ def _load_bitnodes_old(rows: list, timestamp: int) -> Snapshot:
     )
 
 
-def _bitnodes_node_annotations(fields: object) -> tuple[int | None, str | None]:
-    """Pull (asn, country) from a full-form node array; the compact form
-    carries no geo, so both come back ``None``."""
-    if not isinstance(fields, list) or len(fields) < _BITNODES_FULL_NODE_LEN:
-        return None, None
+def _bitnodes_node_annotations(
+    fields: object,
+) -> tuple[int | None, str | None, str | None]:
+    """Pull (asn, country, user_agent) from a full-form node array.
+
+    Compact forms carry no geo; user_agent is still taken when index 1 is a
+    string so concentration exclusions can match on the agent alone.
+    """
+    if not isinstance(fields, list):
+        return None, None, None
+    user_agent = None
+    if len(fields) > _BITNODES_FULL_UA_IDX and isinstance(
+        fields[_BITNODES_FULL_UA_IDX], str
+    ):
+        user_agent = fields[_BITNODES_FULL_UA_IDX]
+    if len(fields) < _BITNODES_FULL_NODE_LEN:
+        return None, None, user_agent
     asn = _parse_bitnodes_asn(fields[_BITNODES_FULL_ASN_IDX])
     country = fields[_BITNODES_FULL_COUNTRY_IDX]
-    return asn, (country if isinstance(country, str) else None)
+    return asn, (country if isinstance(country, str) else None), user_agent
 
 
 # Input source -> loader. Both JSON and CSV forms belong to one lineage.
@@ -411,6 +450,7 @@ def _annotate_node(node: Node, records: Mapping[str, WhoisRecord]) -> Node:
         # Team Cymru's country is RIR allocation metadata, not GeoIP. Keep the
         # crawler's country value and use independent WHOIS only for the ASN.
         country=node.country,
+        user_agent=node.user_agent,
     )
 
 

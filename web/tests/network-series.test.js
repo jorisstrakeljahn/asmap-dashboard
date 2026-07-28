@@ -10,6 +10,9 @@ import { crossCheckSummary } from "../assets/js/components/network/quality-data.
 import {
     SOURCE_ORDER,
     buildUnionTimeline,
+    latestLineageLabel,
+    lineageStageLabel,
+    toMs,
 } from "../assets/js/components/network/series-data.js";
 import { stalenessAtTarget } from "../assets/js/components/network/staleness-data.js";
 import {
@@ -25,6 +28,32 @@ import {
 
 test("Network exposes one continuous Bitnodes source", () => {
     assert.deepEqual(SOURCE_ORDER, ["bitnodes"]);
+});
+
+test("lineage labels follow the archive-to-bitnod.es handoff", () => {
+    // Assert the handoff branch without loading en.json (no fetch in node:test).
+    // Missing-key warnings here are expected; production loads the dictionary.
+    const transition = 1_779_364_800; // 2026-05-21 noon UTC
+    const network = {
+        source_transition: { timestamp: transition, label: "2026-05-21" },
+        sources: {
+            bitnodes: {
+                snapshots: [
+                    { timestamp: transition - 86_400 },
+                    { timestamp: transition },
+                    { timestamp: transition + 86_400 },
+                ],
+            },
+        },
+    };
+
+    const before = lineageStageLabel(network, toMs(transition - 1));
+    const atHandoff = lineageStageLabel(network, toMs(transition));
+    const after = lineageStageLabel(network, toMs(transition + 86_400));
+    assert.match(before, /bitnodesArchive|bitnodes\.io/);
+    assert.match(atHandoff, /bitnodesLive|bitnod\.es/);
+    assert.equal(atHandoff, after);
+    assert.equal(latestLineageLabel(network, "bitnodes"), after);
 });
 
 test("transition markers are clipped to the visible chart range", () => {

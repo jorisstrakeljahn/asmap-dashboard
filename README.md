@@ -10,6 +10,7 @@ Documentation:
 
 - [`docs/metrics.md`](docs/metrics.md) - what each number means: data sources with samples, per-metric inputs, calculation, caveats, and code pointers.
 - [`docs/architecture.md`](docs/architecture.md) - data flow, module map, URL structure, and design decisions.
+- [`docs/network-exclusions.md`](docs/network-exclusions.md) - deliberate Network-tab population carve-outs (e.g. AS63949 `/Satoshi:27.0.0/`) with BNOC links.
 
 ## Setup
 

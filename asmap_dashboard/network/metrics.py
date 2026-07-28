@@ -30,6 +30,17 @@ from asmap_dashboard.network.snapshots import Node, Snapshot
 
 TOP_ASES_LIMIT = 15
 
+# Network-tab population exclusions. Full rules live in
+# docs/network-exclusions.md; the tab surfaces them under Limitations.
+# Matching peers are dropped from every derived Network metric (cards,
+# trends, decay, node-impact, cross-check). Raw snapshot files and the
+# on-disk crawler exports are unchanged. When nothing matches, the filter
+# is a no-op (excluded_nodes == 0) and all arithmetic still works on the
+# full clearnet set.
+NETWORK_EXCLUDE_ASN = 63949
+NETWORK_EXCLUDE_USER_AGENT = "/Satoshi:27.0.0/"
+NETWORK_EXCLUDE_RULE_ID = "as63949_satoshi_27"
+
 # Preferred node set for the all-pairs node-impact pass. The archive and
 # daily exports share this one source id by product decision.
 PRIMARY_SOURCE_ORDER = ("bitnodes",)
@@ -77,6 +88,7 @@ class _PreparedNode:
     prefix: list[bool]
     asn: int | None
     ip: str
+    user_agent: str | None = None
 
 
 # A per-node drift target: given a prepared node and its ASN under the
@@ -96,9 +108,68 @@ def _prepare_nodes(nodes: tuple[Node, ...]) -> list[_PreparedNode]:
                 prefix=prefix,
                 asn=node.asn,
                 ip=node.ip,
+                user_agent=node.user_agent,
             )
         )
     return prepared
+
+
+def _is_excluded_network_node(node: _PreparedNode, mapped_asn: int) -> bool:
+    """True when this peer matches an active Network population exclusion.
+
+    Needs the advertised user agent plus AS63949 from either the ASmap
+    lookup or the crawler/WHOIS annotation, so a missing side does not
+    leak the fleet back in. See docs/network-exclusions.md.
+    """
+    ua = node.user_agent or ""
+    if NETWORK_EXCLUDE_USER_AGENT not in ua:
+        return False
+    return mapped_asn == NETWORK_EXCLUDE_ASN or node.asn == NETWORK_EXCLUDE_ASN
+
+
+def _network_metric_nodes(
+    prepared: list[_PreparedNode], asmap: ASMap
+) -> tuple[list[_PreparedNode], int]:
+    """Split prepared nodes into (kept for Network metrics, excluded count).
+
+    Safe when the fleet is absent: returns ``(prepared, 0)`` and callers
+    score the full set exactly as before the exclusion existed.
+    """
+    kept: list[_PreparedNode] = []
+    excluded = 0
+    for node in prepared:
+        mapped_asn = _lookup_asn(asmap, node.prefix)
+        if _is_excluded_network_node(node, mapped_asn):
+            excluded += 1
+        else:
+            kept.append(node)
+    return kept, excluded
+
+
+def _exclusion_payload(excluded_nodes: int) -> dict:
+    return {
+        "excluded_nodes": excluded_nodes,
+        "rules": [
+            {
+                "id": NETWORK_EXCLUDE_RULE_ID,
+                "asn": NETWORK_EXCLUDE_ASN,
+                "user_agent": NETWORK_EXCLUDE_USER_AGENT,
+            }
+        ],
+    }
+
+
+def scored_population_counts(
+    snapshot: Snapshot, asmap: ASMap
+) -> tuple[int, int, int]:
+    """Clearnet / annotated / excluded counts after Network exclusions.
+
+    Used by the WHOIS coverage banner so its denominator matches the
+    Reachable-nodes card. Returns ``(kept_clearnet, kept_annotated, excluded)``.
+    """
+    kept, excluded = _network_metric_nodes(_prepare_nodes(snapshot.nodes), asmap)
+    annotated = sum(node.asn is not None for node in kept)
+    return len(kept), annotated, excluded
 
 
 def _select_in_effect_build(builds: list[_Build], timestamp: int) -> _Build:
@@ -181,8 +252,14 @@ def _snapshot_metrics(snapshot: Snapshot, build: _Build) -> dict:
     (name + timestamp) so the overview caption can name the map the
     numbers are scored against. ``families`` repeats the headline numbers
     per effective address family (see the module docstring for why).
+
+    Peers matched by ``_is_excluded_network_node`` are dropped from every
+    number here (and counted in ``network_exclusions``); the raw snapshot
+    on disk is untouched.
     """
-    prepared = _prepare_nodes(snapshot.nodes)
+    prepared, excluded = _network_metric_nodes(
+        _prepare_nodes(snapshot.nodes), build.asmap
+    )
 
     overall = _Tally()
     families = {"ipv4": _Tally(), "ipv6": _Tally()}
@@ -223,6 +300,7 @@ def _snapshot_metrics(snapshot: Snapshot, build: _Build) -> dict:
         "cross_check": _cross_check(
             cross_compared, cross_agree, annotated, overall.clearnet
         ),
+        "network_exclusions": _exclusion_payload(excluded),
     }
 
 
@@ -324,7 +402,9 @@ def _drift_curve(
     ``age_reference`` (newest build overall) so every source shares one
     age-to-calendar axis.
     """
-    prepared = _prepare_nodes(snapshot.nodes)
+    prepared, _excluded = _network_metric_nodes(
+        _prepare_nodes(snapshot.nodes), target_reference.asmap
+    )
     reference_asns = [_lookup_asn(target_reference.asmap, n.prefix) for n in prepared]
     targets = [
         target(node, ref) for node, ref in zip(prepared, reference_asns, strict=True)
@@ -403,7 +483,11 @@ def _build_node_impact(snapshot: Snapshot, diffable_builds: list[_Build]) -> dic
     The two-newest-builds impact for the banner comes from the per-source
     ``_latest_update_impact`` instead.
     """
-    prepared = _prepare_nodes(snapshot.nodes)
+    # Filter against the newest map so the Diff Explorer node-impact
+    # uses the same population as the Network tab's latest snapshot.
+    prepared, _excluded = _network_metric_nodes(
+        _prepare_nodes(snapshot.nodes), diffable_builds[-1].asmap
+    )
     families = ["ipv4" if is_ipv4_prefix(n.prefix) else "ipv6" for n in prepared]
     asn_by_build = {
         build.name: [_lookup_asn(build.asmap, n.prefix) for n in prepared]
@@ -430,7 +514,9 @@ def _latest_update_impact(
     if len(diffable_builds) < 2:
         return None
     prev_build, last_build = diffable_builds[-2], diffable_builds[-1]
-    prepared = _prepare_nodes(snapshot.nodes)
+    prepared, _excluded = _network_metric_nodes(
+        _prepare_nodes(snapshot.nodes), last_build.asmap
+    )
     families = ["ipv4" if is_ipv4_prefix(n.prefix) else "ipv6" for n in prepared]
     asns_prev = [_lookup_asn(prev_build.asmap, n.prefix) for n in prepared]
     asns_last = [_lookup_asn(last_build.asmap, n.prefix) for n in prepared]
@@ -513,10 +599,14 @@ def _build_source_entry(
         entry["decay"] = map_curve
 
     latest = usable[-1]
-    annotated = sum(node.asn is not None for node in latest.nodes)
+    # WHOIS floor uses the same filtered population as the rest of the tab.
+    kept, _excluded = _network_metric_nodes(
+        _prepare_nodes(latest.nodes), reference.asmap
+    )
+    annotated = sum(node.asn is not None for node in kept)
     truth_anchor = (
         latest
-        if latest.nodes and annotated / len(latest.nodes) >= ANNOTATION_COVERAGE_FLOOR
+        if kept and annotated / len(kept) >= ANNOTATION_COVERAGE_FLOOR
         else None
     )
     if truth_anchor is not None:

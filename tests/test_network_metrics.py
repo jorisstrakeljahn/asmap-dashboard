@@ -116,6 +116,98 @@ def test_snapshot_metrics_splits_families_by_effective_family():
     )
 
 
+def test_network_excludes_as63949_satoshi_27_fleet_from_all_metrics():
+    """AS63949 + /Satoshi:27.0.0/ drops out of every Network-tab number.
+
+    A same-AS peer with a different user agent still counts. Raw snapshot
+    node lists are untouched by this function (only the scored payload).
+    """
+    build = _build(
+        "2024/1710000000",
+        1710000000,
+        [("1.0.0.0/8", 63949), ("2.0.0.0/8", 100)],
+    )
+    nodes = [
+        Node(
+            ip="1.0.0.1",
+            version=4,
+            asn=63949,
+            country="US",
+            user_agent="/Satoshi:27.0.0/",
+        ),
+        Node(
+            ip="1.0.0.2",
+            version=4,
+            asn=63949,
+            country="US",
+            user_agent="/Satoshi:27.0.0/",
+        ),
+        Node(
+            ip="1.0.0.3",
+            version=4,
+            asn=63949,
+            country="US",
+            user_agent="/Satoshi:29.0.0/",
+        ),
+        Node(ip="2.0.0.1", version=4, asn=100, country="DE"),
+    ]
+    result = _snapshot_metrics(_snapshot(1710000001, nodes), build)
+
+    assert result["network_exclusions"]["excluded_nodes"] == 2
+    assert result["network_exclusions"]["rules"][0]["id"] == "as63949_satoshi_27"
+    # Reachable / mapped / buckets only see the two non-fleet peers.
+    assert result["nodes_clearnet"] == 2
+    assert result["mapped"] == 2
+    assert result["bucketing"]["asmap_groups"] == 2
+    assert result["hhi"] == 0.5
+    assert result["unique_asns"] == 2
+    assert result["ases_to_50pct"] == 1
+    top = {row["asn"]: row["nodes"] for row in result["top_ases"]}
+    assert top == {63949: 1, 100: 1}
+
+
+def test_network_keeps_as63949_without_matching_user_agent():
+    build = _build(
+        "2024/1710000000",
+        1710000000,
+        [("1.0.0.0/8", 63949)],
+    )
+    nodes = [
+        Node(
+            ip="1.0.0.1",
+            version=4,
+            asn=63949,
+            country="US",
+            user_agent="/Satoshi:28.0.0/",
+        ),
+    ]
+    result = _snapshot_metrics(_snapshot(1710000001, nodes), build)
+
+    assert result["network_exclusions"]["excluded_nodes"] == 0
+    assert result["nodes_clearnet"] == 1
+    assert result["hhi"] == 1.0
+    assert result["top_ases"][0]["asn"] == 63949
+
+
+def test_network_exclusion_is_noop_when_fleet_absent():
+    """When nothing matches, metrics equal the unfiltered population."""
+    build = _build(
+        "2024/1710000000",
+        1710000000,
+        [("1.0.0.0/8", 100), ("2.0.0.0/8", 200)],
+    )
+    nodes = [
+        Node(ip="1.0.0.1", version=4, asn=100, country="DE", user_agent="/Satoshi:29.0.0/"),
+        Node(ip="2.0.0.1", version=4, asn=200, country="DE", user_agent="/Satoshi:27.0.0/"),
+    ]
+    result = _snapshot_metrics(_snapshot(1710000001, nodes), build)
+
+    assert result["network_exclusions"]["excluded_nodes"] == 0
+    assert result["nodes_clearnet"] == 2
+    assert result["mapped"] == 2
+    assert result["hhi"] == 0.5
+
+
 def test_ases_to_reach_50pct_counts_ases_to_half():
     # 6 mapped nodes: AS1 holds 2, AS2 holds 2, AS3/AS4 hold 1 each.
     # Half is 3 nodes -> AS1 alone (2) is short, AS1+AS2 (4) reaches it.

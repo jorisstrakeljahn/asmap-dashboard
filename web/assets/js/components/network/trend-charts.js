@@ -12,7 +12,8 @@ import { mountSeriesChart } from "./series-chart.js";
 import {
     attributionProviderLabel,
     buildUnionTimeline,
-    sourceLabel,
+    latestLineageLabel,
+    lineageStageLabel,
     sourceSeries,
     toMs,
 } from "./series-data.js";
@@ -151,8 +152,9 @@ function mountDecayChart(network, sources, bounds, state, rerender) {
                 date: formatDate(new Date(nowMs - timeline.timestamps[i] * MS_PER_DAY)),
                 days: Math.round(timeline.timestamps[i]),
             }),
+        // Decay holds the latest crawl fixed, so every point is that host.
         tooltipRowsAt: (i) =>
-            sourceRows(usable, timeline, i, (v) => formatPercentNumber(v)),
+            sourceRowsLatest(network, usable, timeline, i, formatPercentNumber),
         state,
     });
 }
@@ -266,7 +268,8 @@ function mountHhiChart(network, sources, bounds, state, rerender, granularity) {
         domainEnd: bounds.domainEnd,
         xMarkers: transitionMarkers(network),
         tooltipTitleAt: (i) => snapshotTitle(timeline, i),
-        tooltipRowsAt: (i) => sourceRows(sources, timeline, i, formatHhi),
+        tooltipRowsAt: (i) =>
+            sourceRows(network, sources, timeline, i, formatHhi),
         state,
     });
 }
@@ -311,7 +314,8 @@ function mountCoverageChart(network, sources, bounds, state, granularity) {
         domainEnd: bounds.domainEnd,
         xMarkers: transitionMarkers(network),
         tooltipTitleAt: (i) => snapshotTitle(timeline, i),
-        tooltipRowsAt: (i) => sourceRows(sources, timeline, i, formatPercentNumber),
+        tooltipRowsAt: (i) =>
+            sourceRows(network, sources, timeline, i, formatPercentNumber),
         state,
     });
 }
@@ -362,11 +366,22 @@ function snapshotTitle(timeline, slot) {
 
 // One row per source, always in the same order. A source with no value at this
 // slot shows an em dash instead of dropping its row, so the readout's height
-// stays constant while scrubbing.
-function sourceRows(sources, timeline, slot, format) {
+// stays constant while scrubbing. Labels follow the archive→live handoff so a
+// pre-transition point reads bitnodes.io and a later one bitnod.es.
+function sourceRows(network, sources, timeline, slot, format) {
+    const label = lineageStageLabel(network, timeline.timestamps[slot]);
     return sources.map((source) => {
         const value = timeline.valueAt(source, slot);
-        return [sourceLabel(source), value == null ? "\u2014" : format(value)];
+        return [label, value == null ? "\u2014" : format(value)];
+    });
+}
+
+// Decay (and similar) score a fixed latest crawl; every slot shares that host.
+function sourceRowsLatest(network, sources, timeline, slot, format) {
+    const label = latestLineageLabel(network, sources[0]);
+    return sources.map((source) => {
+        const value = timeline.valueAt(source, slot);
+        return [label, value == null ? "\u2014" : format(value)];
     });
 }
 
