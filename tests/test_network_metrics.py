@@ -197,8 +197,20 @@ def test_network_exclusion_is_noop_when_fleet_absent():
         [("1.0.0.0/8", 100), ("2.0.0.0/8", 200)],
     )
     nodes = [
-        Node(ip="1.0.0.1", version=4, asn=100, country="DE", user_agent="/Satoshi:29.0.0/"),
-        Node(ip="2.0.0.1", version=4, asn=200, country="DE", user_agent="/Satoshi:27.0.0/"),
+        Node(
+            ip="1.0.0.1",
+            version=4,
+            asn=100,
+            country="DE",
+            user_agent="/Satoshi:29.0.0/",
+        ),
+        Node(
+            ip="2.0.0.1",
+            version=4,
+            asn=200,
+            country="DE",
+            user_agent="/Satoshi:27.0.0/",
+        ),
     ]
     result = _snapshot_metrics(_snapshot(1710000001, nodes), build)
 

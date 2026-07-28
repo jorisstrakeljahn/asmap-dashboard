@@ -159,9 +159,7 @@ def _exclusion_payload(excluded_nodes: int) -> dict:
     }
 
 
-def scored_population_counts(
-    snapshot: Snapshot, asmap: ASMap
-) -> tuple[int, int, int]:
+def scored_population_counts(snapshot: Snapshot, asmap: ASMap) -> tuple[int, int, int]:
     """Clearnet / annotated / excluded counts after Network exclusions.
 
     Used by the WHOIS coverage banner so its denominator matches the
@@ -605,9 +603,7 @@ def _build_source_entry(
     )
     annotated = sum(node.asn is not None for node in kept)
     truth_anchor = (
-        latest
-        if kept and annotated / len(kept) >= ANNOTATION_COVERAGE_FLOOR
-        else None
+        latest if kept and annotated / len(kept) >= ANNOTATION_COVERAGE_FLOOR else None
     )
     if truth_anchor is not None:
         truth_curve = _decay_window(

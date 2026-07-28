@@ -232,9 +232,7 @@ def load_bitnodes_csv(path: PathLike) -> Snapshot:
             if host is None:
                 onion += 1
                 continue
-            node = _make_node(
-                host, None, row.get("country"), row.get("user_agent")
-            )
+            node = _make_node(host, None, row.get("country"), row.get("user_agent"))
             if node is None:
                 unresolved += 1
                 continue

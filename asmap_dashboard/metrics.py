@@ -289,9 +289,7 @@ def _build_network_payload(
         "snapshot_timestamp": latest.timestamp,
         "annotated": annotated,
         "nodes_clearnet": clearnet,
-        "coverage_pct": (
-            round(100 * annotated / clearnet, 4) if clearnet else 0.0
-        ),
+        "coverage_pct": (round(100 * annotated / clearnet, 4) if clearnet else 0.0),
     }
     return network
 
