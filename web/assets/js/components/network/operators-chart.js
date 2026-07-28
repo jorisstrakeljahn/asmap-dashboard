@@ -20,6 +20,7 @@ import { formatDate, formatPercent } from "../../format.js";
 import { nameFor } from "../../asn-names.js";
 import { mutedNote } from "../../utils/dom.js";
 import { t } from "../../utils/i18n.js";
+import { selectDisplaySnapshots } from "./timelines.js";
 
 // How many operators each bar breaks out. Five is the conventional
 // concentration cut (CR5) and keeps a stack legible.
@@ -32,11 +33,17 @@ const COLOR_SLOTS = 10;
 
 export function mountOperatorsChart(
     parent,
-    { snapshots, bounds, headerExtra = null, xMarkers = [] },
+    {
+        snapshots,
+        bounds,
+        granularity = "week",
+        headerExtra = null,
+        xMarkers = [],
+    },
 ) {
     if (!parent) return;
 
-    const rows = buildRows(snapshots, bounds.cutoff);
+    const rows = buildRows(snapshots, bounds.cutoff, granularity);
     if (rows.length === 0) {
         parent.replaceChildren(mutedNote(t("network.empty")));
         return;
@@ -52,19 +59,17 @@ export function mountOperatorsChart(
     });
 }
 
-// One row per snapshot inside the picked range: the snapshot's own top five
-// (top_ases is sorted by node count in the pipeline) plus their combined share.
-// Shares arrive as 0..1 ratios and are kept that way here; the draw pass scales
-// to percent.
-function buildRows(snapshots, cutoff) {
+// One row per kept sample inside the picked range: every ASmap build change
+// plus week/month fillers. Each sample's own top five (top_ases is sorted by
+// node count in the pipeline) plus their combined share. Shares arrive as
+// 0..1 ratios and are kept that way here; the draw pass scales to percent.
+function buildRows(snapshots, cutoff, granularity) {
     const rows = [];
-    for (const sn of snapshots) {
-        const ts = sn.timestamp * 1000;
-        if (ts < cutoff) continue;
+    for (const sn of selectDisplaySnapshots(snapshots, cutoff, granularity)) {
         const top = (sn.top_ases ?? []).slice(0, OPERATOR_LIMIT);
         if (top.length === 0) continue;
         rows.push({
-            ts,
+            ts: sn.timestamp * 1000,
             label: sn.label,
             top,
             combined: top.reduce((sum, e) => sum + e.share, 0),
