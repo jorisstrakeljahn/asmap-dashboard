@@ -154,9 +154,10 @@ jobs:
                       web/assets/data/network.json \
             --out web/assets/data/asn-names.json
 
-      # Guard against deploying an empty dashboard: an upstream layout
-      # change makes map discovery return nothing without erroring, so
-      # assert the generated payloads are non-empty before publishing.
+      # Guard against deploying an empty or silently stale dashboard.
+      # Upstream layout changes can make map discovery return nothing
+      # without erroring; a dead bitnod.es feed can leave last week's
+      # CSV as "latest" forever. Fail closed so the previous site stays.
       - name: Smoke-check generated payloads
         run: |
           jq -e '.maps | length > 0' web/assets/data/metrics.json > /dev/null
@@ -167,6 +168,18 @@ jobs:
             web/assets/data/network.json > /dev/null
           jq -e '.network.reality_attribution.coverage_pct >= 50' \
             web/assets/data/network.json > /dev/null
+          jq -e '.network.reality_attribution.nodes_clearnet > 0' \
+            web/assets/data/network.json > /dev/null
+          # 3 days matches fetch-bitmex lookback: short Actions outages
+          # self-heal; a silent source death must not keep shipping.
+          now=$(date -u +%s)
+          jq -e --argjson now "$now" '
+            (.network.reality_attribution.snapshot_timestamp | type == "number")
+            and (
+              ($now - .network.reality_attribution.snapshot_timestamp)
+              < (3 * 86400)
+            )
+          ' web/assets/data/network.json > /dev/null
 
       - uses: actions/configure-pages@v6
 
