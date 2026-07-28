@@ -86,7 +86,7 @@ jobs:
 
       - name: Restore generated map payloads
         id: map-payload-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             web/assets/data/metrics.json
@@ -124,7 +124,7 @@ jobs:
         run: echo "date=$(date -u +%F)" >> "$GITHUB_OUTPUT"
 
       - name: Restore private WHOIS cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: cache/whois/records.json
           key: whois-v2-${{ steps.whois-date.outputs.date }}
