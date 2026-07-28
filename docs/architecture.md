@@ -111,7 +111,7 @@ The deliberate choices, each with the trade-off that justified it, so intent nev
 - **One public crawler lineage, with an explicit handoff.** Archived bitnodes.io snapshots and daily bitnod.es CSV exports share one source id and line. Snapshot-time charts mark where the export host and format changed.
 - **WHOIS is independent from ASmap and private by construction.** The pipeline queries Team Cymru for the latest snapshot only. Raw IP-to-ASN records live in a gitignored cache and never enter the Pages artifact. The Reality curve and cross-check require sufficient current coverage; they never substitute an ASmap lookup or apply today's routing to old CSV snapshots.
 - **Map diffs and daily network scoring have separate commands.** Prefix diffs rebuild when their inputs change. Daily node scoring reuses cached map payloads and runs without `_compute_pair_diffs`.
-- **Prefer a frozen last-good site over a thin Reality curve.** CI smoke fails on low WHOIS coverage, zero clearnet count, or a &gt;3-day-old latest snapshot rather than shipping half-truth (see the Smoke-check step in `.github/workflows/pages.yml`). Weekly Dependabot PRs keep the repo from going idle so GitHub does not disable scheduled workflows.
+- **Prefer a frozen last-good site over a thin Reality curve.** CI smoke fails on low WHOIS coverage, zero clearnet count, or a &gt;3-day-old latest snapshot rather than shipping half-truth (see the Smoke-check step in `.github/workflows/pages.yml`).
 
 ## Metrics
 
